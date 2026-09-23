@@ -14,6 +14,8 @@ export interface PlayOptions { volume?: number; loop?: boolean }
 export interface PlayAtOptions extends PlayOptions { refDistance?: number; maxDistance?: number; rolloff?: number }
 
 class VoiceImpl implements Voice {
+  private released = false
+
   constructor(
     readonly node: THREE.Audio | THREE.PositionalAudio,
     readonly layer: AudioLayer,
@@ -24,16 +26,20 @@ class VoiceImpl implements Voice {
     this.refresh()
     // Audio.play() binds this.onEnded at play time, so an instance property set beforehand wins over the prototype's.
     // isPlaying is readonly in the type, so delegate to the prototype method (which flips it internally) rather than assigning it.
-    node.onEnded = () => { THREE.Audio.prototype.onEnded.call(node); onEnd(this) }
+    node.onEnded = () => { THREE.Audio.prototype.onEnded.call(node); this.end() }
   }
   get playing(): boolean { return this.node.isPlaying }
   refresh(): void { this.node.setVolume(this.base * this.layerGain()) }
   setVolume(v: number): void { this.base = v; this.refresh() }
-  stop(): void {
-    if (this.node.isPlaying) this.node.stop()     // stop() nulls source.onended, so onEnd runs exactly once
+  stop(): void { this.end() }
+  follow(p: THREE.Vector3): void { this.node.position.copy(p) }
+  /** The single path to onEnd: reachable from natural playback end and explicit stop(), any number of times, in any order. */
+  private end(): void {
+    if (this.released) return
+    this.released = true
+    if (this.node.isPlaying) this.node.stop()     // stop() nulls source.onended, so this can't re-enter via onEnded
     this.onEnd(this)
   }
-  follow(p: THREE.Vector3): void { this.node.position.copy(p) }
 }
 
 /**
