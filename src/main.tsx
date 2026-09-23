@@ -38,13 +38,16 @@ const [vx, , vz] = loc.vantage.position
 world.camera.position.y = heightfield.sample(vx, vz) + loc.vantage.position[1]
 const dev = createDevOverlay(document.getElementById('hud')!)
 const hud = document.getElementById('hud')!
-const look = new LookControls(world.renderer.domElement, loc.vantage.heading)
+const look = new LookControls(world.renderer.domElement, loc.vantage.heading, () => !isPaused(game.get()))
 const optics = new Optics()
 const mask = createMask(hud)
 const prompt = createPrompt(hud)
 const modeEl = document.createElement('div'); modeEl.className = 'mode'; hud.appendChild(modeEl)
 
-game.subscribe(s => world.setPaused(isPaused(s)))
+game.subscribe(s => {
+  world.setPaused(isPaused(s))
+  if (isPaused(s) && document.pointerLockElement) document.exitPointerLock()
+})
 
 addEventListener('wheel', e => {
   if (isPaused(game.get())) return

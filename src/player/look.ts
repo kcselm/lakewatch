@@ -12,6 +12,11 @@ export function applyLookDelta(s: LookState, dx: number, dy: number, sensitivity
   }
 }
 
+/** Pulled out so the pause gate can be asserted without a DOM: mirrors `enabled()`. */
+export function shouldHandleInput(enabled: () => boolean): boolean {
+  return enabled()
+}
+
 export class LookControls {
   state: LookState
   sensitivity = 0.0022
@@ -19,14 +24,24 @@ export class LookControls {
   private isLocked = false
   private touchLast: { x: number; y: number } | null = null
 
-  constructor(private canvas: HTMLElement, initialHeadingDeg: number) {
+  constructor(private canvas: HTMLElement, initialHeadingDeg: number, private enabled: () => boolean = () => true) {
     this.state = { yaw: THREE.MathUtils.degToRad(initialHeadingDeg), pitch: 0 }
-    canvas.addEventListener('click', () => { if (!this.isLocked) canvas.requestPointerLock() })
-    document.addEventListener('pointerlockchange', () => { this.isLocked = document.pointerLockElement === canvas })
-    document.addEventListener('mousemove', e => {
-      if (!this.isLocked) return
-      this.state = applyLookDelta(this.state, e.movementX, e.movementY, this.sensitivity, this.fovScale)
+    canvas.addEventListener('click', () => {
+      if (!shouldHandleInput(this.enabled)) return
+      if (this.isLocked) return
+      // requestPointerLock() can return a promise that rejects (e.g. WrongDocumentError) when
+      // the lock is unavailable; swallow it so it doesn't surface as an unhandled rejection.
+      const p = canvas.requestPointerLock() as unknown
+      if (p && typeof (p as Promise<void>).catch === 'function') (p as Promise<void>).catch(() => {})
     })
+    if (typeof document !== 'undefined') {
+      document.addEventListener('pointerlockchange', () => { this.isLocked = document.pointerLockElement === canvas })
+      document.addEventListener('mousemove', e => {
+        if (!shouldHandleInput(this.enabled)) return
+        if (!this.isLocked) return
+        this.state = applyLookDelta(this.state, e.movementX, e.movementY, this.sensitivity, this.fovScale)
+      })
+    }
     canvas.addEventListener('touchstart', e => { const t = e.touches[0]; if (t) this.touchLast = { x: t.clientX, y: t.clientY } }, { passive: true })
     canvas.addEventListener('touchmove', e => {
       const t = e.touches[0]

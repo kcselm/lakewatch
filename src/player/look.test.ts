@@ -1,4 +1,25 @@
-import { applyLookDelta } from './look'
+import { applyLookDelta, shouldHandleInput, LookControls } from './look'
+
+describe('shouldHandleInput', () => {
+  it('mirrors the enabled callback', () => {
+    expect(shouldHandleInput(() => true)).toBe(true)
+    expect(shouldHandleInput(() => false)).toBe(false)
+  })
+})
+
+describe('LookControls pause gating', () => {
+  it('does not request pointer lock on click while enabled() is false', () => {
+    const listeners = new Map<string, (e: unknown) => void>()
+    let lockRequested = false
+    const fakeCanvas = {
+      addEventListener(type: string, fn: (e: unknown) => void) { listeners.set(type, fn) },
+      requestPointerLock() { lockRequested = true },
+    } as unknown as HTMLElement
+    new LookControls(fakeCanvas, 0, () => false)
+    listeners.get('click')?.({})
+    expect(lockRequested).toBe(false)
+  })
+})
 
 describe('applyLookDelta', () => {
   it('turns right for positive dx and clamps pitch', () => {
