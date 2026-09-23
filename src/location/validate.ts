@@ -34,3 +34,16 @@ export function validateCast(loc: Location, birds: readonly Bird[]): string[] {
   })
   return errors
 }
+
+/** Every ambience id the location names must be a layer in the manifest, once. */
+export function validateAmbience(loc: Pick<Location, 'ambience'>, layers: readonly { id: string }[]): string[] {
+  const known = new Set(layers.map(l => l.id))
+  const errors: string[] = []
+  const seen = new Set<string>()
+  loc.ambience.forEach((id, i) => {
+    if (!known.has(id)) errors.push(`ambience[${i}]: layer ${id} is not in data/ambience.json`)
+    if (seen.has(id)) errors.push(`ambience[${i}]: layer ${id} is listed twice`)
+    seen.add(id)
+  })
+  return errors
+}

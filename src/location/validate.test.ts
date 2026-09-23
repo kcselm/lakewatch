@@ -1,6 +1,8 @@
-import { validateCast } from './validate'
-import type { Location } from './schema'
+import { validateCast, validateAmbience } from './validate'
+import { parseLocation, type Location } from './schema'
 import type { Bird } from '../catalog/types'
+import { loadAmbience } from '../audio/ambienceManifest'
+import lakeRaw from '../../data/locations/lake.json'
 
 const bird = (code: string, habitats: Bird['habitats']): Bird => ({
   speciesCode: code, commonName: code, scientificName: code, family: 'F', familyCommon: 'F',
@@ -49,5 +51,21 @@ describe('lake.json', () => {
     const loc = loadLocation()
     expect(loc.id).toBe('willow-lake')
     expect(loc.cast.length).toBeGreaterThan(0)
+  })
+})
+
+describe('validateAmbience', () => {
+  const layers = [{ id: 'wind-reeds' }, { id: 'water-lapping' }]
+  it('passes when every id is in the manifest', () => {
+    expect(validateAmbience({ ambience: ['wind-reeds'] }, layers)).toEqual([])
+  })
+  it('names an id the manifest does not define', () => {
+    expect(validateAmbience({ ambience: ['wind-reeds', 'thunder'] }, layers)).toEqual(['ambience[1]: layer thunder is not in data/ambience.json'])
+  })
+  it('rejects a layer listed twice', () => {
+    expect(validateAmbience({ ambience: ['wind-reeds', 'wind-reeds'] }, layers)).toEqual(['ambience[1]: layer wind-reeds is listed twice'])
+  })
+  it('the lake only names layers the committed manifest defines', () => {
+    expect(validateAmbience(parseLocation(lakeRaw), loadAmbience())).toEqual([])
   })
 })

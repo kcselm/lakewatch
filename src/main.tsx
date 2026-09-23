@@ -28,6 +28,8 @@ import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
 import { recordSighting, seenState } from './game/lifeList'
 import { AudioEngine } from './audio/engine'
+import { createAmbience } from './audio/ambience'
+import { loadAmbience } from './audio/ambienceManifest'
 
 const loc = loadLocation()
 const catalog = loadCatalog()
@@ -90,6 +92,7 @@ try {
 }
 audio = new AudioEngine(world.scene, world.camera)
 const engine = audio
+world.add(createAmbience(engine, loadAmbience(), loc.ambience))
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
