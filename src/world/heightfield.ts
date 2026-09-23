@@ -26,7 +26,7 @@ export function lakeHeightfield(seed: number): Heightfield {
       // Basin: an ellipse centred at (2, -36), radii 44 x 32. Inside is below water.
       const ex = (x - 2) / 44, ez = (z + 36) / 32
       const r = Math.sqrt(ex * ex + ez * ez)         // 0 centre .. 1 rim
-      let y = r < 1 ? -3.2 * (1 - r * r) : 1.0 + (r - 1) * 2.0
+      let y = r < 1 ? -3.2 * (1 - r * r) : 1.0 + Math.min(3, (r - 1) * 2.0)
       // Bank under the player: a mound around (0,0)
       const dp = Math.hypot(x, z)
       y += 1.4 * Math.exp(-(dp * dp) / 80)
@@ -37,7 +37,7 @@ export function lakeHeightfield(seed: number): Heightfield {
       const mud = Math.exp(-(mx * mx + mz * mz))
       y = y * (1 - mud) + 0.08 * mud
       // Far shore: rise beyond z = -62
-      if (z < -62) y += (-62 - z) * 0.35
+      if (z < -62) y += Math.min(3, (-62 - z) * 0.35)
       return y
     },
   }

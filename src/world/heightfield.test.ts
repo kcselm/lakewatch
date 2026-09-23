@@ -14,6 +14,9 @@ describe('lakeHeightfield', () => {
   it('rises on the far shore', () => {
     expect(hf.sample(0, -66)).toBeGreaterThan(0.5)
   })
+  it('keeps the far ground low enough to sit under the sky', () => {
+    expect(hf.sample(0, -300)).toBeLessThan(8)
+  })
   it('is deterministic', () => {
     expect(lakeHeightfield(3).sample(4.2, -9.1)).toBe(lakeHeightfield(3).sample(4.2, -9.1))
   })
