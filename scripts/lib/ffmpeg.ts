@@ -20,24 +20,39 @@ export function assertFfmpegAvailable(): void {
   }
 }
 
+/**
+ * The chain every clip the game plays goes through: a gentle high-pass to
+ * lose recording hiss and handling rumble, EBU R128 loudness to -18 LUFS so a
+ * wren and a goose sit at the same level before distance attenuation, and short
+ * fades. The fade-out is done by reversing so it needs no duration.
+ */
+export const GAME_READY_FILTER =
+  'highpass=f=250,loudnorm=I=-18:TP=-1.5:LRA=11,afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.25,areverse'
+
+const ENCODE = ['-ac', '1', '-b:a', '64k', '-ar', '32000', '-y']
+
 export function clipArgs(input: string, output: string, seconds: number): string[] {
   return [
     '-i', input,
-    '-af', 'silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB',
-    '-t', String(seconds),
-    '-ac', '1',
-    '-b:a', '64k',
-    '-ar', '32000',
-    '-y',
+    '-af', `silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB,atrim=0:${seconds},${GAME_READY_FILTER}`,
+    ...ENCODE,
     output,
   ]
 }
 
 /** The same encode without the silence filter, for recordings it would eat whole. */
 export function clipArgsKeepingSilence(input: string, output: string, seconds: number): string[] {
-  return clipArgs(input, output, seconds).filter(
-    (arg, i, all) => arg !== '-af' && all[i - 1] !== '-af',
-  )
+  return ['-i', input, '-af', `atrim=0:${seconds},${GAME_READY_FILTER}`, ...ENCODE, output]
+}
+
+/** Re-encode a clip that predates the game chain (the media copied from birdsong-quiz). */
+export function processArgs(input: string, output: string): string[] {
+  return ['-i', input, '-af', GAME_READY_FILTER, ...ENCODE, output]
+}
+
+export async function processClip(input: string, output: string): Promise<void> {
+  assertFfmpegAvailable()
+  await run(ffmpegPath!, processArgs(input, output))
 }
 
 export function resizeArgs(input: string, output: string, width: number): string[] {

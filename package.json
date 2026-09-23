@@ -13,7 +13,8 @@
     "harvest:taxonomy": "tsx --env-file=.env scripts/harvest-taxonomy.ts",
     "harvest:media": "tsx --env-file=.env scripts/harvest-media.ts",
     "build:birds": "tsx scripts/build-birds.ts",
-    "harvest:all": "npm run harvest:hotspots && npm run harvest:species && npm run harvest:taxonomy && npm run harvest:media && npm run build:birds"
+    "harvest:all": "npm run harvest:hotspots && npm run harvest:species && npm run harvest:taxonomy && npm run harvest:media && npm run build:birds",
+    "audio:process": "tsx scripts/process-audio.ts"
   },
   "dependencies": {
     "preact": "^10.29.8",

@@ -6,24 +6,39 @@ import { promisify } from 'node:util'
 import { existsSync } from 'node:fs'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import ffmpegPath from 'ffmpeg-static'
-import { clipArgs, resizeArgs, assertFfmpegAvailable, clipAndTranscode } from './ffmpeg'
+import {
+  clipArgs, clipArgsKeepingSilence, processArgs, resizeArgs, assertFfmpegAvailable,
+  clipAndTranscode, GAME_READY_FILTER,
+} from './ffmpeg'
 import { probeDurationSeconds } from './probe'
 import { MIN_CLIP_SECONDS } from './clip-health'
 
+describe('GAME_READY_FILTER', () => {
+  it('high-passes, normalises loudness, and fades both ends', () => {
+    expect(GAME_READY_FILTER).toContain('highpass=f=250')
+    expect(GAME_READY_FILTER).toContain('loudnorm=I=-18')
+    // fade in at the head; fade out via reverse/fade/reverse so no duration is needed
+    expect(GAME_READY_FILTER).toMatch(/afade=t=in:st=0:d=0\.05,areverse,afade=t=in:st=0:d=0\.25,areverse$/)
+  })
+})
+
 describe('clipArgs', () => {
   const args = clipArgs('in.mp3', 'out.mp3', 10)
+  const filter = args[args.indexOf('-af') + 1]!
 
   it('reads the input and writes the output', () => {
     expect(args).toContain('in.mp3')
     expect(args[args.length - 1]).toBe('out.mp3')
   })
 
-  it('strips leading silence', () => {
-    expect(args.join(' ')).toContain('silenceremove=start_periods=1')
+  it('strips leading silence, then trims to the requested seconds, then applies the game chain', () => {
+    expect(filter.startsWith('silenceremove=start_periods=1')).toBe(true)
+    expect(filter).toContain(',atrim=0:10,')
+    expect(filter.endsWith(GAME_READY_FILTER)).toBe(true)
   })
 
-  it('limits the duration', () => {
-    expect(args[args.indexOf('-t') + 1]).toBe('10')
+  it('does not also pass -t (atrim owns the duration so the fade-out lands at the cut)', () => {
+    expect(args).not.toContain('-t')
   })
 
   it('encodes mono 64k at 32kHz', () => {
@@ -34,6 +49,25 @@ describe('clipArgs', () => {
 
   it('overwrites without prompting', () => {
     expect(args).toContain('-y')
+  })
+})
+
+describe('clipArgsKeepingSilence', () => {
+  it('drops only the silenceremove stage', () => {
+    const filter = clipArgsKeepingSilence('in.mp3', 'out.mp3', 10)
+    const f = filter[filter.indexOf('-af') + 1]!
+    expect(f).not.toContain('silenceremove')
+    expect(f.startsWith('atrim=0:10,')).toBe(true)
+    expect(f.endsWith(GAME_READY_FILTER)).toBe(true)
+  })
+})
+
+describe('processArgs', () => {
+  it('re-encodes an existing clip through the game chain with the same codec settings', () => {
+    const args = processArgs('a.mp3', 'b.mp3')
+    expect(args[args.indexOf('-af') + 1]).toBe(GAME_READY_FILTER)
+    expect(args[args.indexOf('-ar') + 1]).toBe('32000')
+    expect(args[args.length - 1]).toBe('b.mp3')
   })
 })
 
