@@ -4,6 +4,13 @@ import { defaultPose } from './model'
 import { parseSpeciesSpec } from './spec'
 import { getSpec } from './species'
 
+/** The bounding box of an object's own geometry only, excluding its children (unlike Box3.setFromObject). */
+function ownBox(o: THREE.Object3D): THREE.Box3 {
+  const geo = (o as THREE.Mesh).geometry
+  geo.computeBoundingBox()
+  return geo.boundingBox!.clone().applyMatrix4(o.matrixWorld)
+}
+
 describe('buildBird', () => {
   const coot = getSpec('y00475')
   it('creates every named part under the group', () => {
@@ -67,5 +74,23 @@ describe('buildBird', () => {
     m.group.updateMatrixWorld(true)
     const yExtended = m.parts.head.getWorldPosition(new THREE.Vector3()).y
     expect(yTucked).toBeLessThan(yExtended)
+  })
+  it('folded wings hang down along the flanks', () => {
+    const m = buildBird(coot)
+    m.pose({ ...defaultPose(), wingSpread: 0 })
+    m.group.updateMatrixWorld(true)
+    // Use the body mesh's own geometry box, not Box3.setFromObject(body): the wings are
+    // children of body, so a subtree box would trivially always contain the wing box.
+    const bodyBox = ownBox(m.parts.body)
+    const wingBox = new THREE.Box3().setFromObject(m.parts.wingL)
+    expect(wingBox.max.y).toBeLessThanOrEqual(bodyBox.max.y + 0.01)
+    const bodyCenterY = (bodyBox.min.y + bodyBox.max.y) / 2
+    expect(wingBox.min.y).toBeLessThan(bodyCenterY)
+
+    m.pose({ ...defaultPose(), wingSpread: 1, wingPhase: 0.25 })
+    m.group.updateMatrixWorld(true)
+    const bodyBox2 = ownBox(m.parts.body)
+    const wingBox2 = new THREE.Box3().setFromObject(m.parts.wingL)
+    expect(wingBox2.max.y).toBeGreaterThan(bodyBox2.max.y)
   })
 })

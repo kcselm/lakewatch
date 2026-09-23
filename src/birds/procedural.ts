@@ -164,14 +164,20 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
     // non-uniform scale; track the shortened tip explicitly instead
     head.position.set(st.headBob * spec.body.length * s, neckLen * stretch, 0)
     head.rotation.z = Math.PI / 2 - restNeck + (1 - ext) * 0.7   // keep the bill level
-    // Wings: flap around the body's x axis, fold flat against the body when spread is 0
-    const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * st.wingSpread
-    wingL.rotation.x = -flap
-    wingR.rotation.x = flap
-    wingL.rotation.y = (1 - st.wingSpread) * 0.35
-    wingR.rotation.y = -(1 - st.wingSpread) * 0.35
-    const fold = 1 - st.wingSpread
-    wingL.scale.set(1, 1, 0.55 + 0.45 * (1 - fold * 0.6))
+    // Wings: hang down along the flanks when spread is 0, blending into the flap as spread rises to 1.
+    // wing geometry extends along -z (left) / +z (right) from the shoulder hinge (see wingGeometry());
+    // rotating about x by a NEGATIVE angle maps -z toward -y (down), dropping the left wing tip down
+    // along the left flank, and a POSITIVE angle drops the right wing's +z tip down the same way
+    // (verified numerically: Rx(-0.5) sends local (0,0,-1) to y=-0.48, Rx(+0.5) sends (0,0,1) to y=-0.48).
+    const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)
+    const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * spread
+    const FOLD = 1.25   // radians: wing plane swung down along the flank
+    wingL.rotation.x = -(1 - spread) * FOLD + flap
+    wingR.rotation.x = (1 - spread) * FOLD - flap
+    wingL.rotation.y = (1 - spread) * 0.15
+    wingR.rotation.y = -(1 - spread) * 0.15
+    const zScale = 0.45 + 0.55 * spread     // folded wings are shorter along their own axis
+    wingL.scale.set(1, 1, zScale)
     wingR.scale.copy(wingL.scale)
     tail.rotation.z = THREE.MathUtils.degToRad(spec.tail.angle) + st.tailTilt
     body.rotation.set(st.lean.x, 0, st.lean.z)
