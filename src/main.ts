@@ -24,7 +24,7 @@ const water = createWater(world.wind, world.palette, ripples)
 ;(water.object.material as THREE.ShaderMaterial).uniforms.uSunDir!.value.copy(sunDirection(world.palette))
 world.add(water)
 
-world.add(createReeds(scatterInBand(heightfield, { minY: -0.25, maxY: 0.45, bounds: [-34, -10, -20, -2], count: 6000, seed: 11 }), world.wind))
+world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
 world.add(createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind))
 
 world.start(dt => {
