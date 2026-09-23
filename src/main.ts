@@ -15,6 +15,10 @@ import { spawnCast } from './birds/spawn'
 import { LookControls } from './player/look'
 import { Optics, nextMode } from './player/optics'
 import { createMask } from './hud/mask'
+import { game, isPaused } from './store/game'
+import { pickTarget } from './player/target'
+import { createPrompt } from './hud/prompt'
+import { findBird } from './catalog'
 
 const loc = loadLocation()
 const world = new World(document.getElementById('app')!, loc)
@@ -28,10 +32,17 @@ const hud = document.getElementById('hud')!
 const look = new LookControls(world.renderer.domElement, loc.vantage.heading)
 const optics = new Optics()
 const mask = createMask(hud)
+const prompt = createPrompt(hud)
 const modeEl = document.createElement('div'); modeEl.className = 'mode'; hud.appendChild(modeEl)
 
-addEventListener('wheel', e => optics.setMode(nextMode(optics.mode, e.deltaY < 0 ? 1 : -1)), { passive: true })
+game.subscribe(s => world.setPaused(isPaused(s)))
+
+addEventListener('wheel', e => {
+  if (isPaused(game.get())) return
+  optics.setMode(nextMode(optics.mode, e.deltaY < 0 ? 1 : -1))
+}, { passive: true })
 addEventListener('keydown', e => {
+  if (isPaused(game.get())) return
   if (e.key === 'b' || e.key === 'B') optics.setMode(optics.mode === 'binoculars' ? 'eye' : 'binoculars')
   if (e.key === 't' || e.key === 'T') optics.setMode(optics.mode === 'telescope' ? 'eye' : 'telescope')
   if (e.key === 'Escape') optics.setMode('eye')
@@ -60,6 +71,29 @@ world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightf
 
 world.start(dt => {
   optics.update(dt, world.camera, look)
+
+  if (game.get().optic !== optics.mode) game.set({ optic: optics.mode })
+
+  if (optics.mode === 'eye' || optics.transition < 1) {
+    if (game.get().target !== null) game.set({ target: null })
+    prompt.set(null)
+  } else {
+    const cands = registry.all().map(b => ({ id: b.id, species: b.species, position: b.position, radius: b.model.radius }))
+    const t = pickTarget(cands, world.camera, { width: innerWidth, height: innerHeight })
+    const prevTarget = game.get().target
+    if (!t) {
+      if (prevTarget !== null) game.set({ target: null })
+      prompt.set(null)
+    } else {
+      if (!prevTarget || prevTarget.id !== t.id || prevTarget.tooSmall !== t.tooSmall) {
+        game.set({ target: { id: t.id, species: t.species, tooSmall: t.tooSmall } })
+      }
+      if (t.tooSmall) prompt.set(optics.mode === 'telescope' ? 'Too far to identify' : 'Too far. Try the telescope')
+      else if (registry.get(t.id)?.identified) prompt.set(findBird(t.species).commonName)
+      else prompt.set('Identify  [E]')
+    }
+  }
+
   mask.update(optics.mode, optics.transition, optics.focusBlur)
   modeEl.textContent = optics.mode === 'eye' ? 'scroll / B / T for optics' : optics.mode
   ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
