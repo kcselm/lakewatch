@@ -78,13 +78,19 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
     legs.add(foot)
   }
 
-  // Neck: a tapered cylinder from the front-top of the body, angled up; the head hangs at its end
+  // Neck: a tapered cylinder from the front-top of the body, angled up; the head hangs at its end.
+  // The cylinder is a mesh nested inside a pivot group named 'neck' (parts.neck): the pivot carries
+  // rotation, the mesh carries the tuck scale, and the head is a sibling of the mesh under the pivot
+  // so it inherits rotation but never the mesh's non-uniform scale (see pose()).
   const neckLen = spec.neck.length * s
   const neckGeo = new THREE.CylinderGeometry(spec.neck.thickness * s * 0.4, spec.neck.thickness * s * 0.55, Math.max(neckLen, 0.01), 8)
   paintByDirection(neckGeo, { top: p.back, side: p.throat, bottom: p.throat })
   neckGeo.translate(0, neckLen / 2, 0)
-  const neck = mesh(neckGeo, 'neck')
+  const neckMesh = mesh(neckGeo, 'neckMesh')
+  const neck = new THREE.Group()
+  neck.name = 'neck'
   neck.position.set(spec.body.length * s * 0.38, spec.body.height * s * 0.2, 0)
+  neck.add(neckMesh)
 
   // Head: sphere at the neck tip, bill and eyes attached
   const headR = spec.head.size * s * 0.5
@@ -140,6 +146,8 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
     legs.visible = false
   } else {
     body.position.y = legLen + spec.body.height * s * 0.5
+    // legs hangs from the body's underside (not its center), so the feet land at group y = 0
+    legs.position.y = -spec.body.height * s * 0.5
   }
 
   const restNeck = THREE.MathUtils.degToRad(spec.neck.angle)
@@ -149,10 +157,12 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
   function pose(st: PoseState) {
     // Neck: tucked (angle steeper, shorter) .. extended (angle per spec, full length)
     const ext = THREE.MathUtils.clamp(st.neckExtend, 0, 1)
+    const stretch = 0.55 + 0.45 * ext
     neck.rotation.z = -(Math.PI / 2 - restNeck) - (1 - ext) * 0.7
-    neck.scale.y = 0.55 + 0.45 * ext
-    // head stays at y = neckLen in neck space; the neck's y scale carries it
-    head.position.x = st.headBob * spec.body.length * s
+    neckMesh.scale.y = stretch
+    // head is a sibling of the neck mesh under the pivot, so it never inherits the mesh's
+    // non-uniform scale; track the shortened tip explicitly instead
+    head.position.set(st.headBob * spec.body.length * s, neckLen * stretch, 0)
     head.rotation.z = Math.PI / 2 - restNeck + (1 - ext) * 0.7   // keep the bill level
     // Wings: flap around the body's x axis, fold flat against the body when spread is 0
     const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * st.wingSpread
