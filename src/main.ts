@@ -9,6 +9,7 @@ import { RippleBuffer } from './world/ripples'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
+import { createTree, createSnag, createTreeLine } from './world/trees'
 
 const loc = loadLocation()
 const world = new World(document.getElementById('app')!, loc)
@@ -26,6 +27,16 @@ world.add(water)
 
 world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
 world.add(createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind))
+
+world.add(createTreeLine(heightfield, world.palette))
+for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
+  world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
+}
+const snagZone = loc.zones['snag']
+if (snagZone?.kind === 'point') {
+  const snag = createSnag(snagZone.position)
+  world.scene.add(snag.object)
+}
 
 world.start(dt => {
   ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
