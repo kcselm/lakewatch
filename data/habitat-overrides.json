@@ -1,0 +1,51 @@
+{
+  "eursta": {
+    "add": ["urban"],
+    "why": "The region's most urban bird, labelled only wetland and shoreline: it never tops the frequency list at a wildlife refuge, and none of the urban anchors is actually a street or a yard."
+  },
+  "marwre": {
+    "add": ["wetland"],
+    "why": "A cattail-marsh specialist. It reached the list only through the Tillamook Bay salt marsh, so it was tagged shoreline and not wetland."
+  },
+  "norpin": {
+    "add": ["wetland"],
+    "why": "A dabbling duck of flooded fields and marshes. Wetland's cutoff was the highest of the four, so it was cut there and kept at the coast."
+  },
+  "killde": {
+    "add": ["shoreline", "urban"],
+    "why": "Nests on beaches, gravel lots and playing fields, not just wet meadows."
+  },
+  "barswa": {
+    "add": ["wetland", "urban"],
+    "why": "Nests on buildings and bridges and forages over open water and fields; shoreline-only is an artifact of where it happened to rank."
+  },
+  "whcspa": {
+    "add": ["urban"],
+    "why": "Abundant in city scrub, parks and yards; the urban anchors are wooded parks where it is scarcer than at the coast."
+  },
+  "buffle": {
+    "add": ["wetland"],
+    "why": "Winters on ponds, lakes and sloughs as well as salt water."
+  },
+  "moudov": {
+    "add": ["urban"],
+    "remove": ["forest"],
+    "why": "A bird of yards, wires and open ground. The forest tag comes from the open lawns at Pittock Mansion, not from woodland."
+  },
+  "cedwax": {
+    "add": ["forest", "wetland"],
+    "why": "Roams widely through riparian corridors and woodland edge; urban-only reflects one fruiting-tree hotspot."
+  },
+  "yerwar": {
+    "add": ["forest", "wetland"],
+    "why": "Winters through woodland and willow edge across the region, not only in city parks."
+  },
+  "norsho": {
+    "remove": ["forest"],
+    "why": "A dabbling duck. The forest tag comes from the ponds inside Tualatin Hills Nature Park."
+  },
+  "rewbla": {
+    "remove": ["forest"],
+    "why": "A marsh blackbird. Same ponds at Tualatin Hills Nature Park; it does not hold territory in closed-canopy forest."
+  }
+}

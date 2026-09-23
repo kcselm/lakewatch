@@ -1,0 +1,4027 @@
+[
+  {
+    "speciesCode": "sonspa",
+    "commonName": "Song Sparrow",
+    "scientificName": "Melospiza melodia",
+    "family": "Passerellidae",
+    "familyCommon": "New World Sparrows",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.9583333333333334,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/sonspa-XC1056054.mp3",
+        "type": "song",
+        "xcId": "XC1056054",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056054"
+      },
+      {
+        "file": "media/audio/sonspa-XC666554.mp3",
+        "type": "call",
+        "xcId": "XC666554",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/666554"
+      },
+      {
+        "file": "media/audio/sonspa-XC663734.mp3",
+        "type": "song",
+        "xcId": "XC663734",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/663734"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/sonspa.jpg",
+      "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/104749271"
+    }
+  },
+  {
+    "speciesCode": "bkcchi",
+    "commonName": "Black-capped Chickadee",
+    "scientificName": "Poecile atricapillus",
+    "family": "Paridae",
+    "familyCommon": "Tits, Chickadees, and Titmice",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.9375,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/bkcchi-XC624444.mp3",
+        "type": "song",
+        "xcId": "XC624444",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/624444"
+      },
+      {
+        "file": "media/audio/bkcchi-XC544964.mp3",
+        "type": "call",
+        "xcId": "XC544964",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/544964"
+      },
+      {
+        "file": "media/audio/bkcchi-XC579284.mp3",
+        "type": "song",
+        "xcId": "XC579284",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/579284"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/bkcchi.jpg",
+      "attribution": "(c) Kent Ross, some rights reserved (CC BY-NC), uploaded by Kent Ross",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/178279576"
+    }
+  },
+  {
+    "speciesCode": "amerob",
+    "commonName": "American Robin",
+    "scientificName": "Turdus migratorius",
+    "family": "Turdidae",
+    "familyCommon": "Thrushes and Allies",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.9166666666666666,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/amerob-XC963158.mp3",
+        "type": "song",
+        "xcId": "XC963158",
+        "recordist": "Bill Pyle",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/963158"
+      },
+      {
+        "file": "media/audio/amerob-XC253522.mp3",
+        "type": "call",
+        "xcId": "XC253522",
+        "recordist": "Matthias Feuersenger",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/253522"
+      },
+      {
+        "file": "media/audio/amerob-XC624424.mp3",
+        "type": "song",
+        "xcId": "XC624424",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/624424"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/amerob.jpg",
+      "attribution": "(c) John D Reynolds, some rights reserved (CC BY-NC), uploaded by John D Reynolds",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/34859026"
+    }
+  },
+  {
+    "speciesCode": "norfli",
+    "commonName": "Northern Flicker",
+    "scientificName": "Colaptes auratus",
+    "family": "Picidae",
+    "familyCommon": "Woodpeckers",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.9166666666666666,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.8333333333333334,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/norfli-XC613548.mp3",
+        "type": "song",
+        "xcId": "XC613548",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/613548"
+      },
+      {
+        "file": "media/audio/norfli-XC1024574.mp3",
+        "type": "call",
+        "xcId": "XC1024574",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1024574"
+      },
+      {
+        "file": "media/audio/norfli-XC604689.mp3",
+        "type": "song",
+        "xcId": "XC604689",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/604689"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/norfli.jpg",
+      "attribution": "(c) Kala Murphy King, some rights reserved (CC BY-NC-ND), uploaded by Kala Murphy King",
+      "license": "cc-by-nc-nd",
+      "sourceUrl": "https://www.inaturalist.org/photos/123812445"
+    }
+  },
+  {
+    "speciesCode": "amecro",
+    "commonName": "American Crow",
+    "scientificName": "Corvus brachyrhynchos",
+    "family": "Corvidae",
+    "familyCommon": "Crows, Jays, and Magpies",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.9166666666666666,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/amecro-XC420594.mp3",
+        "type": "song",
+        "xcId": "XC420594",
+        "recordist": "Meena Haribal",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/420594"
+      },
+      {
+        "file": "media/audio/amecro-XC1056042.mp3",
+        "type": "call",
+        "xcId": "XC1056042",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056042"
+      },
+      {
+        "file": "media/audio/amecro-XC762167.mp3",
+        "type": "call",
+        "xcId": "XC762167",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/762167"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/amecro.jpg",
+      "attribution": "(c) Joe McKenna, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/24115"
+    }
+  },
+  {
+    "speciesCode": "mallar3",
+    "commonName": "Mallard",
+    "scientificName": "Anas platyrhynchos",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.8958333333333334,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/mallar3-XC666547.mp3",
+        "type": "call",
+        "xcId": "XC666547",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/666547"
+      },
+      {
+        "file": "media/audio/mallar3-XC1071327.mp3",
+        "type": "call",
+        "xcId": "XC1071327",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1071327"
+      },
+      {
+        "file": "media/audio/mallar3-XC1040184.mp3",
+        "type": "call",
+        "xcId": "XC1040184",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1040184"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/mallar3.jpg",
+      "attribution": "(c) anonymous, some rights reserved (CC BY-SA)",
+      "license": "cc-by-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/95268822"
+    }
+  },
+  {
+    "speciesCode": "daejun",
+    "commonName": "Dark-eyed Junco",
+    "scientificName": "Junco hyemalis",
+    "family": "Passerellidae",
+    "familyCommon": "New World Sparrows",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.8958333333333334,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.75,
+      1,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/daejun-XC1105892.mp3",
+        "type": "song",
+        "xcId": "XC1105892",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1105892"
+      },
+      {
+        "file": "media/audio/daejun-XC1056014.mp3",
+        "type": "call",
+        "xcId": "XC1056014",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056014"
+      },
+      {
+        "file": "media/audio/daejun-XC766386.mp3",
+        "type": "song",
+        "xcId": "XC766386",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/766386"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/daejun.jpg",
+      "attribution": "(c) Craig K. Hunt, some rights reserved (CC BY-NC), uploaded by Craig K. Hunt",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/111714701"
+    }
+  },
+  {
+    "speciesCode": "spotow",
+    "commonName": "Spotted Towhee",
+    "scientificName": "Pipilo maculatus",
+    "family": "Passerellidae",
+    "familyCommon": "New World Sparrows",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.8333333333333334,
+    "monthly": [
+      1,
+      1,
+      0.8,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/spotow-XC653576.mp3",
+        "type": "song",
+        "xcId": "XC653576",
+        "recordist": "Jules Evens",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/653576"
+      },
+      {
+        "file": "media/audio/spotow-XC653493.mp3",
+        "type": "song",
+        "xcId": "XC653493",
+        "recordist": "Jules Evens",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/653493"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/spotow.jpg",
+      "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC), uploaded by Greg Lasley",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/30818274"
+    }
+  },
+  {
+    "speciesCode": "pibgre",
+    "commonName": "Pied-billed Grebe",
+    "scientificName": "Podilymbus podiceps",
+    "family": "Podicipedidae",
+    "familyCommon": "Grebes",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.8125,
+    "monthly": [
+      0.8,
+      0.8333333333333334,
+      0.75,
+      0.75,
+      0.75,
+      1,
+      1,
+      1,
+      0.6666666666666666,
+      1,
+      0.6666666666666666,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/pibgre-XC1090720.mp3",
+        "type": "song",
+        "xcId": "XC1090720",
+        "recordist": "Pedro Sanetti",
+        "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "sourceUrl": "https://xeno-canto.org/1090720"
+      },
+      {
+        "file": "media/audio/pibgre-XC601773.mp3",
+        "type": "call",
+        "xcId": "XC601773",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/601773"
+      },
+      {
+        "file": "media/audio/pibgre-XC1014816.mp3",
+        "type": "song",
+        "xcId": "XC1014816",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1014816"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/pibgre.jpg",
+      "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/117828251"
+    }
+  },
+  {
+    "speciesCode": "grbher3",
+    "commonName": "Great Blue Heron",
+    "scientificName": "Ardea herodias",
+    "family": "Ardeidae",
+    "familyCommon": "Herons, Egrets, and Bitterns",
+    "habitats": [
+      "wetland",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.8125,
+    "monthly": [
+      1,
+      0.8,
+      0.75,
+      0.75,
+      1,
+      1,
+      1,
+      0.75,
+      1,
+      1,
+      0.6666666666666666,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/grbher3-XC419194.mp3",
+        "type": "song",
+        "xcId": "XC419194",
+        "recordist": "Sue Riffe",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/419194"
+      },
+      {
+        "file": "media/audio/grbher3-XC1040454.mp3",
+        "type": "call",
+        "xcId": "XC1040454",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1040454"
+      },
+      {
+        "file": "media/audio/grbher3-XC383027.mp3",
+        "type": "call",
+        "xcId": "XC383027",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/383027"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/grbher3.jpg",
+      "attribution": "(c) Dan Roach, some rights reserved (CC BY-NC), uploaded by Dan Roach",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/65060931"
+    }
+  },
+  {
+    "speciesCode": "bewwre",
+    "commonName": "Bewick's Wren",
+    "scientificName": "Thryomanes bewickii",
+    "family": "Troglodytidae",
+    "familyCommon": "Wrens",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.8125,
+    "monthly": [
+      1,
+      0.6666666666666666,
+      0.8,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/bewwre-XC579288.mp3",
+        "type": "song",
+        "xcId": "XC579288",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/579288"
+      },
+      {
+        "file": "media/audio/bewwre-XC624555.mp3",
+        "type": "call",
+        "xcId": "XC624555",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/624555"
+      },
+      {
+        "file": "media/audio/bewwre-XC579285.mp3",
+        "type": "song",
+        "xcId": "XC579285",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/579285"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/bewwre.jpg",
+      "attribution": "(c) Alicia Di Rado, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/631012708"
+    }
+  },
+  {
+    "speciesCode": "houfin",
+    "commonName": "House Finch",
+    "scientificName": "Haemorhous mexicanus",
+    "family": "Fringillidae",
+    "familyCommon": "Finches, Euphonias, and Allies",
+    "habitats": [
+      "wetland",
+      "urban"
+    ],
+    "frequency": 0.8125,
+    "monthly": [
+      1,
+      0.5,
+      0.8,
+      0.75,
+      1,
+      1,
+      0.75,
+      1,
+      0.75,
+      1,
+      1,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/houfin-XC658900.mp3",
+        "type": "song",
+        "xcId": "XC658900",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/658900"
+      },
+      {
+        "file": "media/audio/houfin-XC436837.mp3",
+        "type": "call",
+        "xcId": "XC436837",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436837"
+      },
+      {
+        "file": "media/audio/houfin-XC584860.mp3",
+        "type": "song",
+        "xcId": "XC584860",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/584860"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/houfin.jpg",
+      "attribution": "(c) Torsten Eriksson, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/21525364"
+    }
+  },
+  {
+    "speciesCode": "annhum",
+    "commonName": "Anna's Hummingbird",
+    "scientificName": "Calypte anna",
+    "family": "Trochilidae",
+    "familyCommon": "Hummingbirds",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.8125,
+    "monthly": [
+      1,
+      0.75,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.5,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/annhum-XC157666.mp3",
+        "type": "song",
+        "xcId": "XC157666",
+        "recordist": "Bushman",
+        "license": "CC BY-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/157666"
+      },
+      {
+        "file": "media/audio/annhum-XC686821.mp3",
+        "type": "call",
+        "xcId": "XC686821",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/686821"
+      },
+      {
+        "file": "media/audio/annhum-XC686820.mp3",
+        "type": "song",
+        "xcId": "XC686820",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/686820"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/annhum.jpg",
+      "attribution": "(c) Robin Gwen Agarwal, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/4856611"
+    }
+  },
+  {
+    "speciesCode": "eursta",
+    "commonName": "European Starling",
+    "scientificName": "Sturnus vulgaris",
+    "family": "Sturnidae",
+    "familyCommon": "Starlings",
+    "habitats": [
+      "wetland",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.7916666666666666,
+    "monthly": [
+      0.8,
+      0.8333333333333334,
+      1,
+      0.75,
+      1,
+      1,
+      0.25,
+      1,
+      0.6666666666666666,
+      1,
+      0.8333333333333334,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/eursta-XC584859.mp3",
+        "type": "song",
+        "xcId": "XC584859",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/584859"
+      },
+      {
+        "file": "media/audio/eursta-XC614156.mp3",
+        "type": "call",
+        "xcId": "XC614156",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/614156"
+      },
+      {
+        "file": "media/audio/eursta-XC697243.mp3",
+        "type": "song",
+        "xcId": "XC697243",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/697243"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/eursta.jpg",
+      "attribution": "(c) Fran Wiesner, some rights reserved (CC BY-NC-ND), uploaded by Fran Wiesner",
+      "license": "cc-by-nc-nd",
+      "sourceUrl": "https://www.inaturalist.org/photos/32152001"
+    }
+  },
+  {
+    "speciesCode": "brncre",
+    "commonName": "Brown Creeper",
+    "scientificName": "Certhia americana",
+    "family": "Certhiidae",
+    "familyCommon": "Treecreepers",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.7708333333333334,
+    "monthly": [
+      1,
+      0.75,
+      0.8,
+      0.5,
+      1,
+      1,
+      0.5,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/brncre-XC749409.mp3",
+        "type": "song",
+        "xcId": "XC749409",
+        "recordist": "Kayla Brown",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/749409"
+      },
+      {
+        "file": "media/audio/brncre-XC1077858.mp3",
+        "type": "call",
+        "xcId": "XC1077858",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1077858"
+      },
+      {
+        "file": "media/audio/brncre-XC482568.mp3",
+        "type": "song",
+        "xcId": "XC482568",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/482568"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/brncre.jpg",
+      "attribution": "(c) cgbb2004, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/8513151"
+    }
+  },
+  {
+    "speciesCode": "cowscj1",
+    "commonName": "California Scrub-Jay",
+    "scientificName": "Aphelocoma californica",
+    "family": "Corvidae",
+    "familyCommon": "Crows, Jays, and Magpies",
+    "habitats": [
+      "wetland",
+      "urban"
+    ],
+    "frequency": 0.7708333333333334,
+    "monthly": [
+      1,
+      0.75,
+      1,
+      0.75,
+      0.75,
+      0.6666666666666666,
+      0.5,
+      0.75,
+      1,
+      1,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/cowscj1-XC545777.mp3",
+        "type": "call",
+        "xcId": "XC545777",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/545777"
+      },
+      {
+        "file": "media/audio/cowscj1-XC531262.mp3",
+        "type": "call",
+        "xcId": "XC531262",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/531262"
+      },
+      {
+        "file": "media/audio/cowscj1-XC436814.mp3",
+        "type": "call",
+        "xcId": "XC436814",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436814"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/cowscj1.jpg",
+      "attribution": "(c) Erica Fleniken, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/67336523"
+    }
+  },
+  {
+    "speciesCode": "lesgol",
+    "commonName": "Lesser Goldfinch",
+    "scientificName": "Spinus psaltria",
+    "family": "Fringillidae",
+    "familyCommon": "Finches, Euphonias, and Allies",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.7708333333333334,
+    "monthly": [
+      1,
+      0.75,
+      0.8,
+      0.8333333333333334,
+      1,
+      1,
+      1,
+      0.75,
+      0.75,
+      1,
+      0.25,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/lesgol-XC1056078.mp3",
+        "type": "song",
+        "xcId": "XC1056078",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056078"
+      },
+      {
+        "file": "media/audio/lesgol-XC899850.mp3",
+        "type": "call",
+        "xcId": "XC899850",
+        "recordist": "Paul Driver",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/899850"
+      },
+      {
+        "file": "media/audio/lesgol-XC545810.mp3",
+        "type": "song",
+        "xcId": "XC545810",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/545810"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/lesgol.jpg",
+      "attribution": "(c) Jeremy Gatten, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/117426725"
+    }
+  },
+  {
+    "speciesCode": "baleag",
+    "commonName": "Bald Eagle",
+    "scientificName": "Haliaeetus leucocephalus",
+    "family": "Accipitridae",
+    "familyCommon": "Hawks, Eagles, and Kites",
+    "habitats": [
+      "wetland",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.75,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.5,
+      0.75,
+      0.6666666666666666,
+      0.5,
+      0.8333333333333334,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/baleag-XC1060048.mp3",
+        "type": "song",
+        "xcId": "XC1060048",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1060048"
+      },
+      {
+        "file": "media/audio/baleag-XC636910.mp3",
+        "type": "call",
+        "xcId": "XC636910",
+        "recordist": "Beverly Hallberg",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/636910"
+      },
+      {
+        "file": "media/audio/baleag-XC1048352.mp3",
+        "type": "call",
+        "xcId": "XC1048352",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1048352"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/baleag.jpg",
+      "attribution": "(c) Addy, some rights reserved (CC BY-NC), uploaded by Addy",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/341016703"
+    }
+  },
+  {
+    "speciesCode": "rebnut",
+    "commonName": "Red-breasted Nuthatch",
+    "scientificName": "Sitta canadensis",
+    "family": "Sittidae",
+    "familyCommon": "Nuthatches",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.75,
+    "monthly": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.5,
+      0.75,
+      0.5,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/rebnut-XC1090383.mp3",
+        "type": "song",
+        "xcId": "XC1090383",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1090383"
+      },
+      {
+        "file": "media/audio/rebnut-XC1056022.mp3",
+        "type": "call",
+        "xcId": "XC1056022",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056022"
+      },
+      {
+        "file": "media/audio/rebnut-XC1090382.mp3",
+        "type": "song",
+        "xcId": "XC1090382",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1090382"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/rebnut.jpg",
+      "attribution": "(c) Erika Mitchell, some rights reserved (CC BY-NC), uploaded by Erika Mitchell",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/117331702"
+    }
+  },
+  {
+    "speciesCode": "greegr",
+    "commonName": "Great Egret",
+    "scientificName": "Ardea alba",
+    "family": "Ardeidae",
+    "familyCommon": "Herons, Egrets, and Bitterns",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.7291666666666666,
+    "monthly": [
+      0.6,
+      0.3333333333333333,
+      0.75,
+      0.75,
+      0.75,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0.5,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/greegr-XC247286.mp3",
+        "type": "song",
+        "xcId": "XC247286",
+        "recordist": "Joe Klaiber",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/247286"
+      },
+      {
+        "file": "media/audio/greegr-XC1043529.mp3",
+        "type": "call",
+        "xcId": "XC1043529",
+        "recordist": "Sue Riffe",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1043529"
+      },
+      {
+        "file": "media/audio/greegr-XC560053.mp3",
+        "type": "song",
+        "xcId": "XC560053",
+        "recordist": "Pedro Rinaldi",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/560053"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/greegr.jpg",
+      "attribution": "(c) daverowe, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/56653891"
+    }
+  },
+  {
+    "speciesCode": "rewbla",
+    "commonName": "Red-winged Blackbird",
+    "scientificName": "Agelaius phoeniceus",
+    "family": "Icteridae",
+    "familyCommon": "Troupials and Allies",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.7291666666666666,
+    "monthly": [
+      0.8,
+      0.6666666666666666,
+      1,
+      0.75,
+      0.75,
+      1,
+      0.5,
+      0.75,
+      0.6666666666666666,
+      1,
+      0.5,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/rewbla-XC703912.mp3",
+        "type": "song",
+        "xcId": "XC703912",
+        "recordist": "Steve Hampton",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/703912"
+      },
+      {
+        "file": "media/audio/rewbla-XC436852.mp3",
+        "type": "call",
+        "xcId": "XC436852",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436852"
+      },
+      {
+        "file": "media/audio/rewbla-XC469000.mp3",
+        "type": "song",
+        "xcId": "XC469000",
+        "recordist": "bowtyler",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/469000"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/rewbla.jpg",
+      "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/219226"
+    }
+  },
+  {
+    "speciesCode": "gadwal",
+    "commonName": "Gadwall",
+    "scientificName": "Mareca strepera",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.7083333333333334,
+    "monthly": [
+      1,
+      0.6666666666666666,
+      0.75,
+      0.5,
+      0.75,
+      1,
+      0.75,
+      0.75,
+      0.3333333333333333,
+      0,
+      0.8333333333333334,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/gadwal-XC1014494.mp3",
+        "type": "song",
+        "xcId": "XC1014494",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1014494"
+      },
+      {
+        "file": "media/audio/gadwal-XC608836.mp3",
+        "type": "call",
+        "xcId": "XC608836",
+        "recordist": "Whitney Neufeld-Kaiser",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/608836"
+      },
+      {
+        "file": "media/audio/gadwal-XC1012915.mp3",
+        "type": "song",
+        "xcId": "XC1012915",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1012915"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/gadwal.jpg",
+      "attribution": "(c) Craig Chaddock, some rights reserved (CC BY-NC), uploaded by Craig Chaddock",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/175540266"
+    }
+  },
+  {
+    "speciesCode": "dowwoo",
+    "commonName": "Downy Woodpecker",
+    "scientificName": "Dryobates pubescens",
+    "family": "Picidae",
+    "familyCommon": "Woodpeckers",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.7083333333333334,
+    "monthly": [
+      0.8,
+      0.6666666666666666,
+      0.8,
+      1,
+      0.75,
+      0.6666666666666666,
+      0.5,
+      0.75,
+      1,
+      0.5,
+      0.8333333333333334,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/dowwoo-XC584858.mp3",
+        "type": "call",
+        "xcId": "XC584858",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/584858"
+      },
+      {
+        "file": "media/audio/dowwoo-XC473451.mp3",
+        "type": "call",
+        "xcId": "XC473451",
+        "recordist": "bowtyler",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/473451"
+      },
+      {
+        "file": "media/audio/dowwoo-XC466635.mp3",
+        "type": "call",
+        "xcId": "XC466635",
+        "recordist": "Anthony Gliozzo",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/466635"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/dowwoo.jpg",
+      "attribution": "(c) javiehweg, some rights reserved (CC BY-NC-SA)",
+      "license": "cc-by-nc-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/116350378"
+    }
+  },
+  {
+    "speciesCode": "stejay",
+    "commonName": "Steller's Jay",
+    "scientificName": "Cyanocitta stelleri",
+    "family": "Corvidae",
+    "familyCommon": "Crows, Jays, and Magpies",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.7083333333333334,
+    "monthly": [
+      0.75,
+      0.5,
+      0.6,
+      1,
+      0.75,
+      1,
+      1,
+      1,
+      1,
+      0.75,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/stejay-XC603263.mp3",
+        "type": "song",
+        "xcId": "XC603263",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/603263"
+      },
+      {
+        "file": "media/audio/stejay-XC1056036.mp3",
+        "type": "call",
+        "xcId": "XC1056036",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056036"
+      },
+      {
+        "file": "media/audio/stejay-XC603262.mp3",
+        "type": "call",
+        "xcId": "XC603262",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/603262"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/stejay.jpg",
+      "attribution": "(c) Atlee Hargis, some rights reserved (CC BY-NC), uploaded by Atlee Hargis",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/462234787"
+    }
+  },
+  {
+    "speciesCode": "cangoo",
+    "commonName": "Canada Goose",
+    "scientificName": "Branta canadensis",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland",
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.6875,
+    "monthly": [
+      0.8,
+      0.8,
+      1,
+      1,
+      1,
+      1,
+      0.75,
+      0.5,
+      0.6666666666666666,
+      1,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/cangoo-XC1040182.mp3",
+        "type": "call",
+        "xcId": "XC1040182",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1040182"
+      },
+      {
+        "file": "media/audio/cangoo-XC1073000.mp3",
+        "type": "call",
+        "xcId": "XC1073000",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1073000"
+      },
+      {
+        "file": "media/audio/cangoo-XC445781.mp3",
+        "type": "call",
+        "xcId": "XC445781",
+        "recordist": "Thomas ARMAND",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/445781"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/cangoo.jpg",
+      "attribution": "(c) NHMLA Community Science Program, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/3239787"
+    }
+  },
+  {
+    "speciesCode": "y00475",
+    "commonName": "American Coot",
+    "scientificName": "Fulica americana",
+    "family": "Rallidae",
+    "familyCommon": "Rails, Gallinules, and Coots",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.6875,
+    "monthly": [
+      0.6,
+      0.6666666666666666,
+      0.75,
+      0.75,
+      0.75,
+      0.6666666666666666,
+      0.5,
+      1,
+      0.3333333333333333,
+      1,
+      0.6666666666666666,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/y00475-XC1014462.mp3",
+        "type": "song",
+        "xcId": "XC1014462",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1014462"
+      },
+      {
+        "file": "media/audio/y00475-XC509714.mp3",
+        "type": "call",
+        "xcId": "XC509714",
+        "recordist": "Sunny Tseng",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/509714"
+      },
+      {
+        "file": "media/audio/y00475-XC1020094.mp3",
+        "type": "song",
+        "xcId": "XC1020094",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1020094"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/y00475.jpg",
+      "attribution": "(c) John Murnane, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/170033147"
+    }
+  },
+  {
+    "speciesCode": "wesgul",
+    "commonName": "Western Gull",
+    "scientificName": "Larus occidentalis",
+    "family": "Laridae",
+    "familyCommon": "Gulls, Terns, and Skimmers",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.675,
+    "monthly": [
+      1,
+      0.4,
+      0.5,
+      0,
+      1,
+      0.75,
+      0.5,
+      1,
+      1,
+      0.5,
+      0.6,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/wesgul-XC109697.mp3",
+        "type": "call",
+        "xcId": "XC109697",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109697"
+      },
+      {
+        "file": "media/audio/wesgul-XC644888.mp3",
+        "type": "call",
+        "xcId": "XC644888",
+        "recordist": "Thomas G. Graves",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/644888"
+      },
+      {
+        "file": "media/audio/wesgul-XC1090710.mp3",
+        "type": "call",
+        "xcId": "XC1090710",
+        "recordist": "Manuel Grosselet",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1090710"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/wesgul.jpg",
+      "attribution": "(c) Jamie Chavez, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/1877"
+    }
+  },
+  {
+    "speciesCode": "wooduc",
+    "commonName": "Wood Duck",
+    "scientificName": "Aix sponsa",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.6666666666666666,
+    "monthly": [
+      0.8,
+      0.5,
+      0.6,
+      0.75,
+      0.75,
+      1,
+      0.5,
+      1,
+      0.6666666666666666,
+      1,
+      0.5,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/wooduc-XC509715.mp3",
+        "type": "call",
+        "xcId": "XC509715",
+        "recordist": "Sunny Tseng",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/509715"
+      },
+      {
+        "file": "media/audio/wooduc-XC540500.mp3",
+        "type": "call",
+        "xcId": "XC540500",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/540500"
+      },
+      {
+        "file": "media/audio/wooduc-XC540315.mp3",
+        "type": "call",
+        "xcId": "XC540315",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/540315"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/wooduc.jpg",
+      "attribution": "(c) Kent Ross, some rights reserved (CC BY-NC), uploaded by Kent Ross",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/171626985"
+    }
+  },
+  {
+    "speciesCode": "rethaw",
+    "commonName": "Red-tailed Hawk",
+    "scientificName": "Buteo jamaicensis",
+    "family": "Accipitridae",
+    "familyCommon": "Hawks, Eagles, and Kites",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.6458333333333334,
+    "monthly": [
+      1,
+      0.5,
+      1,
+      0.5,
+      0.5,
+      0.6666666666666666,
+      0.5,
+      0.5,
+      0.6666666666666666,
+      1,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/rethaw-XC602899.mp3",
+        "type": "call",
+        "xcId": "XC602899",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/602899"
+      },
+      {
+        "file": "media/audio/rethaw-XC401311.mp3",
+        "type": "call",
+        "xcId": "XC401311",
+        "recordist": "Audrey Addison",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/401311"
+      },
+      {
+        "file": "media/audio/rethaw-XC1051525.mp3",
+        "type": "call",
+        "xcId": "XC1051525",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1051525"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/rethaw.jpg",
+      "attribution": "(c) Craig K. Hunt, some rights reserved (CC BY-NC), uploaded by Craig K. Hunt",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/101327658"
+    }
+  },
+  {
+    "speciesCode": "whbnut",
+    "commonName": "White-breasted Nuthatch",
+    "scientificName": "Sitta carolinensis",
+    "family": "Sittidae",
+    "familyCommon": "Nuthatches",
+    "habitats": [
+      "wetland",
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.6041666666666666,
+    "monthly": [
+      1,
+      0.75,
+      0.75,
+      0.6666666666666666,
+      1,
+      0.6666666666666666,
+      1,
+      1,
+      1,
+      1,
+      0.5,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/whbnut-XC443280.mp3",
+        "type": "song",
+        "xcId": "XC443280",
+        "recordist": "Ed Pandolfino",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/443280"
+      },
+      {
+        "file": "media/audio/whbnut-XC443282.mp3",
+        "type": "call",
+        "xcId": "XC443282",
+        "recordist": "Ed Pandolfino",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/443282"
+      },
+      {
+        "file": "media/audio/whbnut-XC710002.mp3",
+        "type": "song",
+        "xcId": "XC710002",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/710002"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/whbnut.jpg",
+      "attribution": "(c) Mike Leveille, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/6455347"
+    }
+  },
+  {
+    "speciesCode": "norsho",
+    "commonName": "Northern Shoveler",
+    "scientificName": "Spatula clypeata",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.5833333333333334,
+    "monthly": [
+      1,
+      0.8333333333333334,
+      0.75,
+      0.5,
+      0.5,
+      0.3333333333333333,
+      0,
+      0.5,
+      0.3333333333333333,
+      0.5,
+      0.5,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/norsho-XC368726.mp3",
+        "type": "song",
+        "xcId": "XC368726",
+        "recordist": "Sue Riffe",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/368726"
+      },
+      {
+        "file": "media/audio/norsho-XC481274.mp3",
+        "type": "call",
+        "xcId": "XC481274",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/481274"
+      },
+      {
+        "file": "media/audio/norsho-XC1020451.mp3",
+        "type": "song",
+        "xcId": "XC1020451",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1020451"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/norsho.jpg",
+      "attribution": "(c) silvertop41, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/336986640"
+    }
+  },
+  {
+    "speciesCode": "bushti",
+    "commonName": "Bushtit",
+    "scientificName": "Psaltriparus minimus",
+    "family": "Aegithalidae",
+    "familyCommon": "Long-tailed Tits",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.5833333333333334,
+    "monthly": [
+      0.25,
+      0.25,
+      0.6,
+      1,
+      1,
+      0.6666666666666666,
+      0,
+      0.5,
+      0.75,
+      0.75,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/bushti-XC530312.mp3",
+        "type": "song",
+        "xcId": "XC530312",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/530312"
+      },
+      {
+        "file": "media/audio/bushti-XC545386.mp3",
+        "type": "call",
+        "xcId": "XC545386",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/545386"
+      },
+      {
+        "file": "media/audio/bushti-XC530188.mp3",
+        "type": "song",
+        "xcId": "XC530188",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/530188"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/bushti.jpg",
+      "attribution": "(c) Kevin Krebs, some rights reserved (CC BY-NC-SA)",
+      "license": "cc-by-nc-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/111125701"
+    }
+  },
+  {
+    "speciesCode": "gockin",
+    "commonName": "Golden-crowned Kinglet",
+    "scientificName": "Regulus satrapa",
+    "family": "Regulidae",
+    "familyCommon": "Kinglets",
+    "habitats": [
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.5833333333333334,
+    "monthly": [
+      1,
+      1,
+      0.8,
+      0.3333333333333333,
+      1,
+      0.5,
+      0,
+      0.5,
+      0.6666666666666666,
+      0.75,
+      1,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/gockin-XC582529.mp3",
+        "type": "song",
+        "xcId": "XC582529",
+        "recordist": "James Link",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/582529"
+      },
+      {
+        "file": "media/audio/gockin-XC1056060.mp3",
+        "type": "call",
+        "xcId": "XC1056060",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056060"
+      },
+      {
+        "file": "media/audio/gockin-XC550956.mp3",
+        "type": "song",
+        "xcId": "XC550956",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/550956"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/gockin.jpg",
+      "attribution": "(c) Nick Tepper, some rights reserved (CC BY-NC), uploaded by Nick Tepper",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/59391481"
+    }
+  },
+  {
+    "speciesCode": "amekes",
+    "commonName": "American Kestrel",
+    "scientificName": "Falco sparverius",
+    "family": "Falconidae",
+    "familyCommon": "Falcons and Caracaras",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.5625,
+    "monthly": [
+      0.6,
+      0.5,
+      1,
+      0.25,
+      0.5,
+      0.3333333333333333,
+      0.5,
+      0.5,
+      0.6666666666666666,
+      1,
+      0.5,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/amekes-XC1101990.mp3",
+        "type": "song",
+        "xcId": "XC1101990",
+        "recordist": "JAYRSON ARAUJO DE OLIVEIRA",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1101990"
+      },
+      {
+        "file": "media/audio/amekes-XC860290.mp3",
+        "type": "call",
+        "xcId": "XC860290",
+        "recordist": "Dany Sloan",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/860290"
+      },
+      {
+        "file": "media/audio/amekes-XC674597.mp3",
+        "type": "song",
+        "xcId": "XC674597",
+        "recordist": "JAYRSON ARAUJO DE OLIVEIRA",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/674597"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/amekes.jpg",
+      "attribution": "(c) George Armistead/Hillstar Nature, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/27291377"
+    }
+  },
+  {
+    "speciesCode": "cedwax",
+    "commonName": "Cedar Waxwing",
+    "scientificName": "Bombycilla cedrorum",
+    "family": "Bombycillidae",
+    "familyCommon": "Waxwings",
+    "habitats": [
+      "urban",
+      "forest",
+      "wetland"
+    ],
+    "frequency": 0.5625,
+    "monthly": [
+      0.25,
+      0.5,
+      0.8,
+      0.3333333333333333,
+      0.5,
+      1,
+      0.6666666666666666,
+      0.75,
+      0.75,
+      1,
+      0,
+      0.3333333333333333
+    ],
+    "audio": [
+      {
+        "file": "media/audio/cedwax-XC512254.mp3",
+        "type": "song",
+        "xcId": "XC512254",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/512254"
+      },
+      {
+        "file": "media/audio/cedwax-XC1056063.mp3",
+        "type": "call",
+        "xcId": "XC1056063",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056063"
+      },
+      {
+        "file": "media/audio/cedwax-XC1005316.mp3",
+        "type": "song",
+        "xcId": "XC1005316",
+        "recordist": "Rory Nefdt",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1005316"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/cedwax.jpg",
+      "attribution": "(c) Manny Salas, some rights reserved (CC BY-NC), uploaded by Manny Salas",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/450146514"
+    }
+  },
+  {
+    "speciesCode": "sursco",
+    "commonName": "Surf Scoter",
+    "scientificName": "Melanitta perspicillata",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.55,
+    "monthly": [
+      0.6666666666666666,
+      0.6,
+      0.75,
+      1,
+      0,
+      0.25,
+      0,
+      0.5,
+      0.6666666666666666,
+      0.5,
+      0.8,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/sursco-XC452395.mp3",
+        "type": "call",
+        "xcId": "XC452395",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/452395"
+      },
+      {
+        "file": "media/audio/sursco-XC452394.mp3",
+        "type": "call",
+        "xcId": "XC452394",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/452394"
+      },
+      {
+        "file": "media/audio/sursco-XC202796.mp3",
+        "type": "call",
+        "xcId": "XC202796",
+        "recordist": "Micah Riegner",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/202796"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/sursco.jpg",
+      "attribution": "(c) Jonathan Irons, some rights reserved (CC BY-NC), uploaded by Jonathan Irons",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/483977076"
+    }
+  },
+  {
+    "speciesCode": "gnwtea",
+    "commonName": "Green-winged Teal",
+    "scientificName": "Anas crecca",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.5416666666666666,
+    "monthly": [
+      0.8,
+      0.5,
+      0.75,
+      0.75,
+      0.5,
+      0.3333333333333333,
+      0.25,
+      0,
+      0,
+      1,
+      0.6666666666666666,
+      1
+    ],
+    "audio": [],
+    "photo": {
+      "file": "media/photos/gnwtea.jpg",
+      "attribution": "(c) bird scope, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/179724497"
+    }
+  },
+  {
+    "speciesCode": "sancra",
+    "commonName": "Sandhill Crane",
+    "scientificName": "Antigone canadensis",
+    "family": "Gruidae",
+    "familyCommon": "Cranes",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.5416666666666666,
+    "monthly": [
+      0.6,
+      0.5,
+      0.75,
+      0.5,
+      0.25,
+      0.6666666666666666,
+      0,
+      0.5,
+      0.6666666666666666,
+      1,
+      0.6666666666666666,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/sancra-XC1015005.mp3",
+        "type": "song",
+        "xcId": "XC1015005",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1015005"
+      },
+      {
+        "file": "media/audio/sancra-XC606109.mp3",
+        "type": "call",
+        "xcId": "XC606109",
+        "recordist": "Whitney Neufeld-Kaiser",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/606109"
+      },
+      {
+        "file": "media/audio/sancra-XC711235.mp3",
+        "type": "song",
+        "xcId": "XC711235",
+        "recordist": "Valerie Heemstra",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/711235"
+      }
+    ],
+    "photo": null
+  },
+  {
+    "speciesCode": "belkin1",
+    "commonName": "Belted Kingfisher",
+    "scientificName": "Megaceryle alcyon",
+    "family": "Alcedinidae",
+    "familyCommon": "Kingfishers",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.5416666666666666,
+    "monthly": [
+      0.8333333333333334,
+      0.8,
+      0.5,
+      0.5,
+      1,
+      0.6666666666666666,
+      0.5,
+      0.75,
+      1,
+      1,
+      0.6,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/belkin1-XC612651.mp3",
+        "type": "call",
+        "xcId": "XC612651",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/612651"
+      },
+      {
+        "file": "media/audio/belkin1-XC592611.mp3",
+        "type": "call",
+        "xcId": "XC592611",
+        "recordist": "Larry Joseph",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/592611"
+      },
+      {
+        "file": "media/audio/belkin1-XC1085316.mp3",
+        "type": "call",
+        "xcId": "XC1085316",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1085316"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/belkin1.jpg",
+      "attribution": "(c) Dave Roberts, some rights reserved (CC BY-NC), uploaded by Dave Roberts",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/244248986"
+    }
+  },
+  {
+    "speciesCode": "chbchi",
+    "commonName": "Chestnut-backed Chickadee",
+    "scientificName": "Poecile rufescens",
+    "family": "Paridae",
+    "familyCommon": "Tits, Chickadees, and Titmice",
+    "habitats": [
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.5416666666666666,
+    "monthly": [
+      0.75,
+      0.5,
+      0.4,
+      1,
+      1,
+      0.6666666666666666,
+      0.6666666666666666,
+      1,
+      0.6666666666666666,
+      0.5,
+      0.5,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/chbchi-XC1025556.mp3",
+        "type": "song",
+        "xcId": "XC1025556",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1025556"
+      },
+      {
+        "file": "media/audio/chbchi-XC1056043.mp3",
+        "type": "call",
+        "xcId": "XC1056043",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056043"
+      },
+      {
+        "file": "media/audio/chbchi-XC1023857.mp3",
+        "type": "song",
+        "xcId": "XC1023857",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1023857"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/chbchi.jpg",
+      "attribution": "(c) Garth Harwood, some rights reserved (CC BY), uploaded by Garth Harwood",
+      "license": "cc-by",
+      "sourceUrl": "https://www.inaturalist.org/photos/57455544"
+    }
+  },
+  {
+    "speciesCode": "ruckin",
+    "commonName": "Ruby-crowned Kinglet",
+    "scientificName": "Corthylio calendula",
+    "family": "Regulidae",
+    "familyCommon": "Kinglets",
+    "habitats": [
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.5416666666666666,
+    "monthly": [
+      1,
+      1,
+      0.8,
+      1,
+      0.25,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/ruckin-XC545893.mp3",
+        "type": "song",
+        "xcId": "XC545893",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/545893"
+      },
+      {
+        "file": "media/audio/ruckin-XC534255.mp3",
+        "type": "call",
+        "xcId": "XC534255",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/534255"
+      },
+      {
+        "file": "media/audio/ruckin-XC534256.mp3",
+        "type": "song",
+        "xcId": "XC534256",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/534256"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/ruckin.jpg",
+      "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/251475181"
+    }
+  },
+  {
+    "speciesCode": "doccor",
+    "commonName": "Double-crested Cormorant",
+    "scientificName": "Nannopterum auritum",
+    "family": "Phalacrocoracidae",
+    "familyCommon": "Cormorants and Shags",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.525,
+    "monthly": [
+      0.6666666666666666,
+      0.4,
+      0.5,
+      0,
+      1,
+      0,
+      0.25,
+      0.5,
+      1,
+      0.5,
+      0.8,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/doccor-XC638603.mp3",
+        "type": "call",
+        "xcId": "XC638603",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/638603"
+      },
+      {
+        "file": "media/audio/doccor-XC638602.mp3",
+        "type": "call",
+        "xcId": "XC638602",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/638602"
+      },
+      {
+        "file": "media/audio/doccor-XC657206.mp3",
+        "type": "call",
+        "xcId": "XC657206",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/657206"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/doccor.jpg",
+      "attribution": "(c) Ben Martin Mortimer, some rights reserved (CC BY-NC), uploaded by Ben Martin Mortimer",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/541600012"
+    }
+  },
+  {
+    "speciesCode": "cacgoo1",
+    "commonName": "Cackling Goose",
+    "scientificName": "Branta hutchinsii",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.5208333333333334,
+    "monthly": [
+      1,
+      0.6666666666666666,
+      1,
+      0.75,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      1,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/cacgoo1-XC530562.mp3",
+        "type": "call",
+        "xcId": "XC530562",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/530562"
+      },
+      {
+        "file": "media/audio/cacgoo1-XC1046934.mp3",
+        "type": "call",
+        "xcId": "XC1046934",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1046934"
+      },
+      {
+        "file": "media/audio/cacgoo1-XC680975.mp3",
+        "type": "call",
+        "xcId": "XC680975",
+        "recordist": "Steve Hampton",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/680975"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/cacgoo1.jpg",
+      "attribution": "(c) Bridget Spencer, some rights reserved (CC BY-NC), uploaded by Bridget Spencer",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/2713284"
+    }
+  },
+  {
+    "speciesCode": "gocspa",
+    "commonName": "Golden-crowned Sparrow",
+    "scientificName": "Zonotrichia atricapilla",
+    "family": "Passerellidae",
+    "familyCommon": "New World Sparrows",
+    "habitats": [
+      "wetland",
+      "urban"
+    ],
+    "frequency": 0.5208333333333334,
+    "monthly": [
+      0.8,
+      0.75,
+      1,
+      1,
+      0.25,
+      0,
+      0,
+      0,
+      0.5,
+      0.75,
+      0.75,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/gocspa-XC506204.mp3",
+        "type": "song",
+        "xcId": "XC506204",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/506204"
+      },
+      {
+        "file": "media/audio/gocspa-XC697248.mp3",
+        "type": "call",
+        "xcId": "XC697248",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/697248"
+      },
+      {
+        "file": "media/audio/gocspa-XC440249.mp3",
+        "type": "song",
+        "xcId": "XC440249",
+        "recordist": "Rachel Hudson",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/440249"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/gocspa.jpg",
+      "attribution": "(c) Jorge A. Pérez Torres, some rights reserved (CC BY-NC), uploaded by Jorge A. Pérez Torres",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/351885428"
+    }
+  },
+  {
+    "speciesCode": "killde",
+    "commonName": "Killdeer",
+    "scientificName": "Charadrius vociferus",
+    "family": "Charadriidae",
+    "familyCommon": "Plovers and Lapwings",
+    "habitats": [
+      "wetland",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.5,
+    "monthly": [
+      0.2,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.6666666666666666,
+      0.25,
+      0.75,
+      0.6666666666666666,
+      1,
+      0.3333333333333333,
+      0.6666666666666666
+    ],
+    "audio": [
+      {
+        "file": "media/audio/killde-XC1040455.mp3",
+        "type": "song",
+        "xcId": "XC1040455",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1040455"
+      },
+      {
+        "file": "media/audio/killde-XC606569.mp3",
+        "type": "call",
+        "xcId": "XC606569",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/606569"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/killde.jpg",
+      "attribution": "(c) world_lineage, some rights reserved (CC BY-NC), uploaded by world_lineage",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/15053771"
+    }
+  },
+  {
+    "speciesCode": "amewig",
+    "commonName": "American Wigeon",
+    "scientificName": "Mareca americana",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.4791666666666667,
+    "monthly": [
+      0.8,
+      0.6666666666666666,
+      0.5,
+      0.5,
+      0.5,
+      0,
+      0,
+      0,
+      0.3333333333333333,
+      1,
+      0.6666666666666666,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/amewig-XC1072199.mp3",
+        "type": "song",
+        "xcId": "XC1072199",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1072199"
+      },
+      {
+        "file": "media/audio/amewig-XC404504.mp3",
+        "type": "call",
+        "xcId": "XC404504",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/404504"
+      },
+      {
+        "file": "media/audio/amewig-XC1013535.mp3",
+        "type": "song",
+        "xcId": "XC1013535",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1013535"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/amewig.jpg",
+      "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/1595002"
+    }
+  },
+  {
+    "speciesCode": "comrav",
+    "commonName": "Common Raven",
+    "scientificName": "Corvus corax",
+    "family": "Corvidae",
+    "familyCommon": "Crows, Jays, and Magpies",
+    "habitats": [
+      "forest",
+      "shoreline"
+    ],
+    "frequency": 0.475,
+    "monthly": [
+      0.6666666666666666,
+      0.6,
+      0.75,
+      1,
+      0,
+      0.25,
+      0,
+      0.5,
+      0.6666666666666666,
+      1,
+      0.4,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/comrav-XC980149.mp3",
+        "type": "call",
+        "xcId": "XC980149",
+        "recordist": "Matthew L. Brady",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/980149"
+      },
+      {
+        "file": "media/audio/comrav-XC980148.mp3",
+        "type": "call",
+        "xcId": "XC980148",
+        "recordist": "Matthew L. Brady",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/980148"
+      },
+      {
+        "file": "media/audio/comrav-XC878836.mp3",
+        "type": "call",
+        "xcId": "XC878836",
+        "recordist": "Kayla Brown",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/878836"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/comrav.jpg",
+      "attribution": "(c) arbyreed, some rights reserved (CC BY-NC-SA)",
+      "license": "cc-by-nc-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/54389687"
+    }
+  },
+  {
+    "speciesCode": "pelcor",
+    "commonName": "Pelagic Cormorant",
+    "scientificName": "Urile pelagicus",
+    "family": "Phalacrocoracidae",
+    "familyCommon": "Cormorants and Shags",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.475,
+    "monthly": [
+      0.16666666666666666,
+      0.8,
+      0.5,
+      1,
+      1,
+      0.25,
+      0.25,
+      0.5,
+      1,
+      0,
+      0.6,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/pelcor-XC209340.mp3",
+        "type": "call",
+        "xcId": "XC209340",
+        "recordist": "Ian Cruickshank",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/209340"
+      },
+      {
+        "file": "media/audio/pelcor-XC209339.mp3",
+        "type": "call",
+        "xcId": "XC209339",
+        "recordist": "Ian Cruickshank",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/209339"
+      },
+      {
+        "file": "media/audio/pelcor-XC209337.mp3",
+        "type": "call",
+        "xcId": "XC209337",
+        "recordist": "Ian Cruickshank",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/209337"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/pelcor.jpg",
+      "attribution": "(c) Jerry Kirkhart, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/2881"
+    }
+  },
+  {
+    "speciesCode": "buffle",
+    "commonName": "Bufflehead",
+    "scientificName": "Bucephala albeola",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "shoreline",
+      "urban",
+      "wetland"
+    ],
+    "frequency": 0.45,
+    "monthly": [
+      1,
+      1,
+      0.5,
+      1,
+      0.5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/buffle-XC203984.mp3",
+        "type": "call",
+        "xcId": "XC203984",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/203984"
+      },
+      {
+        "file": "media/audio/buffle-XC361920.mp3",
+        "type": "call",
+        "xcId": "XC361920",
+        "recordist": "Paul Marvin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/361920"
+      },
+      {
+        "file": "media/audio/buffle-XC388268.mp3",
+        "type": "call",
+        "xcId": "XC388268",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/388268"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/buffle.jpg",
+      "attribution": "(c) ianhearn, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/249283060"
+    }
+  },
+  {
+    "speciesCode": "glwgul",
+    "commonName": "Glaucous-winged Gull",
+    "scientificName": "Larus glaucescens",
+    "family": "Laridae",
+    "familyCommon": "Gulls, Terns, and Skimmers",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.45,
+    "monthly": [
+      0.5,
+      0.6,
+      0.25,
+      0,
+      0,
+      0.25,
+      0,
+      0.5,
+      1,
+      0.5,
+      0.8,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/glwgul-XC612331.mp3",
+        "type": "call",
+        "xcId": "XC612331",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/612331"
+      },
+      {
+        "file": "media/audio/glwgul-XC109754.mp3",
+        "type": "call",
+        "xcId": "XC109754",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109754"
+      },
+      {
+        "file": "media/audio/glwgul-XC109752.mp3",
+        "type": "call",
+        "xcId": "XC109752",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109752"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/glwgul.jpg",
+      "attribution": "(c) cooleoptera, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/178705611"
+    }
+  },
+  {
+    "speciesCode": "yerwar",
+    "commonName": "Yellow-rumped Warbler",
+    "scientificName": "Setophaga coronata",
+    "family": "Parulidae",
+    "familyCommon": "New World Warblers",
+    "habitats": [
+      "urban",
+      "forest",
+      "wetland"
+    ],
+    "frequency": 0.4375,
+    "monthly": [
+      0.5,
+      0.5,
+      0.4,
+      0.5,
+      1,
+      0.3333333333333333,
+      0,
+      0.25,
+      0,
+      0.75,
+      0.5,
+      0.3333333333333333
+    ],
+    "audio": [
+      {
+        "file": "media/audio/yerwar-XC641332.mp3",
+        "type": "song",
+        "xcId": "XC641332",
+        "recordist": "Larry Joseph",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/641332"
+      },
+      {
+        "file": "media/audio/yerwar-XC1056028.mp3",
+        "type": "call",
+        "xcId": "XC1056028",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056028"
+      },
+      {
+        "file": "media/audio/yerwar-XC302645.mp3",
+        "type": "song",
+        "xcId": "XC302645",
+        "recordist": "James Bradley",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/302645"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/yerwar.jpg",
+      "attribution": "(c) Zane Shantz, some rights reserved (CC BY-NC-ND), uploaded by Zane Shantz",
+      "license": "cc-by-nc-nd",
+      "sourceUrl": "https://www.inaturalist.org/photos/128439522"
+    }
+  },
+  {
+    "speciesCode": "norpin",
+    "commonName": "Northern Pintail",
+    "scientificName": "Anas acuta",
+    "family": "Anatidae",
+    "familyCommon": "Ducks, Geese, and Waterfowl",
+    "habitats": [
+      "shoreline",
+      "wetland"
+    ],
+    "frequency": 0.425,
+    "monthly": [
+      0.3333333333333333,
+      0.6,
+      0.5,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0.75,
+      0.4,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/norpin-XC1013358.mp3",
+        "type": "song",
+        "xcId": "XC1013358",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1013358"
+      },
+      {
+        "file": "media/audio/norpin-XC1072198.mp3",
+        "type": "call",
+        "xcId": "XC1072198",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1072198"
+      },
+      {
+        "file": "media/audio/norpin-XC1013357.mp3",
+        "type": "song",
+        "xcId": "XC1013357",
+        "recordist": "Stanislas Wroza",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1013357"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/norpin.jpg",
+      "attribution": "(c) pinemartyn, some rights reserved (CC BY-NC), uploaded by pinemartyn",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/259335601"
+    }
+  },
+  {
+    "speciesCode": "pinsis",
+    "commonName": "Pine Siskin",
+    "scientificName": "Spinus pinus",
+    "family": "Fringillidae",
+    "familyCommon": "Finches, Euphonias, and Allies",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.4166666666666667,
+    "monthly": [
+      0.75,
+      0.75,
+      0.8,
+      1,
+      1,
+      0.3333333333333333,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/pinsis-XC1102569.mp3",
+        "type": "song",
+        "xcId": "XC1102569",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1102569"
+      },
+      {
+        "file": "media/audio/pinsis-XC592849.mp3",
+        "type": "call",
+        "xcId": "XC592849",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/592849"
+      },
+      {
+        "file": "media/audio/pinsis-XC1097600.mp3",
+        "type": "song",
+        "xcId": "XC1097600",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1097600"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/pinsis.jpg",
+      "attribution": "(c) Jack Cochran, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/114104460"
+    }
+  },
+  {
+    "speciesCode": "pacwre1",
+    "commonName": "Pacific Wren",
+    "scientificName": "Troglodytes pacificus",
+    "family": "Troglodytidae",
+    "familyCommon": "Wrens",
+    "habitats": [
+      "forest",
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.4,
+    "monthly": [
+      0.5,
+      0.6,
+      0.6,
+      1,
+      0.75,
+      0.25,
+      0,
+      0.5,
+      0.5,
+      0.75,
+      0.75,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/pacwre1-XC665049.mp3",
+        "type": "song",
+        "xcId": "XC665049",
+        "recordist": "Brian Henderson",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/665049"
+      },
+      {
+        "file": "media/audio/pacwre1-XC163178.mp3",
+        "type": "call",
+        "xcId": "XC163178",
+        "recordist": "Paul Marvin",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/163178"
+      },
+      {
+        "file": "media/audio/pacwre1-XC1094467.mp3",
+        "type": "song",
+        "xcId": "XC1094467",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1094467"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/pacwre1.jpg",
+      "attribution": "(c) zimmwisdom, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/456821830"
+    }
+  },
+  {
+    "speciesCode": "comloo",
+    "commonName": "Common Loon",
+    "scientificName": "Gavia immer",
+    "family": "Gaviidae",
+    "familyCommon": "Loons",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.4,
+    "monthly": [
+      0.6666666666666666,
+      0.8,
+      0.5,
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      0.3333333333333333,
+      0,
+      0.6,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/comloo-XC165550.mp3",
+        "type": "song",
+        "xcId": "XC165550",
+        "recordist": "Luke Halpin, Gwaii Haanas National Park Reserve and Haida Heritage Site Seabird Research Group",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/165550"
+      },
+      {
+        "file": "media/audio/comloo-XC436667.mp3",
+        "type": "call",
+        "xcId": "XC436667",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436667"
+      },
+      {
+        "file": "media/audio/comloo-XC436665.mp3",
+        "type": "call",
+        "xcId": "XC436665",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436665"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/comloo.jpg",
+      "attribution": "(c) Ronald Kelley, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/2960972"
+    }
+  },
+  {
+    "speciesCode": "rebsap",
+    "commonName": "Red-breasted Sapsucker",
+    "scientificName": "Sphyrapicus ruber",
+    "family": "Picidae",
+    "familyCommon": "Woodpeckers",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.3958333333333333,
+    "monthly": [
+      0.5,
+      0.25,
+      0.6,
+      0.3333333333333333,
+      1,
+      1,
+      0,
+      0,
+      0.75,
+      0,
+      0.25,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/rebsap-XC839224.mp3",
+        "type": "call",
+        "xcId": "XC839224",
+        "recordist": "Dan P  Bilderback",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/839224"
+      },
+      {
+        "file": "media/audio/rebsap-XC1104223.mp3",
+        "type": "call",
+        "xcId": "XC1104223",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1104223"
+      },
+      {
+        "file": "media/audio/rebsap-XC612656.mp3",
+        "type": "call",
+        "xcId": "XC612656",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/612656"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/rebsap.jpg",
+      "attribution": "(c) Mike, some rights reserved (CC BY-NC), uploaded by Mike",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/19579329"
+    }
+  },
+  {
+    "speciesCode": "haiwoo",
+    "commonName": "Hairy Woodpecker",
+    "scientificName": "Leuconotopicus villosus",
+    "family": "Picidae",
+    "familyCommon": "Woodpeckers",
+    "habitats": [
+      "forest",
+      "urban"
+    ],
+    "frequency": 0.375,
+    "monthly": [
+      0.3333333333333333,
+      0.5,
+      0.2,
+      0.3333333333333333,
+      0.5,
+      1,
+      0,
+      0.25,
+      0.75,
+      0.25,
+      0.25,
+      0.3333333333333333
+    ],
+    "audio": [
+      {
+        "file": "media/audio/haiwoo-XC611824.mp3",
+        "type": "call",
+        "xcId": "XC611824",
+        "recordist": "Whitney Neufeld-Kaiser",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/611824"
+      },
+      {
+        "file": "media/audio/haiwoo-XC687585.mp3",
+        "type": "call",
+        "xcId": "XC687585",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/687585"
+      },
+      {
+        "file": "media/audio/haiwoo-XC539033.mp3",
+        "type": "call",
+        "xcId": "XC539033",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/539033"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/haiwoo.jpg",
+      "attribution": "(c) Gavan Watson, some rights reserved (CC BY-NC-SA)",
+      "license": "cc-by-nc-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/1275"
+    }
+  },
+  {
+    "speciesCode": "whcspa",
+    "commonName": "White-crowned Sparrow",
+    "scientificName": "Zonotrichia leucophrys",
+    "family": "Passerellidae",
+    "familyCommon": "New World Sparrows",
+    "habitats": [
+      "shoreline",
+      "urban"
+    ],
+    "frequency": 0.375,
+    "monthly": [
+      0.16666666666666666,
+      0.2,
+      0.25,
+      1,
+      1,
+      0.5,
+      0.75,
+      0.5,
+      0.6666666666666666,
+      0.25,
+      0.2,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/whcspa-XC253834.mp3",
+        "type": "song",
+        "xcId": "XC253834",
+        "recordist": "Richard Hoyer",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/253834"
+      },
+      {
+        "file": "media/audio/whcspa-XC253833.mp3",
+        "type": "song",
+        "xcId": "XC253833",
+        "recordist": "Richard Hoyer",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/253833"
+      },
+      {
+        "file": "media/audio/whcspa-XC253533.mp3",
+        "type": "song",
+        "xcId": "XC253533",
+        "recordist": "Matthias Feuersenger",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/253533"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/whcspa.jpg",
+      "attribution": "(c) Mike Baird, some rights reserved (CC BY)",
+      "license": "cc-by",
+      "sourceUrl": "https://www.inaturalist.org/photos/27928"
+    }
+  },
+  {
+    "speciesCode": "mewgul2",
+    "commonName": "Short-billed Gull",
+    "scientificName": "Larus brachyrhynchus",
+    "family": "Laridae",
+    "familyCommon": "Gulls, Terns, and Skimmers",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.325,
+    "monthly": [
+      0.5,
+      0.6,
+      0.5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.25,
+      0.6,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/mewgul2-XC606788.mp3",
+        "type": "call",
+        "xcId": "XC606788",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/606788"
+      },
+      {
+        "file": "media/audio/mewgul2-XC433216.mp3",
+        "type": "call",
+        "xcId": "XC433216",
+        "recordist": "Niels Krabbe",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/433216"
+      },
+      {
+        "file": "media/audio/mewgul2-XC156743.mp3",
+        "type": "call",
+        "xcId": "XC156743",
+        "recordist": "Ian Cruickshank",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/156743"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/mewgul2.jpg",
+      "attribution": "(c) Wendy Feltham, some rights reserved (CC BY-NC), uploaded by Wendy Feltham",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/10978482"
+    }
+  },
+  {
+    "speciesCode": "wesgre",
+    "commonName": "Western Grebe",
+    "scientificName": "Aechmophorus occidentalis",
+    "family": "Podicipedidae",
+    "familyCommon": "Grebes",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.325,
+    "monthly": [
+      0.3333333333333333,
+      0.6,
+      0.5,
+      0,
+      0,
+      0.25,
+      0,
+      0,
+      0.3333333333333333,
+      0.25,
+      0.6,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/wesgre-XC581827.mp3",
+        "type": "song",
+        "xcId": "XC581827",
+        "recordist": "Paul Marvin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/581827"
+      },
+      {
+        "file": "media/audio/wesgre-XC387824.mp3",
+        "type": "call",
+        "xcId": "XC387824",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/387824"
+      },
+      {
+        "file": "media/audio/wesgre-XC527697.mp3",
+        "type": "song",
+        "xcId": "XC527697",
+        "recordist": "Thomas G. Graves",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/527697"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/wesgre.jpg",
+      "attribution": "(c) Dan Vickers, some rights reserved (CC BY), uploaded by Dan Vickers",
+      "license": "cc-by",
+      "sourceUrl": "https://www.inaturalist.org/photos/470828134"
+    }
+  },
+  {
+    "speciesCode": "calgul",
+    "commonName": "California Gull",
+    "scientificName": "Larus californicus",
+    "family": "Laridae",
+    "familyCommon": "Gulls, Terns, and Skimmers",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.325,
+    "monthly": [
+      0,
+      0.2,
+      0,
+      0,
+      0,
+      0,
+      0.25,
+      0.5,
+      1,
+      0.5,
+      0.8,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/calgul-XC109696.mp3",
+        "type": "call",
+        "xcId": "XC109696",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109696"
+      },
+      {
+        "file": "media/audio/calgul-XC109694.mp3",
+        "type": "call",
+        "xcId": "XC109694",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109694"
+      },
+      {
+        "file": "media/audio/calgul-XC109695.mp3",
+        "type": "call",
+        "xcId": "XC109695",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/109695"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/calgul.jpg",
+      "attribution": "(c) Blake Matheson, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/411766963"
+    }
+  },
+  {
+    "speciesCode": "barswa",
+    "commonName": "Barn Swallow",
+    "scientificName": "Hirundo rustica",
+    "family": "Hirundinidae",
+    "familyCommon": "Swallows",
+    "habitats": [
+      "shoreline",
+      "wetland",
+      "urban"
+    ],
+    "frequency": 0.3,
+    "monthly": [
+      0,
+      0.2,
+      0,
+      0,
+      1,
+      0.75,
+      0.75,
+      0.5,
+      1,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/barswa-XC433446.mp3",
+        "type": "song",
+        "xcId": "XC433446",
+        "recordist": "Michael Eaton",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/433446"
+      },
+      {
+        "file": "media/audio/barswa-XC1011825.mp3",
+        "type": "call",
+        "xcId": "XC1011825",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1011825"
+      },
+      {
+        "file": "media/audio/barswa-XC779619.mp3",
+        "type": "song",
+        "xcId": "XC779619",
+        "recordist": "Paul Marvin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/779619"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/barswa.jpg",
+      "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/122469139"
+    }
+  },
+  {
+    "speciesCode": "brnpel",
+    "commonName": "Brown Pelican",
+    "scientificName": "Pelecanus occidentalis",
+    "family": "Pelecanidae",
+    "familyCommon": "Pelicans",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.3,
+    "monthly": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      0.5,
+      1,
+      1,
+      0.5,
+      0.2,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/brnpel-XC540652.mp3",
+        "type": "call",
+        "xcId": "XC540652",
+        "recordist": "Isain Contreras Rodríguez",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/540652"
+      },
+      {
+        "file": "media/audio/brnpel-XC540651.mp3",
+        "type": "call",
+        "xcId": "XC540651",
+        "recordist": "Isain Contreras Rodríguez",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/540651"
+      },
+      {
+        "file": "media/audio/brnpel-XC540650.mp3",
+        "type": "call",
+        "xcId": "XC540650",
+        "recordist": "Isain Contreras Rodríguez",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/540650"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/brnpel.jpg",
+      "attribution": "(c) BJ Stacey, some rights reserved (CC BY-NC), uploaded by BJ Stacey",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/74013719"
+    }
+  },
+  {
+    "speciesCode": "retloo",
+    "commonName": "Red-throated Loon",
+    "scientificName": "Gavia stellata",
+    "family": "Gaviidae",
+    "familyCommon": "Loons",
+    "habitats": [
+      "shoreline"
+    ],
+    "frequency": 0.275,
+    "monthly": [
+      0.16666666666666666,
+      0.2,
+      0.25,
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      0.3333333333333333,
+      0.5,
+      0.6,
+      1
+    ],
+    "audio": [
+      {
+        "file": "media/audio/retloo-XC1060885.mp3",
+        "type": "song",
+        "xcId": "XC1060885",
+        "recordist": "Benjamin Drillat",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1060885"
+      },
+      {
+        "file": "media/audio/retloo-XC926533.mp3",
+        "type": "call",
+        "xcId": "XC926533",
+        "recordist": "Yoann Blanchon",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/926533"
+      },
+      {
+        "file": "media/audio/retloo-XC1011914.mp3",
+        "type": "song",
+        "xcId": "XC1011914",
+        "recordist": "Benjamin Drillat",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1011914"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/retloo.jpg",
+      "attribution": "(c) Erik Eckstein, some rights reserved (CC BY-NC), uploaded by Erik Eckstein",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/403741335"
+    }
+  },
+  {
+    "speciesCode": "marwre",
+    "commonName": "Marsh Wren",
+    "scientificName": "Cistothorus palustris",
+    "family": "Troglodytidae",
+    "familyCommon": "Wrens",
+    "habitats": [
+      "shoreline",
+      "wetland"
+    ],
+    "frequency": 0.275,
+    "monthly": [
+      0.16666666666666666,
+      0.4,
+      0,
+      1,
+      1,
+      0.25,
+      0,
+      0,
+      0,
+      0.75,
+      0.4,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/marwre-XC582233.mp3",
+        "type": "song",
+        "xcId": "XC582233",
+        "recordist": "James Link",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/582233"
+      },
+      {
+        "file": "media/audio/marwre-XC1056051.mp3",
+        "type": "call",
+        "xcId": "XC1056051",
+        "recordist": "Denis Dujardin",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1056051"
+      },
+      {
+        "file": "media/audio/marwre-XC436849.mp3",
+        "type": "song",
+        "xcId": "XC436849",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/436849"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/marwre.jpg",
+      "attribution": "(c) lauren w., some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/196549140"
+    }
+  },
+  {
+    "speciesCode": "pilwoo",
+    "commonName": "Pileated Woodpecker",
+    "scientificName": "Dryocopus pileatus",
+    "family": "Picidae",
+    "familyCommon": "Woodpeckers",
+    "habitats": [
+      "forest"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.3333333333333333,
+      0,
+      0.5,
+      0,
+      0.25,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/pilwoo-XC415433.mp3",
+        "type": "song",
+        "xcId": "XC415433",
+        "recordist": "Étienne Leroy",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/415433"
+      },
+      {
+        "file": "media/audio/pilwoo-XC482330.mp3",
+        "type": "call",
+        "xcId": "XC482330",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/482330"
+      },
+      {
+        "file": "media/audio/pilwoo-XC451058.mp3",
+        "type": "call",
+        "xcId": "XC451058",
+        "recordist": "Ed Pandolfino",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/451058"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/pilwoo.jpg",
+      "attribution": "(c) Joshlaymon, some rights reserved (CC BY-SA)",
+      "license": "cc-by-sa",
+      "sourceUrl": "https://www.inaturalist.org/photos/168915535"
+    }
+  },
+  {
+    "speciesCode": "moudov",
+    "commonName": "Mourning Dove",
+    "scientificName": "Zenaida macroura",
+    "family": "Columbidae",
+    "familyCommon": "Pigeons and Doves",
+    "habitats": [
+      "urban"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0,
+      0,
+      0.5,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/moudov-XC153652.mp3",
+        "type": "song",
+        "xcId": "XC153652",
+        "recordist": "Paul Marvin",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/153652"
+      },
+      {
+        "file": "media/audio/moudov-XC613539.mp3",
+        "type": "call",
+        "xcId": "XC613539",
+        "recordist": "Peter Ward and Ken Hall",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/613539"
+      },
+      {
+        "file": "media/audio/moudov-XC1154296.mp3",
+        "type": "song",
+        "xcId": "XC1154296",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1154296"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/moudov.jpg",
+      "attribution": "(c) Donna Pomeroy, some rights reserved (CC BY-NC), uploaded by Donna Pomeroy",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/14015355"
+    }
+  },
+  {
+    "speciesCode": "orcwar",
+    "commonName": "Orange-crowned Warbler",
+    "scientificName": "Leiothlypis celata",
+    "family": "Parulidae",
+    "familyCommon": "New World Warblers",
+    "habitats": [
+      "forest"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0,
+      0,
+      0,
+      0.5,
+      0.25,
+      0.25,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/orcwar-XC663807.mp3",
+        "type": "song",
+        "xcId": "XC663807",
+        "recordist": "Kate Atkins",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/663807"
+      },
+      {
+        "file": "media/audio/orcwar-XC1105211.mp3",
+        "type": "call",
+        "xcId": "XC1105211",
+        "recordist": "Greg Irving",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1105211"
+      },
+      {
+        "file": "media/audio/orcwar-XC663806.mp3",
+        "type": "song",
+        "xcId": "XC663806",
+        "recordist": "Kate Atkins",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/663806"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/orcwar.jpg",
+      "attribution": "(c) Ad Konings, some rights reserved (CC BY-NC), uploaded by Ad Konings",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/601117741"
+    }
+  },
+  {
+    "speciesCode": "westan",
+    "commonName": "Western Tanager",
+    "scientificName": "Piranga ludoviciana",
+    "family": "Cardinalidae",
+    "familyCommon": "Cardinals and Allies",
+    "habitats": [
+      "forest"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      0.25,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/westan-XC878437.mp3",
+        "type": "song",
+        "xcId": "XC878437",
+        "recordist": "Whitney Neufeld-Kaiser",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/878437"
+      },
+      {
+        "file": "media/audio/westan-XC651934.mp3",
+        "type": "call",
+        "xcId": "XC651934",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/651934"
+      },
+      {
+        "file": "media/audio/westan-XC592858.mp3",
+        "type": "song",
+        "xcId": "XC592858",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/592858"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/westan.jpg",
+      "attribution": "(c) Jim Gain, some rights reserved (CC BY-NC), uploaded by Jim Gain",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/289912656"
+    }
+  },
+  {
+    "speciesCode": "wlswar",
+    "commonName": "Wilson's Warbler",
+    "scientificName": "Cardellina pusilla",
+    "family": "Parulidae",
+    "familyCommon": "New World Warblers",
+    "habitats": [
+      "forest"
+    ],
+    "frequency": 0.1,
+    "monthly": [
+      0,
+      0,
+      0,
+      0,
+      0.5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "audio": [
+      {
+        "file": "media/audio/wlswar-XC906161.mp3",
+        "type": "song",
+        "xcId": "XC906161",
+        "recordist": "Anthony Gliozzo",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/906161"
+      },
+      {
+        "file": "media/audio/wlswar-XC582129.mp3",
+        "type": "call",
+        "xcId": "XC582129",
+        "recordist": "James Link",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/582129"
+      },
+      {
+        "file": "media/audio/wlswar-XC582122.mp3",
+        "type": "song",
+        "xcId": "XC582122",
+        "recordist": "James Link",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/582122"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/wlswar.jpg",
+      "attribution": "(c) BJ Stacey, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/332482"
+    }
+  }
+]

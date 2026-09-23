@@ -1,0 +1,6 @@
+{
+  "amwpel": ["wetland"],
+  "leasan": ["wetland", "shoreline"],
+  "wessan": ["wetland", "shoreline"],
+  "greyel": ["wetland", "shoreline"]
+}
