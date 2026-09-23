@@ -8,11 +8,11 @@
   "vantage": { "position": [0, 1.6, 0], "heading": 20 },
   "wind": { "direction": 240, "strength": 0.35, "gustiness": 0.5 },
   "zones": {
-    "open-water": { "kind": "polygon", "points": [[-25, -12], [30, -12], [45, -60], [-40, -60]] },
-    "near-water": { "kind": "polygon", "points": [[-12, -8], [14, -8], [18, -25], [-16, -25]] },
-    "reeds":      { "kind": "polygon", "points": [[-30, -4], [-12, -4], [-14, -18], [-32, -18]] },
-    "mudflat":    { "kind": "polygon", "points": [[8, -3], [28, -3], [34, -14], [14, -12]] },
-    "far-shore":  { "kind": "polygon", "points": [[-30, -62], [40, -62], [40, -70], [-30, -70]] },
+    "open-water": { "kind": "polygon", "points": [[-22, -15], [26, -15], [32, -52], [-28, -52]] },
+    "near-water": { "kind": "polygon", "points": [[-9, -10.5], [12, -10.5], [14, -21], [-11, -21]] },
+    "reeds":      { "kind": "polygon", "points": [[-16, -2], [-3, -2], [-3, -14], [-16, -14]] },
+    "mudflat":    { "kind": "polygon", "points": [[17, -6], [23, -6], [23, -8.5], [17, -8.5]] },
+    "far-shore":  { "kind": "polygon", "points": [[-30, -64], [40, -64], [40, -67], [-30, -67]] },
     "snag":       { "kind": "point",   "position": [22, 0, -48] },
     "sky":        { "kind": "lane",    "from": [-160, 0, -90], "to": [160, 0, -60], "altitude": [40, 80] }
   },
