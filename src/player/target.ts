@@ -33,9 +33,12 @@ export function pickTarget(
     if (v.z > 1 || v.z < -1) continue                          // outside near/far
     const px = (v.x * viewport.width) / 2
     const py = (v.y * viewport.height) / 2
-    if (Math.hypot(px, py) > RETICLE_RADIUS_PX + 1e-6) continue
     const dist = c.position.distanceTo(camPos)
     const apparentPx = apparentSizePx(c.radius, dist, camera.fov, viewport.height)
+    const projectedRadiusPx = apparentPx / 2
+    // a hit is either the reticle centre over the bird, or the bird's own projected disc
+    // reaching into the reticle (so a large, off-centre body still registers)
+    if (Math.hypot(px, py) > RETICLE_RADIUS_PX + projectedRadiusPx + 1e-6) continue
     if (!best || apparentPx > best.apparentPx) {
       best = { id: c.id, species: c.species, apparentPx, tooSmall: apparentPx < MIN_TARGET_PX - 1e-9 }
     }

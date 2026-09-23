@@ -37,4 +37,6 @@ export interface BirdModel {
   dispose(): void
   /** bounding radius in metres, for apparent-size math */
   radius: number
+  /** local-space bounding-box centre of the whole model at rest pose, for targeting */
+  center: THREE.Vector3
 }

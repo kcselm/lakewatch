@@ -184,8 +184,12 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
   }
   pose({ wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3() })
 
+  // Box3.setFromObject updates the group's own world matrices as needed; the group has no
+  // parent yet (or sits at its parent's origin), so this box is effectively local-space.
+  const center = new THREE.Box3().setFromObject(group).getCenter(new THREE.Vector3())
+
   return {
-    group, parts, radius, pose,
+    group, parts, radius, pose, center,
     dispose() {
       group.traverse(o => { if (o instanceof THREE.Mesh) o.geometry.dispose() })
     },

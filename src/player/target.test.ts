@@ -58,4 +58,20 @@ describe('pickTarget', () => {
     const r = pickTarget([{ id: 1, species: 'a', position: new THREE.Vector3(x, 0, z), radius: 1 }], c, vp)
     expect(r?.id).toBe(1)
   })
+  it('a standing bird centred by its body is targetable under a 2° fov at 65 m', () => {
+    const r = pickTarget([{ id: 1, species: 'a', position: new THREE.Vector3(0, 0, -65), radius: 0.6 }], cam(2), vp)
+    expect(r?.id).toBe(1)
+    expect(r?.tooSmall).toBe(false)
+  })
+  it('a bird whose projected disc overlaps the reticle is inside', () => {
+    // choose a near, large candidate offset 70px past the 60px reticle radius; its own
+    // projected radius (>20px) should be enough for pickTarget to still count it as a hit
+    const c = cam(60)
+    const z = -8
+    const fovRad = (60 * Math.PI) / 180
+    const halfH = Math.tan(fovRad / 2) * -z
+    const x = (70 / (900 / 2)) * halfH
+    const r = pickTarget([{ id: 1, species: 'a', position: new THREE.Vector3(x, 0, z), radius: 0.6 }], c, vp)
+    expect(r?.id).toBe(1)
+  })
 })

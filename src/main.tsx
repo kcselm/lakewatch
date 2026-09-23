@@ -161,7 +161,7 @@ world.start(dt => {
     if (game.get().target !== null) game.set({ target: null })
     prompt.set(null)
   } else {
-    const cands = registry.all().map(b => ({ id: b.id, species: b.species, position: b.position, radius: b.model.radius }))
+    const cands = registry.all().map(b => ({ id: b.id, species: b.species, position: b.model.group.localToWorld(b.model.center.clone()), radius: b.model.radius }))
     const t = pickTarget(cands, world.camera, { width: innerWidth, height: innerHeight })
     const prevTarget = game.get().target
     if (!t) {

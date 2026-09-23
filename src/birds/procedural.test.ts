@@ -93,4 +93,9 @@ describe('buildBird', () => {
     const wingBox2 = new THREE.Box3().setFromObject(m.parts.wingL)
     expect(wingBox2.max.y).toBeGreaterThan(bodyBox2.max.y)
   })
+  it("a standing bird's body centre sits well above its feet", () => {
+    const heron = getSpec('grbher3')
+    const m = buildBird(heron)
+    expect(m.center.y).toBeGreaterThan(0.4)
+  })
 })
