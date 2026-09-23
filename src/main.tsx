@@ -21,9 +21,11 @@ import { pickTarget } from './player/target'
 import { createPrompt } from './hud/prompt'
 import { loadCatalog, findBird } from './catalog'
 import { App } from './ui/App'
-import { judge, fieldMarkFor } from './game/identify'
+import { judge, fieldMarkFor, MAX_MISSES } from './game/identify'
 import { guideSpecies } from './game/guideSpecies'
 import { SPECIES } from './birds/species'
+import { createLifeListStorage } from './game/lifeListStorage'
+import { recordSighting, seenState } from './game/lifeList'
 
 const loc = loadLocation()
 const catalog = loadCatalog()
@@ -76,6 +78,16 @@ if (snagZone?.kind === 'point') {
 const registry = new BirdRegistry()
 world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
 
+let ls: Storage | null = null
+try { ls = window.localStorage } catch { ls = null }
+const lifeStorage = createLifeListStorage(ls)
+let lifeList = lifeStorage.load()
+
+function record(species: string, selfIdentified: boolean, wrongGuesses: number) {
+  lifeList = recordSighting(lifeList, { species, location: loc.id, timeOfDay: loc.timeOfDay, selfIdentified, wrongGuesses, at: new Date().toISOString() })
+  lifeStorage.save(lifeList)
+}
+
 addEventListener('keydown', e => {
   const s = game.get()
   if ((e.key === 'e' || e.key === 'E') && s.target && !s.target.tooSmall && !s.guideOpen && !s.card) {
@@ -91,6 +103,10 @@ addEventListener('keydown', e => {
     game.set({ guideOpen: !s.guideOpen, identifying: null })
     if (!s.guideOpen) document.exitPointerLock()
   }
+  if ((e.key === 'l' || e.key === 'L') && !s.card && !s.guideOpen) {
+    game.set({ lifeListOpen: !s.lifeListOpen })
+    if (!s.lifeListOpen) document.exitPointerLock()
+  }
 })
 
 render(
@@ -99,7 +115,7 @@ render(
     specs={SPECIES}
     birdOf={findBird}
     fieldMark={code => fieldMarkFor(code, SPECIES)}
-    seen={() => ({})}
+    seen={() => seenState(lifeList)}
     onGuess={code => {
       const s = game.get()
       if (!s.identifying) return
@@ -107,12 +123,14 @@ render(
       if (j.result === 'correct') {
         const inst = registry.get(s.identifying.targetId)
         if (inst) inst.identified = true
+        record(s.identifying.species, true, s.identifying.misses)
         game.set({ guideOpen: false, identifying: null, card: { kind: 'correct', species: s.identifying.species } })
       } else if (j.result === 'wrong') {
         game.set({ guideOpen: false, identifying: j.session, card: { kind: 'wrong', guess: code, hint: j.hint } })
       } else {
         const inst = registry.get(s.identifying.targetId)
         if (inst) inst.identified = true
+        record(j.species, false, MAX_MISSES)
         game.set({ guideOpen: false, identifying: null, card: { kind: 'revealed', species: j.species } })
       }
     }}
@@ -123,6 +141,11 @@ render(
       game.set({ card: null })
       if (s.identifying) game.set({ identifying: s.identifying })
     }}
+    lifeList={() => lifeList}
+    locationName={loc.name}
+    locationSpecies={guide.map(b => b.speciesCode)}
+    persistent={() => lifeStorage.persistent}
+    onCloseLifeList={() => game.set({ lifeListOpen: false })}
   />,
   document.getElementById('ui')!,
 )
