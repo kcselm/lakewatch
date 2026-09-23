@@ -1,5 +1,5 @@
 import type { BehaviorContext, BehaviorController } from './types'
-import { turnToward, approach } from './types'
+import { turnToward, approach, polygonOf } from './types'
 import { randomPointInPolygon, clampToPolygon } from '../location/zones'
 import type { PoseState } from '../birds/model'
 
@@ -9,6 +9,7 @@ const SPEED = 0.35
 const TURN = 0.8
 
 export function createWade(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
+  const zone = polygonOf(ctx)
   let x = startX, z = startZ, heading = ctx.rng() * Math.PI * 2
   let state: State = 'still'
   let timer = 6 + ctx.rng() * 14
@@ -20,7 +21,7 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
       if (ctx.rng() < 0.3) { state = 'strike'; strikeT = 0; timer = 1.2 }
       else {
         state = 'step'
-        const [px, pz] = randomPointInPolygon(ctx.zone.points, ctx.rng)
+        const [px, pz] = randomPointInPolygon(zone.points, ctx.rng)
         // short steps: move a few metres toward a random point, not all the way
         const d = Math.hypot(px - x, pz - z) || 1
         const len = Math.min(d, 2 + ctx.rng() * 2)
@@ -64,7 +65,7 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
         // a gust ruffles: tiny roll
         pose.lean.z = approach(pose.lean.z, (ctx.wind().effective - 0.3) * 0.05, 2, dt)
       }
-      ;[x, z] = clampToPolygon(x, z, ctx.zone.points)
+      ;[x, z] = clampToPolygon(x, z, zone.points)
     },
   }
 }

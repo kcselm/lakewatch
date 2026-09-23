@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { render } from 'preact'
-import { loadLocation } from './location'
+import { loadLocation, type Vec3 } from './location'
 import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
 import { lakeHeightfield } from './world/heightfield'
@@ -154,10 +154,12 @@ world.add(createTreeLine(heightfield, world.palette))
 for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
   world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
 }
+const perches: Record<string, Vec3> = {}
 const snagZone = loc.zones['snag']
 if (snagZone?.kind === 'point') {
   const snag = createSnag(snagZone.position)
   world.scene.add(snag.object)
+  perches['snag'] = [snag.perchPoint.x, snag.perchPoint.y, snag.perchPoint.z]
 }
 
 const flockRng = makeRng(77)
@@ -187,7 +189,7 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
 }
-world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42, events: spawnEvents }))
+world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
 
 const calls = createCallPlayer({
   engine, registry, birdOf: findBird,

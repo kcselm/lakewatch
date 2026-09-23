@@ -8,7 +8,7 @@ import type { Location } from '../location/schema'
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
   vantage: { position: [0, 1.6, 0], heading: 0 }, wind: { direction: 0, strength: 0.3, gustiness: 0.5 },
-  zones: { w: { kind: 'polygon', points: [[0, 0], [1, 0], [1, 1]] }, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
+  zones: { w: { kind: 'polygon', points: [[0, 0], [1, 0], [1, 1]] }, snag: { kind: 'point', position: [1, 2, 3] }, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
   cast, ambience: [],
 })
 
@@ -38,6 +38,13 @@ describe('expandCast', () => {
       { species: 'killde', behavior: 'probe', zone: 'w', count: 2 },
     ]), makeRng(5))
     expect(new Set(out.map(b => b.groupKey)).size).toBe(2)
+  })
+  it('expands perch and hover entries like any other individual', () => {
+    const out = expandCast(loc([
+      { species: 'belkin1', behavior: 'hover', zone: 'snag', count: 1, plumage: 'female' },
+      { species: 'rewbla', behavior: 'perch', zone: 'snag', count: 2, plumage: 'male' },
+    ]), makeRng(6))
+    expect(out.map(b => [b.behavior, b.variant])).toEqual([['hover', 'female'], ['perch', 'male'], ['perch', 'male']])
   })
 })
 

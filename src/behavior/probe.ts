@@ -1,5 +1,5 @@
 import type { BehaviorContext, BehaviorController } from './types'
-import { turnToward, approach } from './types'
+import { turnToward, approach, polygonOf } from './types'
 import { randomPointInPolygon, clampToPolygon } from '../location/zones'
 import type { PoseState } from '../birds/model'
 
@@ -11,6 +11,7 @@ const GROUP_RADIUS = 3
 const GROUP_RETARGET = 45   // seconds
 
 export function createProbe(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
+  const zone = polygonOf(ctx)
   let x = startX, z = startZ, heading = ctx.rng() * Math.PI * 2
   let state: State = 'peck'
   let timer = 0.5 + ctx.rng()
@@ -21,12 +22,12 @@ export function createProbe(ctx: BehaviorContext, startX: number, startZ: number
   function pickTarget(): void {
     const g = ctx.group
     if (g && clock >= g.retargetAt) {
-      ;[g.targetX, g.targetZ] = randomPointInPolygon(ctx.zone.points, ctx.rng)
+      ;[g.targetX, g.targetZ] = randomPointInPolygon(zone.points, ctx.rng)
       g.retargetAt = clock + GROUP_RETARGET
     }
     const cx = g ? g.targetX : x, cz = g ? g.targetZ : z
     const a = ctx.rng() * Math.PI * 2, r = ctx.rng() * GROUP_RADIUS
-    ;[tx, tz] = clampToPolygon(cx + Math.cos(a) * r, cz + Math.sin(a) * r, ctx.zone.points)
+    ;[tx, tz] = clampToPolygon(cx + Math.cos(a) * r, cz + Math.sin(a) * r, zone.points)
   }
 
   function next(): void {
@@ -59,7 +60,7 @@ export function createProbe(ctx: BehaviorContext, startX: number, startZ: number
         // a gust ruffles: tiny roll, same as wade
         pose.lean.z = approach(pose.lean.z, (ctx.wind().effective - 0.3) * 0.05, 2, dt)
       }
-      ;[x, z] = clampToPolygon(x, z, ctx.zone.points)
+      ;[x, z] = clampToPolygon(x, z, zone.points)
     },
   }
 }

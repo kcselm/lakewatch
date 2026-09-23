@@ -1,5 +1,5 @@
 import type { BehaviorContext, BehaviorController } from './types'
-import { turnToward, approach } from './types'
+import { turnToward, approach, polygonOf } from './types'
 import { randomPointInPolygon, clampToPolygon } from '../location/zones'
 import type { PoseState } from '../birds/model'
 
@@ -11,10 +11,11 @@ const RIPPLE_EVERY = 0.9    // s while cruising
 const DRIFT = 0.08          // m/s per unit effective wind while idle
 
 export function createSwim(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
+  const zone = polygonOf(ctx)
   let x = startX, z = startZ, heading = ctx.rng() * Math.PI * 2
   let state: State = 'cruise'
   let timer = 2 + ctx.rng() * 6
-  let [tx, tz] = randomPointInPolygon(ctx.zone.points, ctx.rng)
+  let [tx, tz] = randomPointInPolygon(zone.points, ctx.rng)
   let rippleClock = 0
   let bob = 0
 
@@ -25,7 +26,7 @@ export function createSwim(ctx: BehaviorContext, startX: number, startZ: number)
       timer = state === 'idle' ? 3 + ctx.rng() * 8 : 1.5 + ctx.rng() * 2
     } else {
       state = 'cruise'
-      ;[tx, tz] = randomPointInPolygon(ctx.zone.points, ctx.rng)
+      ;[tx, tz] = randomPointInPolygon(zone.points, ctx.rng)
       timer = 4 + ctx.rng() * 10
     }
   }
@@ -64,7 +65,7 @@ export function createSwim(ctx: BehaviorContext, startX: number, startZ: number)
         if (ctx.rng() < dt * 0.8) ctx.onRipple?.(x, z)
       }
       if (state !== 'dabble') pose.tailTilt = approach(pose.tailTilt, 0, 5, dt)
-      ;[x, z] = clampToPolygon(x, z, ctx.zone.points)
+      ;[x, z] = clampToPolygon(x, z, zone.points)
     },
   }
 }

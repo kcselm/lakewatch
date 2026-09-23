@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Location, Behavior, PolygonZone, LaneZone } from '../location/schema'
+import type { Location, Behavior, LaneZone, Vec3 } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
@@ -30,6 +30,8 @@ export interface SpawnDeps {
   ripples: RippleBuffer
   seed: number
   events?: SpawnEvents
+  /** world-space perch points by zone name; point zones not listed here perch at their own position */
+  perches?: Record<string, Vec3>
 }
 
 export interface Individual { species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string }
@@ -91,10 +93,12 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const flocks: LiveFlock[] = []
 
   for (const ind of expandCast(loc, rng)) {
-    const zone = loc.zones[ind.zone] as PolygonZone
+    const zone = loc.zones[ind.zone]!
+    const point = zone.kind === 'point'
+    const perch: Vec3 | undefined = point ? (deps.perches?.[ind.zone] ?? zone.position) : undefined
     const model = hasSpec(ind.species)
       ? buildBird(getSpec(ind.species), ind.variant)
-      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : 'swimming')
+      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
     if (!groups.has(ind.groupKey)) groups.set(ind.groupKey, { targetX: 0, targetZ: 0, retargetAt: 0 })
     const ctx: BehaviorContext = {
       zone,
@@ -103,8 +107,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       ground: deps.ground,
       onRipple: (x, z) => deps.ripples.spawn(x, z),
       group: ind.behavior === 'probe' ? groups.get(ind.groupKey) : undefined,
+      perch,
+      wingbeatHz: hasSpec(ind.species) ? getSpec(ind.species).wingbeatHz : 5,
+      onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
-    const [sx, sz] = randomPointInPolygon(zone.points, rng)
+    const [sx, sz] = zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
     object.add(model.group)
