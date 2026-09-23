@@ -1,4 +1,4 @@
-import { pointInPolygon, randomPointInPolygon, polygonCentroid, clampToPolygon } from './zones'
+import { pointInPolygon, randomPointInPolygon, polygonCentroid, clampToPolygon, isConvexPolygon } from './zones'
 import { makeRng } from '../catalog/rng'
 import type { Vec2 } from './schema'
 
@@ -39,5 +39,26 @@ describe('polygonCentroid and clampToPolygon', () => {
     const [x, z] = clampToPolygon(15, 5, square)
     expect(pointInPolygon(x, z, square)).toBe(true)
     expect(x).toBeGreaterThan(8)
+  })
+})
+
+describe('isConvexPolygon', () => {
+  it('returns true for a square', () => {
+    expect(isConvexPolygon(square)).toBe(true)
+  })
+  it('returns true for a triangle', () => {
+    expect(isConvexPolygon(tri)).toBe(true)
+  })
+  it('returns false for an L-shape', () => {
+    const lshape: Vec2[] = [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]]
+    expect(isConvexPolygon(lshape)).toBe(false)
+  })
+  it('returns true for a clockwise square', () => {
+    const clockwise: Vec2[] = [[0, 0], [0, 10], [10, 10], [10, 0]]
+    expect(isConvexPolygon(clockwise)).toBe(true)
+  })
+  it('returns true for a square with a collinear midpoint inserted', () => {
+    const withMidpoint: Vec2[] = [[0, 0], [5, 0], [10, 0], [10, 10], [0, 10]]
+    expect(isConvexPolygon(withMidpoint)).toBe(true)
   })
 })

@@ -36,6 +36,10 @@ describe('validateCast', () => {
     const bad = { ...loc, cast: [{ ...loc.cast[0]!, behavior: 'flyover' as const }] }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['cast[0]: flyover needs a lane zone, water is polygon'])
   })
+  it('rejects a concave polygon zone', () => {
+    const bad = { ...loc, zones: { water: { kind: 'polygon' as const, points: [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]] as [number, number][] } } }
+    expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['zone water: polygon must be convex'])
+  })
 })
 
 import { loadLocation } from './index'

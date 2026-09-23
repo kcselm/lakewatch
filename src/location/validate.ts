@@ -1,5 +1,6 @@
 import type { Location } from './schema'
 import type { Bird } from '../catalog/types'
+import { isConvexPolygon } from './zones'
 
 const ZONE_KIND_FOR_BEHAVIOR = {
   swim: 'polygon', wade: 'polygon', probe: 'polygon',
@@ -8,6 +9,11 @@ const ZONE_KIND_FOR_BEHAVIOR = {
 
 export function validateCast(loc: Location, birds: readonly Bird[]): string[] {
   const errors: string[] = []
+
+  for (const [name, zone] of Object.entries(loc.zones)) {
+    if (zone.kind === 'polygon' && !isConvexPolygon(zone.points)) errors.push(`zone ${name}: polygon must be convex`)
+  }
+
   const byCode = new Map(birds.map(b => [b.speciesCode, b]))
   loc.cast.forEach((entry, i) => {
     const bird = byCode.get(entry.species)

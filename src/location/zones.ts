@@ -21,6 +21,7 @@ function bounds(points: readonly Vec2[]): [number, number, number, number] {
   return [x0, x1, z0, z1]
 }
 
+/** Rejection sampling in the bounding box. Zones are validated convex at load time, so the centroid fallback always lies inside. */
 export function randomPointInPolygon(points: readonly Vec2[], rng: Rng): Vec2 {
   const [x0, x1, z0, z1] = bounds(points)
   for (let i = 0; i < 1000; i++) {
@@ -37,7 +38,7 @@ export function polygonCentroid(points: readonly Vec2[]): Vec2 {
   return [sx / points.length, sz / points.length]
 }
 
-/** Walk from the point toward the centroid until inside. Good enough for keeping wanderers in bounds. */
+/** Walk from the point toward the centroid until inside. Zones are validated convex at load time, so the centroid fallback always lies inside. */
 export function clampToPolygon(x: number, z: number, points: readonly Vec2[]): Vec2 {
   if (pointInPolygon(x, z, points)) return [x, z]
   const [cx, cz] = polygonCentroid(points)
@@ -46,4 +47,22 @@ export function clampToPolygon(x: number, z: number, points: readonly Vec2[]): V
     if (pointInPolygon(px, pz, points)) return [px, pz]
   }
   return [cx, cz]
+}
+
+/** True when every turn around the polygon has the same sign (no reflex vertices). Collinear runs are allowed. */
+export function isConvexPolygon(points: readonly Vec2[]): boolean {
+  const n = points.length
+  if (n < 3) return false
+  let sign = 0
+  for (let i = 0; i < n; i++) {
+    const [ax, az] = points[i]!
+    const [bx, bz] = points[(i + 1) % n]!
+    const [cx, cz] = points[(i + 2) % n]!
+    const cross = (bx - ax) * (cz - bz) - (bz - az) * (cx - bx)
+    if (cross === 0) continue
+    const s = cross > 0 ? 1 : -1
+    if (sign === 0) sign = s
+    else if (s !== sign) return false
+  }
+  return true
 }
