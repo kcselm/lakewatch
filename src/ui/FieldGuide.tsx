@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { Bird } from '../catalog/types'
 import type { SpeciesSpec } from '../birds/spec'
 
@@ -16,6 +16,7 @@ interface Props {
 export function FieldGuide({ species, specs, seen, onConfirm, onClose }: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const [playing, setPlaying] = useState<HTMLAudioElement | null>(null)
+  const playingRef = useRef<HTMLAudioElement | null>(null)
   const byFamily = useMemo(() => {
     const m = new Map<string, Bird[]>()
     for (const b of species) m.set(b.familyCommon, [...(m.get(b.familyCommon) ?? []), b])
@@ -23,11 +24,15 @@ export function FieldGuide({ species, specs, seen, onConfirm, onClose }: Props) 
   }, [species])
   const bird = species.find(b => b.speciesCode === selected) ?? null
 
+  // stop any playing clip if the guide unmounts (e.g. the G key closes it directly)
+  useEffect(() => () => { playingRef.current?.pause() }, [])
+
   function play(file: string) {
     playing?.pause()
     const a = new Audio('/' + file)
     a.play().catch(() => {})
     setPlaying(a)
+    playingRef.current = a
   }
 
   return (

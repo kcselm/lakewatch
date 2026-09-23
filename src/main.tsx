@@ -87,7 +87,8 @@ addEventListener('keydown', e => {
     document.exitPointerLock()
   }
   if ((e.key === 'g' || e.key === 'G') && !s.card) {
-    game.set({ guideOpen: !s.guideOpen, identifying: s.guideOpen ? null : s.identifying })
+    // G always opens in browse mode; only E starts or resumes an identify session
+    game.set({ guideOpen: !s.guideOpen, identifying: null })
     if (!s.guideOpen) document.exitPointerLock()
   }
 })
