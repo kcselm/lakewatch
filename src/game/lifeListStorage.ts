@@ -10,8 +10,10 @@ export interface LifeListStorage {
 const DEFAULT_KEY = 'lakewatch.lifelist'
 
 function isV1(x: unknown): x is LifeListData {
+  const species = (x as { species?: unknown } | null)?.species
   return typeof x === 'object' && x !== null && (x as { version?: unknown }).version === 1
-    && typeof (x as { species?: unknown }).species === 'object' && Array.isArray((x as { journal?: unknown }).journal)
+    && species !== null && typeof species === 'object' && !Array.isArray(species)
+    && Array.isArray((x as { journal?: unknown }).journal)
 }
 
 export function createLifeListStorage(storage: Storage | null, key = DEFAULT_KEY): LifeListStorage {

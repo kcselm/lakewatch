@@ -27,6 +27,12 @@ describe('createLifeListStorage', () => {
     st.save(emptyLifeList())
     expect(JSON.parse(s2.getItem('lakewatch.lifelist')!).version).toBe(1)
   })
+  it('loads an empty list when species is null or an array', () => {
+    const s1 = memStorage({ 'lakewatch.lifelist': JSON.stringify({ version: 1, species: null, journal: [] }) })
+    expect(createLifeListStorage(s1).load()).toEqual(emptyLifeList())
+    const s2 = memStorage({ 'lakewatch.lifelist': JSON.stringify({ version: 1, species: [], journal: [] }) })
+    expect(createLifeListStorage(s2).load()).toEqual(emptyLifeList())
+  })
   it('falls back to memory when storage is null or throws', () => {
     const st = createLifeListStorage(null)
     expect(st.persistent).toBe(false)
