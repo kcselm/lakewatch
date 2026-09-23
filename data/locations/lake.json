@@ -1,0 +1,30 @@
+{
+  "id": "willow-lake",
+  "name": "Willow Lake",
+  "region": "Willamette Valley, Oregon",
+  "habitat": "wetland",
+  "season": "early-autumn",
+  "timeOfDay": "morning",
+  "vantage": { "position": [0, 1.6, 0], "heading": 20 },
+  "wind": { "direction": 240, "strength": 0.35, "gustiness": 0.5 },
+  "zones": {
+    "open-water": { "kind": "polygon", "points": [[-25, -12], [30, -12], [45, -60], [-40, -60]] },
+    "near-water": { "kind": "polygon", "points": [[-12, -8], [14, -8], [18, -25], [-16, -25]] },
+    "reeds":      { "kind": "polygon", "points": [[-30, -4], [-12, -4], [-14, -18], [-32, -18]] },
+    "mudflat":    { "kind": "polygon", "points": [[8, -3], [28, -3], [34, -14], [14, -12]] },
+    "far-shore":  { "kind": "polygon", "points": [[-30, -62], [40, -62], [40, -70], [-30, -70]] },
+    "snag":       { "kind": "point",   "position": [22, 0, -48] },
+    "sky":        { "kind": "lane",    "from": [-160, 0, -90], "to": [160, 0, -60], "altitude": [40, 80] }
+  },
+  "cast": [
+    { "species": "y00475",  "behavior": "swim",  "zone": "near-water", "count": 6 },
+    { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": "mixed" },
+    { "species": "gadwal",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
+    { "species": "amewig",  "behavior": "swim",  "zone": "open-water", "count": 5, "plumage": "mixed" },
+    { "species": "pibgre",  "behavior": "swim",  "zone": "open-water", "count": 2 },
+    { "species": "grbher3", "behavior": "wade",  "zone": "far-shore",  "count": 1 },
+    { "species": "greegr",  "behavior": "wade",  "zone": "far-shore",  "count": 1 },
+    { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 }
+  ],
+  "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
+}
