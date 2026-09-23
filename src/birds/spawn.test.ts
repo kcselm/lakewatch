@@ -1,4 +1,4 @@
-import { expandCast } from './spawn'
+import { expandCast, flockEntries, DEFAULT_FLOCK_EVERY } from './spawn'
 import { makeRng } from '../catalog/rng'
 import type { Location } from '../location/schema'
 
@@ -24,9 +24,10 @@ describe('expandCast', () => {
     const out = expandCast(loc([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 2, plumage: 'female' }]), makeRng(3))
     expect(out.every(b => b.variant === 'female')).toBe(true)
   })
-  it('skips behaviors that are not implemented yet', () => {
-    const out = expandCast(loc([{ species: 'y00475', behavior: 'flyover', zone: 'sky', count: 5 }]), makeRng(4))
-    expect(out).toEqual([])
+  it('leaves flyover entries to flockEntries', () => {
+    const l = loc([{ species: 'cangoo', behavior: 'flyover', zone: 'sky', count: 5 }])
+    expect(expandCast(l, makeRng(4))).toEqual([])
+    expect(flockEntries(l, makeRng(4))).toHaveLength(1)
   })
   it('gives each probe entry its own group key', () => {
     const out = expandCast(loc([
@@ -34,5 +35,19 @@ describe('expandCast', () => {
       { species: 'killde', behavior: 'probe', zone: 'w', count: 2 },
     ]), makeRng(5))
     expect(new Set(out.map(b => b.groupKey)).size).toBe(2)
+  })
+})
+
+describe('flockEntries', () => {
+  it('returns one record per flyover entry with defaults filled in', () => {
+    const out = flockEntries(loc([
+      { species: 'cangoo', behavior: 'flyover', zone: 'sky', count: 14, everySeconds: [150, 360], formation: 'vee' },
+      { species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 6, plumage: 'female' },
+      { species: 'y00475', behavior: 'swim', zone: 'w', count: 2 },
+    ]), makeRng(1))
+    expect(out).toEqual([
+      { species: 'cangoo', variant: undefined, zone: 'sky', count: 14, everySeconds: [150, 360], formation: 'vee', groupKey: 'cast0' },
+      { species: 'mallar3', variant: 'female', zone: 'sky', count: 6, everySeconds: DEFAULT_FLOCK_EVERY, formation: 'line', groupKey: 'cast1' },
+    ])
   })
 })

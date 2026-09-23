@@ -12,7 +12,7 @@ import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
 import { createTree, createSnag, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
-import { spawnCast } from './birds/spawn'
+import { spawnCast, type SpawnEvents } from './birds/spawn'
 import { LookControls } from './player/look'
 import { Optics, nextMode, type OpticMode } from './player/optics'
 import { createMask } from './hud/mask'
@@ -27,10 +27,11 @@ import { guideSpecies } from './game/guideSpecies'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
 import { recordSighting, seenState } from './game/lifeList'
-import { AudioEngine } from './audio/engine'
+import { AudioEngine, type Voice } from './audio/engine'
 import { createAmbience } from './audio/ambience'
 import { loadAmbience } from './audio/ambienceManifest'
 import { createCallPlayer } from './audio/callPlayer'
+import { pickClip } from './audio/clips'
 import { createEffects, opticEvent, overlayEvents, type Effects } from './audio/effects'
 import { makeRng } from './catalog/rng'
 
@@ -99,6 +100,7 @@ audio = new AudioEngine(world.scene, world.camera)
 const engine = audio
 world.add(createAmbience(engine, loadAmbience(), loc.ambience))
 effects = createEffects(engine)
+const fx = effects
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
@@ -158,7 +160,34 @@ if (snagZone?.kind === 'point') {
   world.scene.add(snag.object)
 }
 
-world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
+const flockRng = makeRng(77)
+const flockVoices = new Map<string, Voice>()
+const flockPositions = new Map<string, THREE.Vector3>()
+const spawnEvents: SpawnEvents = {
+  flockStart(key, species) {
+    const clip = pickClip(findBird(species), 'call', flockRng)
+    if (!clip || !engine.unlocked) return
+    engine.load('/' + clip.file).then(buffer => {
+      const at = flockPositions.get(key)
+      if (!at) return                                   // the flock already left
+      flockVoices.get(key)?.stop()
+      flockVoices.set(key, engine.playAt(buffer, at, 'calls', { loop: true, refDistance: 40, maxDistance: 900, volume: 0.8 }))
+    }).catch(err => console.warn(`flock ${species}: ${String(err)}`))
+  },
+  flockMove(key, x, y, z) {
+    let p = flockPositions.get(key)
+    if (!p) { p = new THREE.Vector3(); flockPositions.set(key, p) }
+    p.set(x, y, z)
+    flockVoices.get(key)?.follow(p)
+  },
+  flockEnd(key) {
+    flockVoices.get(key)?.stop()
+    flockVoices.delete(key)
+    flockPositions.delete(key)
+  },
+  effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
+}
+world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42, events: spawnEvents }))
 
 const calls = createCallPlayer({
   engine, registry, birdOf: findBird,

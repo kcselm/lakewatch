@@ -1,11 +1,13 @@
 import type * as THREE from 'three'
-import type { BirdModel } from './model'
+
+/** What targeting needs from a registered bird. A BirdModel satisfies it; flock members use a proxy. */
+export interface TargetModel { group: THREE.Object3D; center: THREE.Vector3; radius: number }
 
 export interface BirdInstance {
   id: number
   species: string
   variant?: string
-  model: BirdModel
+  model: TargetModel
   behavior: string
   identified: boolean
   readonly position: THREE.Vector3

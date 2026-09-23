@@ -147,6 +147,19 @@ describe('createIdentifyController', () => {
     expect(store.get()).toMatchObject({ titleOpen: true, guideOpen: false, lifeListOpen: false, settingsOpen: false, creditsOpen: false, identifying: null })
   })
 
+  it('records a correct guess even if the bird left the registry mid-session (a flock that flew on)', () => {
+    const store = makeStore({ target: TARGET })
+    const entries: Record<number, { species: string; identified: boolean }> = { 1: { species: 'y00475', identified: false } }
+    const { controller, recordCalls } = makeController(store, { get: (id: number) => entries[id] })
+
+    controller.pressIdentify()
+    delete entries[1]
+    expect(() => controller.guess('y00475')).not.toThrow()
+    expect(recordCalls).toEqual([{ species: 'y00475', selfIdentified: true, wrongGuesses: 0 }])
+    expect(store.get().card).toEqual({ kind: 'correct', species: 'y00475' })
+    expect(store.get().identifying).toBeNull()
+  })
+
   it('toggles settings and credits, each exclusive with the other overlays', () => {
     const store = makeStore()
     const { controller } = makeController(store, makeRegistry({}))

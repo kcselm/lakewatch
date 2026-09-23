@@ -21,6 +21,8 @@ const castEntry = z.object({
   count: z.number().int().min(1),
   plumage: z.enum(['male', 'female', 'mixed']).optional(),
   everySeconds: z.tuple([z.number().positive(), z.number().positive()]).optional(),
+  /** flyover only: pelicans fly a line, geese a V. Default line. */
+  formation: z.enum(['line', 'vee']).optional(),
 })
 
 export const locationSchema = z.object({

@@ -25,7 +25,8 @@
     { "species": "pibgre",  "behavior": "swim",  "zone": "open-water", "count": 2 },
     { "species": "grbher3", "behavior": "wade",  "zone": "far-shore",  "count": 1 },
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shore",  "count": 1 },
-    { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 }
+    { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 },
+    { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
 }
