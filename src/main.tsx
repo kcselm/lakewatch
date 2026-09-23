@@ -30,6 +30,8 @@ import { recordSighting, seenState } from './game/lifeList'
 import { AudioEngine } from './audio/engine'
 import { createAmbience } from './audio/ambience'
 import { loadAmbience } from './audio/ambienceManifest'
+import { createCallPlayer } from './audio/callPlayer'
+import { makeRng } from './catalog/rng'
 
 const loc = loadLocation()
 const catalog = loadCatalog()
@@ -142,6 +144,12 @@ if (snagZone?.kind === 'point') {
 
 world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
 
+const calls = createCallPlayer({
+  engine, registry, birdOf: findBird,
+  listenerPosition: () => world.camera.position,
+  rng: makeRng(1234),
+})
+
 renderApp(null)
 
 addEventListener('keydown', e => {
@@ -183,5 +191,6 @@ world.start(dt => {
   mask.update(optics.mode, optics.transition, optics.focusBlur)
   modeEl.textContent = optics.mode === 'eye' ? 'scroll / B / T for optics' : optics.mode
   ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
-  dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode, audio: engine.unlocked ? 'running' : 'locked' })
+  calls.update(dt)
+  dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode, audio: engine.unlocked ? 'running' : 'locked', calls: calls.active })
 })
