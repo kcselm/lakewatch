@@ -81,6 +81,8 @@ export function createSky(palette: ScenePalette, wind: Wind): WorldModule & { ob
         c.position.z += w.state.dir.y * v
         if (c.position.x > 450) c.position.x = -450
         if (c.position.x < -450) c.position.x = 450
+        if (c.position.z > 0) c.position.z = -900
+        if (c.position.z < -900) c.position.z = 0
       }
     },
   }

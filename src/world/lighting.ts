@@ -15,7 +15,6 @@ export function createLighting(palette: ScenePalette) {
   sun.shadow.camera.near = 10
   sun.shadow.camera.far = 300
   sun.shadow.bias = -0.0005
-  sun.shadow.radius = 4
   object.add(sun, sun.target)
 
   const hemi = new THREE.HemisphereLight(new THREE.Color(palette.ambientSky), new THREE.Color(palette.ambientGround), 0.9)
