@@ -50,11 +50,14 @@ export function createProbe(ctx: BehaviorContext, startX: number, startZ: number
         if (Math.hypot(tx - x, tz - z) < 0.2) next()
         pose.neckExtend = approach(pose.neckExtend, 0.8, 8, dt)
         pose.lean.x = approach(pose.lean.x, 0, 8, dt)
+        pose.lean.z = approach(pose.lean.z, 0, 4, dt)
       } else {
         peckPhase += dt * 9
         const down = Math.max(0, Math.sin(peckPhase))
         pose.lean.x = 0.2 + down * 0.35
         pose.neckExtend = 0.5 + down * 0.4
+        // a gust ruffles: tiny roll, same as wade
+        pose.lean.z = approach(pose.lean.z, (ctx.wind().effective - 0.3) * 0.05, 2, dt)
       }
       ;[x, z] = clampToPolygon(x, z, ctx.zone.points)
     },

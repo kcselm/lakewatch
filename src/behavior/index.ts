@@ -10,3 +10,4 @@ export const BEHAVIORS: Record<'swim' | 'wade' | 'probe', BehaviorFactory> = {
 }
 
 export type { BehaviorContext, BehaviorController, BehaviorFactory } from './types'
+export { turnToward, approach } from './types'

@@ -5,8 +5,8 @@ import { pointInPolygon } from '../location/zones'
 import type { BehaviorContext } from './types'
 
 const zone = { kind: 'polygon' as const, points: [[0, 0], [20, 0], [20, 10], [0, 10]] as [number, number][] }
-const group = { targetX: 10, targetZ: 5, retargetAt: 0 }
-const ctx = (seed: number): BehaviorContext => ({
+const makeGroup = () => ({ targetX: 10, targetZ: 5, retargetAt: 0 })
+const ctx = (seed: number, group = makeGroup()): BehaviorContext => ({
   zone, rng: makeRng(seed), wind: () => ({ dirX: 0, dirZ: 0, effective: 0 }), ground: () => 0.05, group,
 })
 
@@ -22,7 +22,8 @@ describe('probe', () => {
     expect(states).toContain('peck')
   })
   it('members of a group converge toward the shared target', () => {
-    const a = createProbe(ctx(2), 1, 1), b = createProbe(ctx(3), 19, 9)
+    const group = makeGroup()
+    const a = createProbe(ctx(2, group), 1, 1), b = createProbe(ctx(3, group), 19, 9)
     for (let t = 0; t < 40; t += 1 / 30) { a.update(1 / 30, defaultPose()); b.update(1 / 30, defaultPose()) }
     const da = Math.hypot(a.x - group.targetX, a.z - group.targetZ)
     const db = Math.hypot(b.x - group.targetX, b.z - group.targetZ)
@@ -36,5 +37,20 @@ describe('probe', () => {
     while (c.state !== 'peck' && guard++ < 10000) c.update(1 / 30, pose)
     c.update(0.2, pose)
     expect(pose.lean.x).toBeGreaterThan(0.2)
+  })
+  it('ruffles in a gust while pecking', () => {
+    const leanZAfterPeck = (effective: number, seed: number) => {
+      const windyCtx = (s: number): BehaviorContext => ({
+        zone, rng: makeRng(s), wind: () => ({ dirX: 0, dirZ: 0, effective }), ground: () => 0.05, group: makeGroup(),
+      })
+      const c = createProbe(windyCtx(seed), 5, 5)
+      const pose = defaultPose()
+      let guard = 0
+      while (c.state !== 'peck' && guard++ < 10000) c.update(1 / 30, pose)
+      c.update(1, pose)
+      return pose.lean.z
+    }
+    expect(leanZAfterPeck(1, 5)).toBeGreaterThan(0.02)
+    expect(Math.abs(leanZAfterPeck(0.3, 6))).toBeLessThan(0.005)
   })
 })
