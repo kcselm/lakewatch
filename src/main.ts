@@ -71,6 +71,8 @@ world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightf
 
 world.start(dt => {
   optics.update(dt, world.camera, look)
+  // targeting projects through the camera's world matrix, which render() only refreshes afterwards
+  world.camera.updateMatrixWorld()
 
   if (game.get().optic !== optics.mode) game.set({ optic: optics.mode })
 
