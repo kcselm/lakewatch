@@ -27,6 +27,7 @@ import { guideSpecies } from './game/guideSpecies'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
 import { recordSighting, seenState } from './game/lifeList'
+import { AudioEngine } from './audio/engine'
 
 const loc = loadLocation()
 const catalog = loadCatalog()
@@ -52,6 +53,8 @@ const identifyController = createIdentifyController({
   exitPointerLock: () => document.exitPointerLock(),
 })
 
+let audio: AudioEngine | null = null
+
 function renderApp(unsupported: string | null) {
   render(
     <App
@@ -69,7 +72,7 @@ function renderApp(unsupported: string | null) {
       persistent={() => lifeStorage.persistent}
       onCloseLifeList={() => game.set({ lifeListOpen: false })}
       unsupported={unsupported}
-      onBegin={() => game.set({ titleOpen: false })}
+      onBegin={() => { void audio?.unlock(); game.set({ titleOpen: false }) }}
       onOpenSettings={() => identifyController.toggleSettings()}
       onOpenCredits={() => identifyController.toggleCredits()}
     />,
@@ -85,6 +88,8 @@ try {
   renderApp('This browser could not start WebGL, so the lake cannot be drawn. The credits still work.')
   throw err
 }
+audio = new AudioEngine(world.scene, world.camera)
+const engine = audio
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
@@ -175,5 +180,5 @@ world.start(dt => {
   mask.update(optics.mode, optics.transition, optics.focusBlur)
   modeEl.textContent = optics.mode === 'eye' ? 'scroll / B / T for optics' : optics.mode
   ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
-  dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode })
+  dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode, audio: engine.unlocked ? 'running' : 'locked' })
 })

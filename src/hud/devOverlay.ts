@@ -1,4 +1,4 @@
-export interface DevStats { fps: number; birds: number; gust: number; mode: string }
+export interface DevStats { fps: number; birds: number; gust: number; mode: string; audio: string }
 
 export function createDevOverlay(root: HTMLElement) {
   const el = document.createElement('pre')
@@ -13,7 +13,7 @@ export function createDevOverlay(root: HTMLElement) {
     update(dt: number, stats: Omit<DevStats, 'fps'>) {
       acc += dt; frames++
       if (acc >= 0.5) { fps = frames / acc; acc = 0; frames = 0 }
-      if (visible) el.textContent = `fps ${fps.toFixed(0)}\nbirds ${stats.birds}\ngust ${stats.gust.toFixed(2)}\nmode ${stats.mode}`
+      if (visible) el.textContent = `fps ${fps.toFixed(0)}\nbirds ${stats.birds}\ngust ${stats.gust.toFixed(2)}\nmode ${stats.mode}\naudio ${stats.audio}`
     },
   }
 }
