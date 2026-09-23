@@ -1,0 +1,33 @@
+{
+  "name": "lakewatch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "npm run typecheck && npm test && vite build",
+    "harvest:hotspots": "tsx --env-file=.env scripts/harvest-hotspots.ts",
+    "harvest:species": "tsx --env-file=.env scripts/harvest-species.ts",
+    "harvest:taxonomy": "tsx --env-file=.env scripts/harvest-taxonomy.ts",
+    "harvest:media": "tsx --env-file=.env scripts/harvest-media.ts",
+    "build:birds": "tsx scripts/build-birds.ts",
+    "harvest:all": "npm run harvest:hotspots && npm run harvest:species && npm run harvest:taxonomy && npm run harvest:media && npm run build:birds"
+  },
+  "dependencies": {
+    "preact": "^10.29.8",
+    "three": "^0.186.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.4.0",
+    "@types/three": "^0.186.0",
+    "ffmpeg-static": "^5.3.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
