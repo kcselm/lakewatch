@@ -1,5 +1,8 @@
-import { expandCast, flockEntries, DEFAULT_FLOCK_EVERY } from './spawn'
+import { expandCast, flockEntries, spawnCast, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
 import { makeRng } from '../catalog/rng'
+import { BirdRegistry } from './registry'
+import { Wind } from '../world/wind'
+import { RippleBuffer } from '../world/ripples'
 import type { Location } from '../location/schema'
 
 const loc = (cast: Location['cast']): Location => ({
@@ -49,5 +52,83 @@ describe('flockEntries', () => {
       { species: 'cangoo', variant: undefined, zone: 'sky', count: 14, everySeconds: [150, 360], formation: 'vee', groupKey: 'cast0' },
       { species: 'mallar3', variant: 'female', zone: 'sky', count: 6, everySeconds: DEFAULT_FLOCK_EVERY, formation: 'line', groupKey: 'cast1' },
     ])
+  })
+})
+
+describe('spawnCast flocks', () => {
+  // a short lane (40m) crossed at 14 m/s finishes in a few seconds, so the test doesn't need many steps
+  const flockLoc: Location = {
+    id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
+    vantage: { position: [0, 1.6, 0], heading: 0 }, wind: { direction: 0, strength: 0.3, gustiness: 0.5 },
+    zones: { sky: { kind: 'lane', from: [-20, 0, -50], to: [20, 0, -50], altitude: [40, 50] } },
+    cast: [{ species: 'cangoo', behavior: 'flyover', zone: 'sky', count: 3, everySeconds: [1, 2], formation: 'vee' }],
+    ambience: [],
+  }
+
+  function makeDeps(seed: number, events?: SpawnEvents) {
+    return {
+      registry: new BirdRegistry(),
+      wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }),
+      ground: () => 0,
+      ripples: new RippleBuffer(),
+      seed,
+      events,
+    }
+  }
+
+  /** Advance world.update(dt, wind) until `pred` is true or the guard trips. */
+  function advanceUntil(world: ReturnType<typeof spawnCast>, wind: Wind, pred: () => boolean, guard = 5000): void {
+    let steps = 0
+    while (!pred() && steps < guard) {
+      world.update(0.1, wind)
+      steps++
+    }
+    if (steps >= guard) throw new Error('advanceUntil: guard tripped before predicate became true')
+  }
+
+  it('registers flock members while crossing, with a flyover behavior and an altitude inside the lane band, then removes them and hides the model', () => {
+    const deps = makeDeps(5)
+    const world = spawnCast(flockLoc, deps)
+    expect(deps.registry.size).toBe(0)
+
+    advanceUntil(world, deps.wind, () => deps.registry.size === 3)
+    for (const b of deps.registry.all()) {
+      expect(b.behavior).toBe('flyover')
+      expect(b.species).toBe('cangoo')
+      const p = b.model.group.localToWorld(b.model.center.clone())
+      expect(p.y).toBeGreaterThanOrEqual(40)
+      expect(p.y).toBeLessThanOrEqual(50)
+    }
+    const firstIds = deps.registry.all().map(b => b.id)
+    const flockGroup = world.object.children.find(c => c.name.startsWith('flock:'))!
+
+    advanceUntil(world, deps.wind, () => deps.registry.size === 0)
+    for (const id of firstIds) expect(deps.registry.get(id)).toBeUndefined()
+    expect(flockGroup.visible).toBe(false)
+
+    advanceUntil(world, deps.wind, () => deps.registry.size === 3)
+    const secondIds = deps.registry.all().map(b => b.id)
+    expect(secondIds.every(id => !firstIds.includes(id))).toBe(true)
+  })
+
+  it('fires flockStart once, then one or more flockMove, then flockEnd once, all with the same key', () => {
+    const calls: string[] = []
+    let key: string | undefined
+    const events: SpawnEvents = {
+      flockStart(k, species) { calls.push('flockStart'); key = k; expect(species).toBe('cangoo') },
+      flockMove(k) { calls.push('flockMove'); expect(k).toBe(key) },
+      flockEnd(k) { calls.push('flockEnd'); expect(k).toBe(key) },
+    }
+    const deps = makeDeps(6, events)
+    const world = spawnCast(flockLoc, deps)
+
+    advanceUntil(world, deps.wind, () => calls.includes('flockEnd'))
+
+    expect(calls[0]).toBe('flockStart')
+    expect(calls.filter(c => c === 'flockStart')).toHaveLength(1)
+    expect(calls.filter(c => c === 'flockMove').length).toBeGreaterThan(0)
+    expect(calls.filter(c => c === 'flockEnd')).toHaveLength(1)
+    expect(calls[calls.length - 1]).toBe('flockEnd')
+    expect(key).toBe('cast0')
   })
 })
