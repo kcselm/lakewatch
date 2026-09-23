@@ -1,4 +1,5 @@
 @import './hud/hud.css';
+@import './ui/ui.css';
 
 html, body { margin: 0; height: 100%; background: #0b1016; overflow: hidden; font-family: system-ui, sans-serif; color: #e8e4d8; }
 #app canvas { display: block; width: 100vw; height: 100vh; }

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { render } from 'preact'
 import { loadLocation } from './location'
 import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
@@ -18,9 +19,15 @@ import { createMask } from './hud/mask'
 import { game, isPaused } from './store/game'
 import { pickTarget } from './player/target'
 import { createPrompt } from './hud/prompt'
-import { findBird } from './catalog'
+import { loadCatalog, findBird } from './catalog'
+import { App } from './ui/App'
+import { judge, fieldMarkFor } from './game/identify'
+import { guideSpecies } from './game/guideSpecies'
+import { SPECIES } from './birds/species'
 
 const loc = loadLocation()
+const catalog = loadCatalog()
+const guide = guideSpecies(catalog, loc.habitat)
 const world = new World(document.getElementById('app')!, loc)
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
@@ -68,6 +75,56 @@ if (snagZone?.kind === 'point') {
 
 const registry = new BirdRegistry()
 world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
+
+addEventListener('keydown', e => {
+  const s = game.get()
+  if ((e.key === 'e' || e.key === 'E') && s.target && !s.target.tooSmall && !s.guideOpen && !s.card) {
+    const inst = registry.get(s.target.id)
+    if (!inst || inst.identified) return
+    // reuse an existing session for the same target so the miss count survives a "Look again"
+    const existing = s.identifying && s.identifying.targetId === s.target.id ? s.identifying : null
+    game.set({ identifying: existing ?? { targetId: s.target.id, species: s.target.species, misses: 0 }, guideOpen: true })
+    document.exitPointerLock()
+  }
+  if ((e.key === 'g' || e.key === 'G') && !s.card) {
+    game.set({ guideOpen: !s.guideOpen, identifying: s.guideOpen ? null : s.identifying })
+    if (!s.guideOpen) document.exitPointerLock()
+  }
+})
+
+render(
+  <App
+    guide={guide}
+    specs={SPECIES}
+    birdOf={findBird}
+    fieldMark={code => fieldMarkFor(code, SPECIES)}
+    seen={() => ({})}
+    onGuess={code => {
+      const s = game.get()
+      if (!s.identifying) return
+      const j = judge(s.identifying, code, SPECIES, c => findBird(c).commonName)
+      if (j.result === 'correct') {
+        const inst = registry.get(s.identifying.targetId)
+        if (inst) inst.identified = true
+        game.set({ guideOpen: false, identifying: null, card: { kind: 'correct', species: s.identifying.species } })
+      } else if (j.result === 'wrong') {
+        game.set({ guideOpen: false, identifying: j.session, card: { kind: 'wrong', guess: code, hint: j.hint } })
+      } else {
+        const inst = registry.get(s.identifying.targetId)
+        if (inst) inst.identified = true
+        game.set({ guideOpen: false, identifying: null, card: { kind: 'revealed', species: j.species } })
+      }
+    }}
+    onCloseGuide={() => game.set({ guideOpen: false, identifying: null })}
+    onDismissCard={() => {
+      const s = game.get()
+      // after a wrong guess the session continues; pressing E on the same bird resumes it with its miss count
+      game.set({ card: null })
+      if (s.identifying) game.set({ identifying: s.identifying })
+    }}
+  />,
+  document.getElementById('ui')!,
+)
 
 world.start(dt => {
   optics.update(dt, world.camera, look)
