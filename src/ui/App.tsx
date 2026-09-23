@@ -28,7 +28,7 @@ export function App(d: AppDeps) {
   return (
     <>
       {s.guideOpen && (
-        <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.identifying ? d.onGuess : null} onClose={d.onCloseGuide} />
+        <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.guideOpen && s.guideMode === 'identify' ? d.onGuess : null} onClose={d.onCloseGuide} />
       )}
       {s.card && <ResultCard card={s.card} birdOf={d.birdOf} fieldMark={d.fieldMark} onDismiss={d.onDismissCard} />}
       {s.lifeListOpen && (

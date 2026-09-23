@@ -21,7 +21,8 @@ import { pickTarget } from './player/target'
 import { createPrompt } from './hud/prompt'
 import { loadCatalog, findBird } from './catalog'
 import { App } from './ui/App'
-import { judge, fieldMarkFor, MAX_MISSES } from './game/identify'
+import { fieldMarkFor } from './game/identify'
+import { createIdentifyController } from './game/identifyController'
 import { guideSpecies } from './game/guideSpecies'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
@@ -91,25 +92,20 @@ function record(species: string, selfIdentified: boolean, wrongGuesses: number) 
   lifeStorage.save(lifeList)
 }
 
+const identifyController = createIdentifyController({
+  store: game,
+  registry,
+  specs: SPECIES,
+  names: code => findBird(code).commonName,
+  record,
+  exitPointerLock: () => document.exitPointerLock(),
+})
+
 addEventListener('keydown', e => {
-  const s = game.get()
-  if ((e.key === 'e' || e.key === 'E') && s.target && !s.target.tooSmall && !s.guideOpen && !s.card) {
-    const inst = registry.get(s.target.id)
-    if (!inst || inst.identified) return
-    // reuse an existing session for the same target so the miss count survives a "Look again"
-    const existing = s.identifying && s.identifying.targetId === s.target.id ? s.identifying : null
-    game.set({ identifying: existing ?? { targetId: s.target.id, species: s.target.species, misses: 0 }, guideOpen: true })
-    document.exitPointerLock()
-  }
-  if ((e.key === 'g' || e.key === 'G') && !s.card) {
-    // G always opens in browse mode; only E starts or resumes an identify session
-    game.set({ guideOpen: !s.guideOpen, identifying: null })
-    if (!s.guideOpen) document.exitPointerLock()
-  }
-  if ((e.key === 'l' || e.key === 'L') && !s.card && !s.guideOpen) {
-    game.set({ lifeListOpen: !s.lifeListOpen })
-    if (!s.lifeListOpen) document.exitPointerLock()
-  }
+  if ((e.key === 'e' || e.key === 'E') && !e.repeat) identifyController.pressIdentify()
+  if ((e.key === 'g' || e.key === 'G') && !e.repeat) identifyController.toggleGuide()
+  if ((e.key === 'l' || e.key === 'L') && !e.repeat) identifyController.toggleLifeList()
+  if (e.key === 'Escape') identifyController.closeOverlay()
 })
 
 render(
@@ -119,31 +115,9 @@ render(
     birdOf={findBird}
     fieldMark={code => fieldMarkFor(code, SPECIES)}
     seen={() => seenState(lifeList)}
-    onGuess={code => {
-      const s = game.get()
-      if (!s.identifying) return
-      const j = judge(s.identifying, code, SPECIES, c => findBird(c).commonName)
-      if (j.result === 'correct') {
-        const inst = registry.get(s.identifying.targetId)
-        if (inst) inst.identified = true
-        record(s.identifying.species, true, s.identifying.misses)
-        game.set({ guideOpen: false, identifying: null, card: { kind: 'correct', species: s.identifying.species } })
-      } else if (j.result === 'wrong') {
-        game.set({ guideOpen: false, identifying: j.session, card: { kind: 'wrong', guess: code, hint: j.hint } })
-      } else {
-        const inst = registry.get(s.identifying.targetId)
-        if (inst) inst.identified = true
-        record(j.species, false, MAX_MISSES)
-        game.set({ guideOpen: false, identifying: null, card: { kind: 'revealed', species: j.species } })
-      }
-    }}
-    onCloseGuide={() => game.set({ guideOpen: false, identifying: null })}
-    onDismissCard={() => {
-      const s = game.get()
-      // after a wrong guess the session continues; pressing E on the same bird resumes it with its miss count
-      game.set({ card: null })
-      if (s.identifying) game.set({ identifying: s.identifying })
-    }}
+    onGuess={code => identifyController.guess(code)}
+    onCloseGuide={() => identifyController.closeGuide()}
+    onDismissCard={() => identifyController.dismissCard()}
     lifeList={() => lifeList}
     locationName={loc.name}
     locationSpecies={guide.map(b => b.speciesCode)}

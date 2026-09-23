@@ -5,6 +5,8 @@ export interface GameState {
   optic: OpticMode
   target: { id: number; species: string; tooSmall: boolean } | null
   guideOpen: boolean
+  /** what the field guide is for: free browsing, or confirming a guess against `identifying` */
+  guideMode: 'browse' | 'identify'
   identifying: { targetId: number; species: string; misses: number } | null
   card:
     | { kind: 'correct'; species: string }
@@ -15,7 +17,7 @@ export interface GameState {
 }
 
 export const game = createStore<GameState>({
-  optic: 'eye', target: null, guideOpen: false, identifying: null, card: null, lifeListOpen: false,
+  optic: 'eye', target: null, guideOpen: false, guideMode: 'browse', identifying: null, card: null, lifeListOpen: false,
 })
 
 /** True when any overlay owns the input and the world should pause. */
