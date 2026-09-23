@@ -21,6 +21,7 @@
     { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": "mixed" },
     { "species": "gadwal",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
     { "species": "amewig",  "behavior": "swim",  "zone": "open-water", "count": 5, "plumage": "mixed" },
+    { "species": "norsho",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
     { "species": "pibgre",  "behavior": "swim",  "zone": "open-water", "count": 2 },
     { "species": "grbher3", "behavior": "wade",  "zone": "far-shore",  "count": 1 },
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shore",  "count": 1 },

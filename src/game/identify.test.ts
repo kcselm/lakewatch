@@ -1,7 +1,7 @@
 import { judge, buildHint, fieldMarkFor, MAX_MISSES } from './identify'
 import { SPECIES } from '../birds/species'
 
-const names = (c: string) => ({ y00475: 'American Coot', mallar3: 'Mallard', grbher3: 'Great Blue Heron', gadwal: 'Gadwall' })[c] ?? c
+const names = (c: string) => ({ y00475: 'American Coot', mallar3: 'Mallard', grbher3: 'Great Blue Heron', sonspa: 'Song Sparrow' })[c] ?? c
 
 describe('judge', () => {
   it('is correct when the guess matches', () => {
@@ -29,7 +29,7 @@ describe('judge', () => {
     expect(judge(s, 'grbher3', SPECIES, names)).toEqual({ result: 'revealed', species: 'y00475' })
   })
   it('falls back to a generic hint when a species has no spec', () => {
-    const j = judge({ targetId: 1, species: 'gadwal', misses: 0 }, 'mallar3', SPECIES, names)
+    const j = judge({ targetId: 1, species: 'sonspa', misses: 0 }, 'mallar3', SPECIES, names)
     if (j.result !== 'wrong') throw new Error()
     expect(j.hint).toMatch(/Look again/)
   })
@@ -48,6 +48,6 @@ describe('buildHint', () => {
 describe('fieldMarkFor', () => {
   it('returns the bill mark for a known species and null otherwise', () => {
     expect(fieldMarkFor('y00475', SPECIES)).toBe(SPECIES['y00475']!.marks.bill)
-    expect(fieldMarkFor('gadwal', SPECIES)).toBeNull()
+    expect(fieldMarkFor('sonspa', SPECIES)).toBeNull()
   })
 })
