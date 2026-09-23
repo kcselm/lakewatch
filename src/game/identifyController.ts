@@ -1,5 +1,6 @@
 import type { Store } from '../store/store'
 import type { GameState } from '../store/game'
+import { isPaused } from '../store/game'
 import type { SpeciesSpec } from '../birds/spec'
 import { judge, MAX_MISSES } from './identify'
 
@@ -16,28 +17,27 @@ export interface IdentifyController {
   pressIdentify(): void
   toggleGuide(): void
   toggleLifeList(): void
+  toggleSettings(): void
+  toggleCredits(): void
   closeOverlay(): void
   guess(code: string): void
   closeGuide(): void
   dismissCard(): void
 }
 
-function anyOverlayOpen(s: GameState): boolean {
-  return s.guideOpen || s.card !== null || s.lifeListOpen
-}
-
 /**
- * Orchestrates the E (identify) / G (guide) / L (life list) / Esc keys against the game store.
- * Keeps the field guide's browse/identify MODE (`guideMode`) separate from the identify SESSION
- * (`identifying`): closing the guide (via G, Esc, or the Close button) never discards a session
- * in progress, so a miss count survives a "Look again" or a detour into browsing.
+ * Orchestrates the E (identify) / G (guide) / L (life list) / O (settings) / C (credits) / Esc
+ * keys against the game store. Keeps the field guide's browse/identify MODE (`guideMode`)
+ * separate from the identify SESSION (`identifying`): closing the guide (via G, Esc, or the
+ * Close button) never discards a session in progress, so a miss count survives a "Look again" or
+ * a detour into browsing.
  */
 export function createIdentifyController(deps: IdentifyControllerDeps): IdentifyController {
   const { store, registry, specs, names, record, exitPointerLock } = deps
 
   function pressIdentify(): void {
     const s = store.get()
-    if (anyOverlayOpen(s)) return
+    if (isPaused(s)) return
     if (!s.target || s.target.tooSmall) return
     const inst = registry.get(s.target.id)
     if (!inst || inst.identified) return
@@ -50,21 +50,21 @@ export function createIdentifyController(deps: IdentifyControllerDeps): Identify
     exitPointerLock()
   }
 
-  function toggleGuide(): void {
+  /** Opens `flag` unless another overlay is already up; closes it if it is the one that is up. */
+  function toggle(flag: 'guideOpen' | 'lifeListOpen' | 'settingsOpen' | 'creditsOpen', patchOnOpen: Partial<GameState> = {}): void {
     const s = store.get()
-    if (s.card !== null || s.lifeListOpen) return
-    const opening = !s.guideOpen
-    store.set(opening ? { guideOpen: true, guideMode: 'browse' } : { guideOpen: false })
+    if (isPaused(s) && !s[flag]) return
+    const opening = !s[flag]
+    const patch: Partial<GameState> = opening ? { ...patchOnOpen } : {}
+    patch[flag] = opening
+    store.set(patch)
     if (opening) exitPointerLock()
   }
 
-  function toggleLifeList(): void {
-    const s = store.get()
-    if (s.card !== null || s.guideOpen) return
-    const opening = !s.lifeListOpen
-    store.set({ lifeListOpen: opening })
-    if (opening) exitPointerLock()
-  }
+  function toggleGuide(): void { toggle('guideOpen', { guideMode: 'browse' }) }
+  function toggleLifeList(): void { toggle('lifeListOpen') }
+  function toggleSettings(): void { toggle('settingsOpen') }
+  function toggleCredits(): void { toggle('creditsOpen') }
 
   function closeGuide(): void {
     store.set({ guideOpen: false })
@@ -76,9 +76,12 @@ export function createIdentifyController(deps: IdentifyControllerDeps): Identify
 
   function closeOverlay(): void {
     const s = store.get()
+    if (s.titleOpen) return
     if (s.card !== null) dismissCard()
     else if (s.guideOpen) closeGuide()
     else if (s.lifeListOpen) store.set({ lifeListOpen: false })
+    else if (s.settingsOpen) store.set({ settingsOpen: false })
+    else if (s.creditsOpen) store.set({ creditsOpen: false })
   }
 
   function guess(code: string): void {
@@ -101,5 +104,5 @@ export function createIdentifyController(deps: IdentifyControllerDeps): Identify
     }
   }
 
-  return { pressIdentify, toggleGuide, toggleLifeList, closeOverlay, guess, closeGuide, dismissCard }
+  return { pressIdentify, toggleGuide, toggleLifeList, toggleSettings, toggleCredits, closeOverlay, guess, closeGuide, dismissCard }
 }

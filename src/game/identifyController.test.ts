@@ -6,6 +6,7 @@ import { SPECIES } from '../birds/species'
 function makeStore(patch: Partial<GameState> = {}) {
   return createStore<GameState>({
     optic: 'eye', target: null, guideOpen: false, guideMode: 'browse', identifying: null, card: null, lifeListOpen: false,
+    titleOpen: false, settingsOpen: false, creditsOpen: false,
     ...patch,
   })
 }
@@ -129,5 +130,39 @@ describe('createIdentifyController', () => {
     controller.pressIdentify()
     expect(store.get().guideOpen).toBe(false)
     expect(store.get().identifying).toBeNull()
+  })
+
+  it('ignores every key while the title card is up', () => {
+    const store = makeStore({ target: TARGET, titleOpen: true })
+    const registry = makeRegistry({ 1: { species: 'y00475', identified: false } })
+    const { controller } = makeController(store, registry)
+
+    controller.pressIdentify()
+    controller.toggleGuide()
+    controller.toggleLifeList()
+    controller.toggleSettings()
+    controller.toggleCredits()
+    controller.closeOverlay()
+
+    expect(store.get()).toMatchObject({ titleOpen: true, guideOpen: false, lifeListOpen: false, settingsOpen: false, creditsOpen: false, identifying: null })
+  })
+
+  it('toggles settings and credits, each exclusive with the other overlays', () => {
+    const store = makeStore()
+    const { controller } = makeController(store, makeRegistry({}))
+
+    controller.toggleSettings()
+    expect(store.get().settingsOpen).toBe(true)
+    controller.toggleCredits()                       // blocked while settings is open
+    expect(store.get().creditsOpen).toBe(false)
+    controller.toggleGuide()                         // also blocked
+    expect(store.get().guideOpen).toBe(false)
+    controller.toggleSettings()
+    expect(store.get().settingsOpen).toBe(false)
+
+    controller.toggleCredits()
+    expect(store.get().creditsOpen).toBe(true)
+    controller.closeOverlay()
+    expect(store.get().creditsOpen).toBe(false)
   })
 })

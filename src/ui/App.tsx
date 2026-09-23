@@ -1,5 +1,6 @@
 import { useStore } from './useStore'
 import { game } from '../store/game'
+import { Title } from './Title'
 import { FieldGuide, type SeenState } from './FieldGuide'
 import { ResultCard } from './ResultCard'
 import { LifeList } from './LifeList'
@@ -21,12 +22,17 @@ export interface AppDeps {
   locationSpecies: string[]
   persistent: () => boolean
   onCloseLifeList: () => void
+  unsupported: string | null
+  onBegin: () => void
+  onOpenSettings: () => void
+  onOpenCredits: () => void
 }
 
 export function App(d: AppDeps) {
   const s = useStore(game)
   return (
     <>
+      {s.titleOpen && <Title unsupported={d.unsupported} onBegin={d.onBegin} onSettings={d.onOpenSettings} onCredits={d.onOpenCredits} />}
       {s.guideOpen && (
         <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.guideOpen && s.guideMode === 'identify' ? d.onGuess : null} onClose={d.onCloseGuide} />
       )}

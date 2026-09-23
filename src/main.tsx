@@ -31,7 +31,60 @@ import { recordSighting, seenState } from './game/lifeList'
 const loc = loadLocation()
 const catalog = loadCatalog()
 const guide = guideSpecies(catalog, loc.habitat)
-const world = new World(document.getElementById('app')!, loc)
+
+let ls: Storage | null = null
+try { ls = window.localStorage } catch { ls = null }
+const lifeStorage = createLifeListStorage(ls)
+let lifeList = lifeStorage.load()
+
+function record(species: string, selfIdentified: boolean, wrongGuesses: number) {
+  lifeList = recordSighting(lifeList, { species, location: loc.id, timeOfDay: loc.timeOfDay, selfIdentified, wrongGuesses, at: new Date().toISOString() })
+  lifeStorage.save(lifeList)
+}
+
+const registry = new BirdRegistry()
+const identifyController = createIdentifyController({
+  store: game,
+  registry,
+  specs: SPECIES,
+  names: code => findBird(code).commonName,
+  record,
+  exitPointerLock: () => document.exitPointerLock(),
+})
+
+function renderApp(unsupported: string | null) {
+  render(
+    <App
+      guide={guide}
+      specs={SPECIES}
+      birdOf={findBird}
+      fieldMark={code => fieldMarkFor(code, SPECIES)}
+      seen={() => seenState(lifeList)}
+      onGuess={code => identifyController.guess(code)}
+      onCloseGuide={() => identifyController.closeGuide()}
+      onDismissCard={() => identifyController.dismissCard()}
+      lifeList={() => lifeList}
+      locationName={loc.name}
+      locationSpecies={guide.map(b => b.speciesCode)}
+      persistent={() => lifeStorage.persistent}
+      onCloseLifeList={() => game.set({ lifeListOpen: false })}
+      unsupported={unsupported}
+      onBegin={() => game.set({ titleOpen: false })}
+      onOpenSettings={() => identifyController.toggleSettings()}
+      onOpenCredits={() => identifyController.toggleCredits()}
+    />,
+    document.getElementById('ui')!,
+  )
+}
+
+let world: World
+try {
+  world = new World(document.getElementById('app')!, loc)
+} catch (err) {
+  console.error(err)
+  renderApp('This browser could not start WebGL, so the lake cannot be drawn. The credits still work.')
+  throw err
+}
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
@@ -79,53 +132,18 @@ if (snagZone?.kind === 'point') {
   world.scene.add(snag.object)
 }
 
-const registry = new BirdRegistry()
 world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
 
-let ls: Storage | null = null
-try { ls = window.localStorage } catch { ls = null }
-const lifeStorage = createLifeListStorage(ls)
-let lifeList = lifeStorage.load()
-
-function record(species: string, selfIdentified: boolean, wrongGuesses: number) {
-  lifeList = recordSighting(lifeList, { species, location: loc.id, timeOfDay: loc.timeOfDay, selfIdentified, wrongGuesses, at: new Date().toISOString() })
-  lifeStorage.save(lifeList)
-}
-
-const identifyController = createIdentifyController({
-  store: game,
-  registry,
-  specs: SPECIES,
-  names: code => findBird(code).commonName,
-  record,
-  exitPointerLock: () => document.exitPointerLock(),
-})
+renderApp(null)
 
 addEventListener('keydown', e => {
   if ((e.key === 'e' || e.key === 'E') && !e.repeat) identifyController.pressIdentify()
   if ((e.key === 'g' || e.key === 'G') && !e.repeat) identifyController.toggleGuide()
   if ((e.key === 'l' || e.key === 'L') && !e.repeat) identifyController.toggleLifeList()
+  if ((e.key === 'o' || e.key === 'O') && !e.repeat) identifyController.toggleSettings()
+  if ((e.key === 'c' || e.key === 'C') && !e.repeat) identifyController.toggleCredits()
   if (e.key === 'Escape') identifyController.closeOverlay()
 })
-
-render(
-  <App
-    guide={guide}
-    specs={SPECIES}
-    birdOf={findBird}
-    fieldMark={code => fieldMarkFor(code, SPECIES)}
-    seen={() => seenState(lifeList)}
-    onGuess={code => identifyController.guess(code)}
-    onCloseGuide={() => identifyController.closeGuide()}
-    onDismissCard={() => identifyController.dismissCard()}
-    lifeList={() => lifeList}
-    locationName={loc.name}
-    locationSpecies={guide.map(b => b.speciesCode)}
-    persistent={() => lifeStorage.persistent}
-    onCloseLifeList={() => game.set({ lifeListOpen: false })}
-  />,
-  document.getElementById('ui')!,
-)
 
 world.start(dt => {
   optics.update(dt, world.camera, look)
