@@ -10,6 +10,8 @@ import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
 import { createTree, createSnag, createTreeLine } from './world/trees'
+import { BirdRegistry } from './birds/registry'
+import { spawnCast } from './birds/spawn'
 
 const loc = loadLocation()
 const world = new World(document.getElementById('app')!, loc)
@@ -38,7 +40,10 @@ if (snagZone?.kind === 'point') {
   world.scene.add(snag.object)
 }
 
+const registry = new BirdRegistry()
+world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42 }))
+
 world.start(dt => {
   ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
-  dev.update(dt, { birds: 0, gust: world.wind.state.gust, mode: 'eye' })
+  dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: 'eye' })
 })
