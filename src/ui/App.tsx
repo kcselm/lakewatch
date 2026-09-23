@@ -15,6 +15,7 @@ export interface AppDeps {
   fieldMark: (code: string) => string | null
   seen: () => SeenState
   onGuess: (code: string) => void
+  onGuideSelect: (code: string) => void
   onCloseGuide: () => void
   onDismissCard: () => void
   lifeList: () => LifeListData
@@ -34,7 +35,7 @@ export function App(d: AppDeps) {
     <>
       {s.titleOpen && <Title unsupported={d.unsupported} onBegin={d.onBegin} onSettings={d.onOpenSettings} onCredits={d.onOpenCredits} />}
       {s.guideOpen && (
-        <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.guideOpen && s.guideMode === 'identify' ? d.onGuess : null} onClose={d.onCloseGuide} />
+        <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.guideOpen && s.guideMode === 'identify' ? d.onGuess : null} onClose={d.onCloseGuide} onSelect={d.onGuideSelect} />
       )}
       {s.card && <ResultCard card={s.card} birdOf={d.birdOf} fieldMark={d.fieldMark} onDismiss={d.onDismissCard} />}
       {s.lifeListOpen && (

@@ -14,7 +14,7 @@ import { createTree, createSnag, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast } from './birds/spawn'
 import { LookControls } from './player/look'
-import { Optics, nextMode } from './player/optics'
+import { Optics, nextMode, type OpticMode } from './player/optics'
 import { createMask } from './hud/mask'
 import { game, isPaused } from './store/game'
 import { pickTarget } from './player/target'
@@ -31,6 +31,7 @@ import { AudioEngine } from './audio/engine'
 import { createAmbience } from './audio/ambience'
 import { loadAmbience } from './audio/ambienceManifest'
 import { createCallPlayer } from './audio/callPlayer'
+import { createEffects, opticEvent, overlayEvents, type Effects } from './audio/effects'
 import { makeRng } from './catalog/rng'
 
 const loc = loadLocation()
@@ -58,6 +59,7 @@ const identifyController = createIdentifyController({
 })
 
 let audio: AudioEngine | null = null
+let effects: Effects | null = null
 
 function renderApp(unsupported: string | null) {
   render(
@@ -68,6 +70,7 @@ function renderApp(unsupported: string | null) {
       fieldMark={code => fieldMarkFor(code, SPECIES)}
       seen={() => seenState(lifeList)}
       onGuess={code => identifyController.guess(code)}
+      onGuideSelect={() => effects?.play('page', 0.5)}
       onCloseGuide={() => identifyController.closeGuide()}
       onDismissCard={() => identifyController.dismissCard()}
       lifeList={() => lifeList}
@@ -95,6 +98,7 @@ try {
 audio = new AudioEngine(world.scene, world.camera)
 const engine = audio
 world.add(createAmbience(engine, loadAmbience(), loc.ambience))
+effects = createEffects(engine)
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
@@ -108,20 +112,32 @@ const mask = createMask(hud)
 const prompt = createPrompt(hud)
 const modeEl = document.createElement('div'); modeEl.className = 'mode'; hud.appendChild(modeEl)
 
+function setOptic(m: OpticMode) {
+  const ev = opticEvent(optics.mode, m)
+  optics.setMode(m)
+  if (ev) effects?.play(ev, 0.6)
+}
+
 game.subscribe(s => {
   world.setPaused(isPaused(s))
   if (isPaused(s) && document.pointerLockElement) document.exitPointerLock()
 })
 
+let prevState = game.get()
+game.subscribe(s => {
+  for (const ev of overlayEvents(prevState, s)) effects?.play(ev)
+  prevState = s
+})
+
 addEventListener('wheel', e => {
   if (isPaused(game.get())) return
-  optics.setMode(nextMode(optics.mode, e.deltaY < 0 ? 1 : -1))
+  setOptic(nextMode(optics.mode, e.deltaY < 0 ? 1 : -1))
 }, { passive: true })
 addEventListener('keydown', e => {
   if (isPaused(game.get())) return
-  if (e.key === 'b' || e.key === 'B') optics.setMode(optics.mode === 'binoculars' ? 'eye' : 'binoculars')
-  if (e.key === 't' || e.key === 'T') optics.setMode(optics.mode === 'telescope' ? 'eye' : 'telescope')
-  if (e.key === 'Escape') optics.setMode('eye')
+  if (e.key === 'b' || e.key === 'B') setOptic(optics.mode === 'binoculars' ? 'eye' : 'binoculars')
+  if (e.key === 't' || e.key === 'T') setOptic(optics.mode === 'telescope' ? 'eye' : 'telescope')
+  if (e.key === 'Escape') setOptic('eye')
 })
 
 const ripples = new RippleBuffer()

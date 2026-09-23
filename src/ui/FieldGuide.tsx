@@ -11,9 +11,10 @@ interface Props {
   /** present when opened to identify a target */
   onConfirm: ((code: string) => void) | null
   onClose: () => void
+  onSelect?: (code: string) => void
 }
 
-export function FieldGuide({ species, specs, seen, onConfirm, onClose }: Props) {
+export function FieldGuide({ species, specs, seen, onConfirm, onClose, onSelect }: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const [playing, setPlaying] = useState<HTMLAudioElement | null>(null)
   const playingRef = useRef<HTMLAudioElement | null>(null)
@@ -46,7 +47,7 @@ export function FieldGuide({ species, specs, seen, onConfirm, onClose }: Props) 
           <section key={family}>
             <h3>{family}</h3>
             {birds.map(b => (
-              <button key={b.speciesCode} class={'guide-row' + (b.speciesCode === selected ? ' selected' : '')} onClick={() => setSelected(b.speciesCode)}>
+              <button key={b.speciesCode} class={'guide-row' + (b.speciesCode === selected ? ' selected' : '')} onClick={() => { setSelected(b.speciesCode); onSelect?.(b.speciesCode) }}>
                 <span class={'seen seen-' + (seen[b.speciesCode] ?? 'none')} aria-hidden="true" />
                 {b.commonName}
               </button>
