@@ -1,4 +1,4 @@
-import { windLayerGain, windFilterHz, lappingGain } from './ambience'
+import { windLayerGain, windFilterHz, lappingGain, lappingWindScale } from './ambience'
 
 describe('windLayerGain', () => {
   it('never falls silent and rises with the gust', () => {
@@ -25,5 +25,14 @@ describe('lappingGain', () => {
     }
     expect(lappingGain(12.5, 5)).toBe(lappingGain(12.5, 5))
     expect(lappingGain(12.5, 5)).not.toBe(lappingGain(12.5, 6))
+  })
+})
+
+describe('lappingWindScale', () => {
+  it('is nearly silent on a still lake and full in a strong wind', () => {
+    expect(lappingWindScale(0)).toBeCloseTo(0.1, 6)
+    expect(lappingWindScale(1)).toBeCloseTo(1, 6)
+    expect(lappingWindScale(2)).toBeCloseTo(1, 6)
+    expect(lappingWindScale(0.3)).toBeLessThan(lappingWindScale(0.6))
   })
 })

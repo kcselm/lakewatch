@@ -1,7 +1,7 @@
 {
   "layers": [
-    { "id": "water-lapping", "source": { "kind": "synth", "recipe": "lapping" }, "gain": 0.35, "attribution": "Synthesized in-game: low-passed noise swelling with seeded value noise" },
-    { "id": "wind-reeds",    "source": { "kind": "synth", "recipe": "wind" },    "gain": 0.5, "followsWind": true, "attribution": "Synthesized in-game: band-passed noise following the wind gust curve" },
+    { "id": "water-lapping", "source": { "kind": "synth", "recipe": "lapping" }, "gain": 0.15, "attribution": "Synthesized in-game: low-passed noise swelling with seeded value noise" },
+    { "id": "wind-reeds",    "source": { "kind": "synth", "recipe": "wind" },    "gain": 0.35, "followsWind": true, "attribution": "Synthesized in-game: band-passed noise following the wind gust curve" },
     { "id": "distant-frogs", "source": { "kind": "synth", "recipe": "frogs" },   "gain": 0.18, "attribution": "Synthesized in-game: pulsed two-part chirps in random bouts" }
   ]
 }

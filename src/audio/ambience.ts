@@ -15,6 +15,15 @@ export function windFilterHz(gust: number): number {
   return 500 + 900 * Math.min(1, Math.max(0, gust))
 }
 
+/**
+ * How much a still lake lets the bank be heard: near-silent in a calm, waves
+ * only slap the shore once a breeze is pushing them. 0.1..1 over effective wind.
+ */
+export function lappingWindScale(effectiveWind: number): number {
+  const w = Math.min(1, Math.max(0, effectiveWind))
+  return 0.1 + 0.9 * w
+}
+
 /** Slow swell of water against the bank, 0.4..1, seeded noise so it never repeats. */
 export function lappingGain(t: number, seed: number): number {
   return 0.4 + 0.6 * valueNoise1(t * 0.35, seed)
@@ -103,7 +112,7 @@ export function createAmbience(engine: AudioEngine, layers: readonly AmbienceLay
       for (const l of built) {
         let g = l.base * vol
         if (l.recipe === 'wind' || l.followsWind) g *= windLayerGain(wind.state.strength, wind.state.gust)
-        if (l.recipe === 'lapping') g *= lappingGain(time, 5) * (0.6 + 0.4 * wind.effective())
+        if (l.recipe === 'lapping') g *= lappingGain(time, 5) * lappingWindScale(wind.effective())
         l.gain.gain.setTargetAtTime(g, now, 0.1)
         if (l.recipe === 'wind' && l.filter) l.filter.frequency.setTargetAtTime(windFilterHz(wind.state.gust), now, 0.2)
       }
