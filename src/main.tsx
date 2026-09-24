@@ -98,7 +98,7 @@ function renderApp(unsupported: string | null) {
         if (!settingsStorage.save(s)) settingsPersistent = false
         if (!unsupported) applySettings(s, { look, engine })
       }}
-      onResetLifeList={() => { lifeList = emptyLifeList(); lifeStorage.save(lifeList) }}
+      onResetLifeList={() => { lifeList = emptyLifeList(); lifeStorage.save(lifeList); for (const b of registry.all()) b.identified = false }}
       onCloseSettings={() => game.set({ settingsOpen: false })}
       clipVolume={() => settings.volumes.master * settings.volumes.calls}
       credits={credits}
@@ -140,17 +140,18 @@ const modeEl = document.createElement('div'); modeEl.className = 'mode'; hud.app
 function setOptic(m: OpticMode) {
   const ev = opticEvent(optics.mode, m)
   optics.setMode(m)
-  if (ev) effects?.play(ev, 0.6)
+  if (ev) fx.play(ev, 0.6)
 }
 
 game.subscribe(s => {
   world.setPaused(isPaused(s))
   if (isPaused(s) && document.pointerLockElement) document.exitPointerLock()
 })
+world.setPaused(isPaused(game.get()))
 
 let prevState = game.get()
 game.subscribe(s => {
-  for (const ev of overlayEvents(prevState, s)) effects?.play(ev)
+  for (const ev of overlayEvents(prevState, s)) fx.play(ev)
   prevState = s
 })
 

@@ -11,7 +11,7 @@ export interface BehaviorContext {
   group?: { targetX: number; targetZ: number; retargetAt: number }
   /** world-space perch point for perch and hover; the spawner resolves it from the point zone */
   perch?: Vec3
-  /** for behaviors that flap; default 5 */
+  /** for behaviors that flap; each behavior applies its own default when unset (perch 5, hover 6) */
   wingbeatHz?: number
   onEvent?: (name: 'splash' | 'flap', x: number, y: number, z: number) => void
 }

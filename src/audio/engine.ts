@@ -109,13 +109,6 @@ export class AudioEngine {
     return this.start(node, layer, buffer, o)
   }
 
-  /** Voices currently sounding in a layer. */
-  count(layer: AudioLayer): number {
-    let n = 0
-    for (const v of this.voices) if (v.layer === layer && v.playing) n++
-    return n
-  }
-
   private start(node: THREE.Audio | THREE.PositionalAudio, layer: AudioLayer, buffer: AudioBuffer, o: PlayOptions): Voice {
     node.setBuffer(buffer)
     node.setLoop(o.loop ?? false)

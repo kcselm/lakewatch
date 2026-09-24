@@ -47,4 +47,4 @@ Cloudflare Pages via wrangler:
     npx wrangler login               # once
     npm run deploy
 
-Media under `public/media` ships with the site (about 19 MB).
+Media under `public/media` ships with the site (about 20 MB).

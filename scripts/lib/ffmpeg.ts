@@ -23,6 +23,7 @@ export function assertFfmpegAvailable(): void {
 const HIGHPASS = 'highpass=f=250'
 const FADES = 'afade=t=in:st=0:d=0.05,areverse,afade=t=in:st=0:d=0.25,areverse'
 const LOUDNORM_TARGET = 'I=-18:TP=-1.5:LRA=11'
+const SILENCE_TRIM = 'silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB'
 
 export interface LoudnormMeasure {
   input_i: number
@@ -97,7 +98,7 @@ export async function measureLoudness(input: string, preFilter: string): Promise
 export function clipArgs(input: string, output: string, seconds: number, measured?: LoudnormMeasure): string[] {
   return [
     '-i', input,
-    '-af', `silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB,atrim=0:${seconds},${gameReadyFilter(measured)}`,
+    '-af', `${SILENCE_TRIM},atrim=0:${seconds},${gameReadyFilter(measured)}`,
     ...ENCODE,
     output,
   ]
@@ -144,7 +145,7 @@ export async function clipAndTranscode(input: string, output: string, seconds = 
 
   const measured = await measureLoudness(
     input,
-    `silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB,atrim=0:${seconds},${HIGHPASS}`,
+    `${SILENCE_TRIM},atrim=0:${seconds},${HIGHPASS}`,
   )
   if (!measured) console.warn(`${input}: loudness measurement failed, using single-pass loudnorm`)
   await run(ffmpegPath!, clipArgs(input, output, seconds, measured ?? undefined))
