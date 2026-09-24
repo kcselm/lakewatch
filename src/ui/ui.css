@@ -42,3 +42,11 @@
 .title-card .keys dd { margin: 0; }
 .title-card .fine { font-size: 11px; color: #8a8070; margin-top: 16px; }
 .title-card .warn { color: #b5533c; margin: 16px 0; }
+.settings { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, 90vw); padding: 20px 28px; background: #f4efe3; color: #23201a; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); font-family: Georgia, serif; }
+.settings header { display: flex; justify-content: space-between; align-items: center; }
+.settings .row { display: grid; grid-template-columns: 1fr 180px 48px; gap: 10px; align-items: center; padding: 6px 0; }
+.settings .val { text-align: right; color: #6b6150; font-size: 13px; }
+.settings h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #7a6f58; margin: 18px 0 6px; }
+.settings button { font: inherit; cursor: pointer; }
+.settings .danger { background: #b5533c; color: #fff; border: 0; border-radius: 6px; padding: 4px 10px; }
+.settings .warn { color: #b5533c; }

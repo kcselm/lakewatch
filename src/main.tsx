@@ -26,7 +26,8 @@ import { createIdentifyController } from './game/identifyController'
 import { guideSpecies } from './game/guideSpecies'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
-import { recordSighting, seenState } from './game/lifeList'
+import { recordSighting, seenState, emptyLifeList } from './game/lifeList'
+import { createSettingsStorage, applySettings, type Settings } from './game/settings'
 import { AudioEngine, type Voice } from './audio/engine'
 import { createAmbience } from './audio/ambience'
 import { loadAmbience } from './audio/ambienceManifest'
@@ -43,6 +44,9 @@ let ls: Storage | null = null
 try { ls = window.localStorage } catch { ls = null }
 const lifeStorage = createLifeListStorage(ls)
 let lifeList = lifeStorage.load()
+const settingsStorage = createSettingsStorage(ls)
+let settings = settingsStorage.load()
+let settingsPersistent = ls !== null
 
 function record(species: string, selfIdentified: boolean, wrongGuesses: number) {
   lifeList = recordSighting(lifeList, { species, location: loc.id, timeOfDay: loc.timeOfDay, selfIdentified, wrongGuesses, at: new Date().toISOString() })
@@ -83,6 +87,16 @@ function renderApp(unsupported: string | null) {
       onBegin={() => { void audio?.unlock(); game.set({ titleOpen: false }) }}
       onOpenSettings={() => identifyController.toggleSettings()}
       onOpenCredits={() => identifyController.toggleCredits()}
+      settings={() => settings}
+      settingsPersistent={() => settingsPersistent}
+      onSettingsChange={s => {
+        settings = s
+        if (!settingsStorage.save(s)) settingsPersistent = false
+        if (!unsupported) applySettings(s, { look, engine })
+      }}
+      onResetLifeList={() => { lifeList = emptyLifeList(); lifeStorage.save(lifeList) }}
+      onCloseSettings={() => game.set({ settingsOpen: false })}
+      clipVolume={() => settings.volumes.master * settings.volumes.calls}
     />,
     document.getElementById('ui')!,
   )
@@ -109,6 +123,7 @@ world.camera.position.y = heightfield.sample(vx, vz) + loc.vantage.position[1]
 const dev = createDevOverlay(document.getElementById('hud')!)
 const hud = document.getElementById('hud')!
 const look = new LookControls(world.renderer.domElement, loc.vantage.heading, () => !isPaused(game.get()))
+applySettings(settings, { look, engine })
 const optics = new Optics()
 const mask = createMask(hud)
 const prompt = createPrompt(hud)

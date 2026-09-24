@@ -12,9 +12,10 @@ interface Props {
   onConfirm: ((code: string) => void) | null
   onClose: () => void
   onSelect?: (code: string) => void
+  clipVolume?: number
 }
 
-export function FieldGuide({ species, specs, seen, onConfirm, onClose, onSelect }: Props) {
+export function FieldGuide({ species, specs, seen, onConfirm, onClose, onSelect, clipVolume }: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const [playing, setPlaying] = useState<HTMLAudioElement | null>(null)
   const playingRef = useRef<HTMLAudioElement | null>(null)
@@ -31,6 +32,7 @@ export function FieldGuide({ species, specs, seen, onConfirm, onClose, onSelect 
   function play(file: string) {
     playing?.pause()
     const a = new Audio('/' + file)
+    a.volume = clipVolume ?? 1
     a.play().catch(() => {})
     setPlaying(a)
     playingRef.current = a
