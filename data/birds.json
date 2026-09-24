@@ -4023,5 +4023,220 @@
       "license": "cc-by-nc",
       "sourceUrl": "https://www.inaturalist.org/photos/332482"
     }
+  },
+  {
+    "speciesCode": "amwpel",
+    "commonName": "American White Pelican",
+    "scientificName": "Pelecanus erythrorhynchos",
+    "family": "Pelecanidae",
+    "familyCommon": "Pelicans",
+    "habitats": [
+      "wetland"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15
+    ],
+    "audio": [
+      {
+        "file": "media/audio/amwpel-XC486233.mp3",
+        "type": "call",
+        "xcId": "XC486233",
+        "recordist": "Bruce Lagerquist",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/486233"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/amwpel.jpg",
+      "attribution": "(c) J. Carlo Cuevas, some rights reserved (CC BY-NC)",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/31268696"
+    }
+  },
+  {
+    "speciesCode": "leasan",
+    "commonName": "Least Sandpiper",
+    "scientificName": "Calidris minutilla",
+    "family": "Scolopacidae",
+    "familyCommon": "Sandpipers and Allies",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15
+    ],
+    "audio": [
+      {
+        "file": "media/audio/leasan-XC203721.mp3",
+        "type": "song",
+        "xcId": "XC203721",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/203721"
+      },
+      {
+        "file": "media/audio/leasan-XC780200.mp3",
+        "type": "call",
+        "xcId": "XC780200",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/780200"
+      },
+      {
+        "file": "media/audio/leasan-XC203720.mp3",
+        "type": "song",
+        "xcId": "XC203720",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/203720"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/leasan.jpg",
+      "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC), uploaded by Greg Lasley",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/230314"
+    }
+  },
+  {
+    "speciesCode": "wessan",
+    "commonName": "Western Sandpiper",
+    "scientificName": "Calidris mauri",
+    "family": "Scolopacidae",
+    "familyCommon": "Sandpipers and Allies",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15
+    ],
+    "audio": [
+      {
+        "file": "media/audio/wessan-XC149251.mp3",
+        "type": "song",
+        "xcId": "XC149251",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/149251"
+      },
+      {
+        "file": "media/audio/wessan-XC433226.mp3",
+        "type": "call",
+        "xcId": "XC433226",
+        "recordist": "Niels Krabbe",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/433226"
+      },
+      {
+        "file": "media/audio/wessan-XC149250.mp3",
+        "type": "song",
+        "xcId": "XC149250",
+        "recordist": "Andrew Spencer",
+        "license": "CC BY-NC-SA 3.0",
+        "sourceUrl": "https://xeno-canto.org/149250"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/wessan.jpg",
+      "attribution": "(c) Greg Lasley, some rights reserved (CC BY-NC), uploaded by Greg Lasley",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/3256542"
+    }
+  },
+  {
+    "speciesCode": "greyel",
+    "commonName": "Greater Yellowlegs",
+    "scientificName": "Tringa melanoleuca",
+    "family": "Scolopacidae",
+    "familyCommon": "Sandpipers and Allies",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15
+    ],
+    "audio": [
+      {
+        "file": "media/audio/greyel-XC779314.mp3",
+        "type": "call",
+        "xcId": "XC779314",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/779314"
+      },
+      {
+        "file": "media/audio/greyel-XC779313.mp3",
+        "type": "call",
+        "xcId": "XC779313",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/779313"
+      },
+      {
+        "file": "media/audio/greyel-XC779310.mp3",
+        "type": "call",
+        "xcId": "XC779310",
+        "recordist": "Thomas Magarian",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/779310"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/greyel.jpg",
+      "attribution": "(c) Quinten Wiegersma, some rights reserved (CC BY)",
+      "license": "cc-by",
+      "sourceUrl": "https://www.inaturalist.org/photos/23982305"
+    }
   }
 ]

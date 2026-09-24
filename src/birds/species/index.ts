@@ -12,8 +12,11 @@ import { SPEC as cangoo } from './cangoo'
 import { SPEC as belkin1 } from './belkin1'
 import { SPEC as rewbla } from './rewbla'
 import { SPEC as marwre } from './marwre'
+import { SPEC as amwpel } from './amwpel'
+import { SPEC as leasan } from './leasan'
+import { SPEC as greyel } from './greyel'
 
-const ALL: SpeciesSpec[] = [amecoo, mallar3, grbher3, killde, gadwal, amewig, norsho, pibgre, greegr, cangoo, belkin1, rewbla, marwre].map(parseSpeciesSpec)
+const ALL: SpeciesSpec[] = [amecoo, mallar3, grbher3, killde, gadwal, amewig, norsho, pibgre, greegr, cangoo, belkin1, rewbla, marwre, amwpel, leasan, greyel].map(parseSpeciesSpec)
 
 export const SPECIES: Record<string, SpeciesSpec> = Object.fromEntries(ALL.map(s => [s.code, s]))
 

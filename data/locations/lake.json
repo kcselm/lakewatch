@@ -31,7 +31,10 @@
     { "species": "belkin1", "behavior": "hover", "zone": "snag",         "count": 1, "plumage": "female" },
     { "species": "rewbla",  "behavior": "perch", "zone": "reed-perch",   "count": 1, "plumage": "male" },
     { "species": "marwre",  "behavior": "perch", "zone": "reed-perch-2", "count": 1 },
-    { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" }
+    { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" },
+    { "species": "leasan",  "behavior": "probe",   "zone": "mudflat",   "count": 5 },
+    { "species": "greyel",  "behavior": "wade",    "zone": "far-shore", "count": 1 },
+    { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line" }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
 }

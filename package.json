@@ -10,6 +10,7 @@
     "build": "npm run typecheck && npm test && vite build",
     "harvest:hotspots": "tsx --env-file=.env scripts/harvest-hotspots.ts",
     "harvest:species": "tsx --env-file=.env scripts/harvest-species.ts",
+    "harvest:allowlist": "tsx scripts/apply-allowlist.ts",
     "harvest:taxonomy": "tsx --env-file=.env scripts/harvest-taxonomy.ts",
     "harvest:media": "tsx --env-file=.env scripts/harvest-media.ts",
     "build:birds": "tsx scripts/build-birds.ts",
