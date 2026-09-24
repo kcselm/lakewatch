@@ -178,4 +178,13 @@ describe('createIdentifyController', () => {
     controller.closeOverlay()
     expect(store.get().creditsOpen).toBe(false)
   })
+
+  it('Esc closes a settings or credits panel opened from the title card, leaving the title up', () => {
+    const store = makeStore({ titleOpen: true, creditsOpen: true })
+    const { controller } = makeController(store, makeRegistry({}))
+
+    controller.closeOverlay()
+    expect(store.get().creditsOpen).toBe(false)
+    expect(store.get().titleOpen).toBe(true)
+  })
 })

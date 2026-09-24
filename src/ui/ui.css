@@ -50,3 +50,9 @@
 .settings button { font: inherit; cursor: pointer; }
 .settings .danger { background: #b5533c; color: #fff; border: 0; border-radius: 6px; padding: 4px 10px; }
 .settings .warn { color: #b5533c; }
+.credits { position: absolute; inset: 4vh 12vw; padding: 20px 28px; overflow-y: auto; background: #f4efe3; color: #23201a; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); font-family: Georgia, serif; font-size: 14px; }
+.credits header { display: flex; justify-content: space-between; align-items: center; }
+.credits h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #7a6f58; margin: 18px 0 6px; }
+.credits h4 { margin: 10px 0 2px; }
+.credits ul { margin: 0; padding-left: 18px; }
+.credits a { color: #4c6b3a; }

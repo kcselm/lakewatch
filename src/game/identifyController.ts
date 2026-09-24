@@ -76,7 +76,6 @@ export function createIdentifyController(deps: IdentifyControllerDeps): Identify
 
   function closeOverlay(): void {
     const s = store.get()
-    if (s.titleOpen) return
     if (s.card !== null) dismissCard()
     else if (s.guideOpen) closeGuide()
     else if (s.lifeListOpen) store.set({ lifeListOpen: false })

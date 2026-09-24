@@ -24,6 +24,7 @@ import { App } from './ui/App'
 import { fieldMarkFor } from './game/identify'
 import { createIdentifyController } from './game/identifyController'
 import { guideSpecies } from './game/guideSpecies'
+import { creditsFor } from './game/credits'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
 import { recordSighting, seenState, emptyLifeList } from './game/lifeList'
@@ -66,6 +67,8 @@ const identifyController = createIdentifyController({
 let audio: AudioEngine | null = null
 let effects: Effects | null = null
 
+const credits = creditsFor(guide, loadAmbience())
+
 function renderApp(unsupported: string | null) {
   render(
     <App
@@ -85,8 +88,8 @@ function renderApp(unsupported: string | null) {
       onCloseLifeList={() => game.set({ lifeListOpen: false })}
       unsupported={unsupported}
       onBegin={() => { void audio?.unlock(); game.set({ titleOpen: false }) }}
-      onOpenSettings={() => identifyController.toggleSettings()}
-      onOpenCredits={() => identifyController.toggleCredits()}
+      onOpenSettings={() => game.set({ settingsOpen: true })}
+      onOpenCredits={() => game.set({ creditsOpen: true })}
       settings={() => settings}
       settingsPersistent={() => settingsPersistent}
       onSettingsChange={s => {
@@ -97,6 +100,8 @@ function renderApp(unsupported: string | null) {
       onResetLifeList={() => { lifeList = emptyLifeList(); lifeStorage.save(lifeList) }}
       onCloseSettings={() => game.set({ settingsOpen: false })}
       clipVolume={() => settings.volumes.master * settings.volumes.calls}
+      credits={credits}
+      onCloseCredits={() => game.set({ creditsOpen: false })}
     />,
     document.getElementById('ui')!,
   )

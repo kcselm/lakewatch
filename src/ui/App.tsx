@@ -5,10 +5,12 @@ import { FieldGuide, type SeenState } from './FieldGuide'
 import { ResultCard } from './ResultCard'
 import { LifeList } from './LifeList'
 import { SettingsPanel } from './SettingsPanel'
+import { CreditsScreen } from './Credits'
 import type { Bird } from '../catalog/types'
 import type { SpeciesSpec } from '../birds/spec'
 import type { LifeListData } from '../game/lifeList'
 import type { Settings } from '../game/settings'
+import type { Credits } from '../game/credits'
 
 export interface AppDeps {
   guide: Bird[]
@@ -35,6 +37,8 @@ export interface AppDeps {
   onResetLifeList: () => void
   onCloseSettings: () => void
   clipVolume: () => number
+  credits: Credits
+  onCloseCredits: () => void
 }
 
 export function App(d: AppDeps) {
@@ -52,6 +56,7 @@ export function App(d: AppDeps) {
       {s.settingsOpen && (
         <SettingsPanel settings={d.settings()} persistent={d.settingsPersistent()} onChange={d.onSettingsChange} onResetLifeList={d.onResetLifeList} onClose={d.onCloseSettings} />
       )}
+      {s.creditsOpen && <CreditsScreen credits={d.credits} onClose={d.onCloseCredits} />}
     </>
   )
 }
