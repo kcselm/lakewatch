@@ -3,6 +3,7 @@ import { render } from 'preact'
 import { loadLocation, type Vec3 } from './location'
 import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
+import { createZoneOutlines } from './hud/zoneOutlines'
 import { lakeHeightfield } from './world/heightfield'
 import { createTerrain } from './world/terrain'
 import { createWater } from './world/water'
@@ -125,7 +126,9 @@ world.add(createTerrain(heightfield))
 // vantage.position[1] is eye height above the ground, not an absolute world y
 const [vx, , vz] = loc.vantage.position
 world.camera.position.y = heightfield.sample(vx, vz) + loc.vantage.position[1]
-const dev = createDevOverlay(document.getElementById('hud')!)
+const outlines = createZoneOutlines(loc, (x, z) => heightfield.sample(x, z))
+world.scene.add(outlines.object)
+const dev = createDevOverlay(document.getElementById('hud')!, v => outlines.setVisible(v))
 const hud = document.getElementById('hud')!
 const look = new LookControls(world.renderer.domElement, loc.vantage.heading, () => !isPaused(game.get()))
 applySettings(settings, { look, engine })

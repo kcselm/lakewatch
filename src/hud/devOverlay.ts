@@ -1,12 +1,16 @@
 export interface DevStats { fps: number; birds: number; gust: number; mode: string; audio: string; calls: number }
 
-export function createDevOverlay(root: HTMLElement) {
+export function createDevOverlay(root: HTMLElement, onToggle?: (visible: boolean) => void) {
   const el = document.createElement('pre')
   el.style.cssText = 'position:absolute;top:8px;left:8px;margin:0;padding:6px 8px;background:rgba(0,0,0,.5);color:#cfe;font:12px/1.4 monospace;display:none'
   root.appendChild(el)
   let visible = false
   addEventListener('keydown', e => {
-    if (e.key === '`') { visible = !visible; el.style.display = visible ? 'block' : 'none' }
+    if (e.key === '`') {
+      visible = !visible
+      el.style.display = visible ? 'block' : 'none'
+      onToggle?.(visible)
+    }
   })
   let acc = 0, frames = 0, fps = 0
   return {
