@@ -5,7 +5,7 @@ import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
 import { createZoneOutlines } from './hud/zoneOutlines'
 import { lakeHeightfield } from './world/heightfield'
-import { createTerrain } from './world/terrain'
+import { createTerrain, terrainSurface } from './world/terrain'
 import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
 import { sunDirection } from './world/sky'
@@ -123,10 +123,12 @@ effects = createEffects(engine)
 const fx = effects
 const heightfield = lakeHeightfield(7)
 world.add(createTerrain(heightfield))
+// what the birds and outlines stand on: the rendered mesh, which sags or bulges up to 11 cm from the smooth field
+const surface = terrainSurface(heightfield)
 // vantage.position[1] is eye height above the ground, not an absolute world y
 const [vx, , vz] = loc.vantage.position
 world.camera.position.y = heightfield.sample(vx, vz) + loc.vantage.position[1]
-const outlines = createZoneOutlines(loc, (x, z) => heightfield.sample(x, z))
+const outlines = createZoneOutlines(loc, (x, z) => surface.sample(x, z))
 world.scene.add(outlines.object)
 const dev = createDevOverlay(document.getElementById('hud')!, v => outlines.setVisible(v))
 const hud = document.getElementById('hud')!
@@ -213,7 +215,7 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
 }
-world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => heightfield.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
+world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
 
 const calls = createCallPlayer({
   engine, registry, birdOf: findBird,
