@@ -4,6 +4,7 @@ import { ATLAS_SIZE } from './atlas'
 import { createProfile } from '../detail/profile'
 import { TEST_DETAIL, TEST_SPEC } from '../detail/fixture'
 import type { Layer } from '../detail/spec'
+import { outlineAt } from '../detail/wing'
 
 const profile = createProfile(TEST_DETAIL.profile)
 const paint = (layers: Layer[]) => paintAtlas({ code: 'testbird', detail: TEST_DETAIL, layers, profile })
@@ -40,6 +41,13 @@ describe('paintAtlas', () => {
     expect(f.bill.lengthMm).toBeCloseTo(TEST_DETAIL.measurements.culmen * 1000, 6)
     expect(f.wingFold.lengthMm).toBeCloseTo(TEST_DETAIL.measurements.wingChord * 1000, 6)
     expect(f.skin.widthMm(profile.uOf('hip'))).toBeGreaterThan(f.skin.widthMm(profile.uOf('nape')))
+  })
+  it('sizes the folded wing by its outline, so wing patterns stay millimetres from wrist to tip', () => {
+    const f = partFrames(TEST_DETAIL, profile)
+    const chordMm = TEST_DETAIL.measurements.wingChord * 1000
+    for (const s of [0, 0.16, 0.5, 0.9, 1]) {
+      expect(f.wingFold.widthMm(s)).toBeCloseTo(outlineAt(TEST_DETAIL.wing.outline, s) * chordMm, 6)
+    }
   })
 })
 

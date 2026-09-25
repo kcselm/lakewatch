@@ -21,12 +21,12 @@ const ALL: SpeciesSpec[] = [amecoo, mallar3, grbher3, killde, gadwal, amewig, no
 
 export const SPECIES: Record<string, SpeciesSpec> = Object.fromEntries(ALL.map(s => [s.code, s]))
 
+/** Own keys only, so "constructor" or "toString" (say, from a hand-edited viewer link) is never a species. */
 export function hasSpec(code: string): boolean {
-  return code in SPECIES
+  return Object.hasOwn(SPECIES, code)
 }
 
 export function getSpec(code: string): SpeciesSpec {
-  const s = SPECIES[code]
-  if (!s) throw new Error(`No species spec for ${code}`)
-  return s
+  if (!hasSpec(code)) throw new Error(`No species spec for ${code}`)
+  return SPECIES[code]!
 }

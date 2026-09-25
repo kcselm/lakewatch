@@ -3,7 +3,7 @@ import { ATLAS_SIZE, PAD, REGIONS, pixelST } from './atlas'
 import { compileLayer, hashString, hexRGB, pointMm, skinSpan, type Frame, type Out, type Px, type RGB } from './layers'
 import { createProfile, type Profile } from '../detail/profile'
 import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
-import { SPAN, ROOT_CHORD } from '../detail/wing'
+import { SPAN, ROOT_CHORD, outlineAt } from '../detail/wing'
 import { ROOT_WIDTH, TIP_SPREAD } from '../detail/tail'
 import type { SpeciesSpec } from '../spec'
 
@@ -24,13 +24,13 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     return v
   }
   const flat = (lengthMm: number, widthMm: (s: number) => number): Frame => ({ lengthMm, widthMm, uOf: noLabels })
-  const foldH = Math.max(...detail.wing.outline.map(o => o[1])) * m.wingChord * 1000
   const spread = flat(SPAN * m.wingChord * 1000, s => ROOT_CHORD * m.wingChord * 1000 * (1 - 0.85 * s ** 1.3))
   const tailRoot = profile.sampleAt(profile.uOf(detail.rig.tailBase)).halfWidth * 2 * ROOT_WIDTH * 1000
   const tail = flat(m.tail * 1000, s => tailRoot * (1 + (TIP_SPREAD - 1) * s))
   return {
     skin: { lengthMm: profile.length * 1000, widthMm: skinWidth, uOf: l => profile.uOf(l) },
-    wingFold: flat(m.wingChord * 1000, () => foldH),
+    // the folded wing's t spans its outline height at s (wing.ts), so its frame does too
+    wingFold: flat(m.wingChord * 1000, s => Math.max(outlineAt(detail.wing.outline, s) * m.wingChord * 1000, 0.01)),
     wingSpread: spread,
     wingUnder: spread,
     tail,

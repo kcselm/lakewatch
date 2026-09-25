@@ -49,6 +49,12 @@ describe('species specs', () => {
       if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig), spec.code).toBe(0)
     }
   })
+  it('does not take Object prototype names for species codes', () => {
+    for (const code of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      expect(hasSpec(code), code).toBe(false)
+      expect(() => getSpec(code), code).toThrow(/No species spec/)
+    }
+  })
   it('mallard has male and female variants', () => {
     expect(Object.keys(getSpec('mallar3').variants).sort()).toEqual(['female', 'male'])
   })

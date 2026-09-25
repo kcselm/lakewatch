@@ -5,7 +5,7 @@ import { signedVolume } from './mesher'
 import { BONE_NAMES } from './rig'
 import { TEST_SPEC, TEST_DETAIL } from './fixture'
 import { parseSpeciesSpec } from '../spec'
-import { defaultPose } from '../model'
+import { defaultPose, type PoseState } from '../model'
 import { birdModelContract } from '../contract.testkit'
 
 birdModelContract('detailed builder', () => buildDetailedBird(TEST_SPEC))
@@ -79,14 +79,21 @@ describe('buildDetailedBird', () => {
   })
   it('clamps out-of-range pose values instead of breaking the bird', () => {
     const m = buildDetailedBird(TEST_SPEC)
-    m.pose({ ...defaultPose(), neckExtend: 3, wingSpread: -1, gait: 4, strideDistance: 0.05, tailTilt: 0.3 })
-    m.group.updateMatrixWorld(true)
-    for (const b of m.mesh.skeleton.bones) {
-      for (const v of [...b.position.toArray(), ...b.quaternion.toArray(), ...b.scale.toArray()]) expect(Number.isFinite(v), b.name).toBe(true)
+    const bones = () => m.mesh.skeleton.bones.map(b => [...b.position.toArray(), ...b.quaternion.toArray(), ...b.scale.toArray()])
+    // over-range values must pose the bird exactly as their clamped equivalents do: no stretched neck, no
+    // inside-out wings, no over-long stride
+    const cases: [Partial<PoseState>, Partial<PoseState>][] = [
+      [{ neckExtend: 3, wingSpread: -1, gait: 4 }, { neckExtend: 1, wingSpread: 0, gait: 1 }],
+      [{ neckExtend: -2, wingSpread: 2.5, gait: -3 }, { neckExtend: 0, wingSpread: 1, gait: 0 }],
+    ]
+    for (const [wild, tame] of cases) {
+      m.pose({ ...defaultPose(), strideDistance: 0.05, wingPhase: 0.2, ...wild })
+      const got = bones()
+      for (const v of got.flat()) expect(Number.isFinite(v)).toBe(true)
+      m.pose({ ...defaultPose(), strideDistance: 0.05, wingPhase: 0.2, ...tame })
+      const want = bones()
+      got.forEach((row, i) => row.forEach((v, k) => expect(v, `${m.mesh.skeleton.bones[i]!.name}[${k}]`).toBeCloseTo(want[i]![k]!, 9)))
     }
-    const fold = m.mesh.skeleton.bones.find(b => b.name === 'wingFoldR')!
-    expect(fold.scale.x).toBe(1)                               // wingSpread -1 reads as folded
-    expect(m.parts.head.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(1, 6)
   })
   it('refuses what it cannot build', () => {
     expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'swimming' }))).toThrow(/standing/)
