@@ -8,6 +8,10 @@ export const plumageSchema = z.object({
   speculum: hex.nullable(), rump: hex, tail: hex, bill: hex, legs: hex, eye: hex,
 })
 
+/** how a species feeds when the cast puts it on `probe` */
+export const FORAGING = ['plover', 'sandpiper'] as const
+export type Foraging = (typeof FORAGING)[number]
+
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const
 export type MarkKey = (typeof MARK_KEYS)[number]
 
@@ -30,6 +34,7 @@ export const speciesSpecSchema = z.object({
   variants: z.record(z.string(), plumageSchema.partial()),
   marks: z.object({ size: z.string(), bill: z.string(), head: z.string(), body: z.string(), legs: z.string() }),
   wingbeatHz: z.number().positive(),
+  foraging: z.enum(FORAGING).optional(),
   /** present when the species uses the detailed builder */
   detail: detailSchema.optional(),
 }).superRefine((s, ctx) => {

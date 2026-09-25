@@ -27,4 +27,5 @@ export const SPEC: SpeciesSpec = {
     legs: 'yellow-green legs (the other small sandpipers have black legs)',
   },
   wingbeatHz: 9,
+  foraging: 'sandpiper',
 }

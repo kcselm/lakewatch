@@ -1,6 +1,7 @@
 import type { Zone, PolygonZone, Vec3 } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import type { PoseState } from '../birds/model'
+import type { Foraging } from '../birds/spec'
 
 export interface BehaviorContext {
   zone: Zone
@@ -13,6 +14,8 @@ export interface BehaviorContext {
   perch?: Vec3
   /** for behaviors that flap; each behavior applies its own default when unset (perch 5, hover 6) */
   wingbeatHz?: number
+  /** how a probing bird feeds; probe treats a missing style as sandpiper */
+  foraging?: Foraging
   onEvent?: (name: 'splash' | 'flap', x: number, y: number, z: number) => void
 }
 

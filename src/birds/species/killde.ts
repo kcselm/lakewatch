@@ -27,4 +27,5 @@ export const SPEC: SpeciesSpec = {
     legs: 'pale long legs; runs in short bursts and stops',
   },
   wingbeatHz: 7,
+  foraging: 'plover',
 }

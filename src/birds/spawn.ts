@@ -77,6 +77,13 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
 
 const STANDING: Behavior[] = ['wade', 'probe']
 
+/** What a species brings to its behavior: its wingbeat, and how it feeds. A species with no spec flaps at 5 Hz. */
+export function speciesTraits(code: string): Pick<BehaviorContext, 'wingbeatHz' | 'foraging'> {
+  if (!hasSpec(code)) return { wingbeatHz: 5 }
+  const spec = getSpec(code)
+  return { wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
+}
+
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }
 interface LiveFlock {
   key: string; species: string; variant?: string
@@ -108,7 +115,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       onRipple: (x, z) => deps.ripples.spawn(x, z),
       group: ind.behavior === 'probe' ? groups.get(ind.groupKey) : undefined,
       perch,
-      wingbeatHz: hasSpec(ind.species) ? getSpec(ind.species).wingbeatHz : 5,
+      ...speciesTraits(ind.species),
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
     const [sx, sz] = zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]

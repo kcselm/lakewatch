@@ -9,6 +9,11 @@ describe('parseSpeciesSpec', () => {
     const bad = { ...coot, plumage: { ...coot.plumage, crown: 'black' } }
     expect(() => parseSpeciesSpec(bad)).toThrow(/crown/)
   })
+  it('takes a foraging style, and rejects one it does not know', () => {
+    expect(parseSpeciesSpec({ ...coot, foraging: 'plover' }).foraging).toBe('plover')
+    expect(parseSpeciesSpec(coot).foraging).toBeUndefined()
+    expect(() => parseSpeciesSpec({ ...coot, foraging: 'heron' })).toThrow(/foraging/)
+  })
   it('requires every field mark', () => {
     const { legs: _drop, ...marks } = coot.marks
     expect(() => parseSpeciesSpec({ ...coot, marks })).toThrow(/legs/)

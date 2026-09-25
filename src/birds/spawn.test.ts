@@ -1,4 +1,4 @@
-import { expandCast, flockEntries, spawnCast, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
+import { expandCast, flockEntries, spawnCast, speciesTraits, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
 import { makeRng } from '../catalog/rng'
 import { BirdRegistry } from './registry'
 import { Wind } from '../world/wind'
@@ -45,6 +45,15 @@ describe('expandCast', () => {
       { species: 'rewbla', behavior: 'perch', zone: 'snag', count: 2, plumage: 'male' },
     ]), makeRng(6))
     expect(out.map(b => [b.behavior, b.variant])).toEqual([['hover', 'female'], ['perch', 'male'], ['perch', 'male']])
+  })
+})
+
+describe('speciesTraits', () => {
+  it("hands a behavior the species' wingbeat and foraging style", () => {
+    expect(speciesTraits('killde')).toEqual({ wingbeatHz: 7, foraging: 'plover' })
+    expect(speciesTraits('leasan')).toEqual({ wingbeatHz: 9, foraging: 'sandpiper' })
+    expect(speciesTraits('greyel').foraging).toBeUndefined()
+    expect(speciesTraits('nosuchbird')).toEqual({ wingbeatHz: 5 })
   })
 })
 
