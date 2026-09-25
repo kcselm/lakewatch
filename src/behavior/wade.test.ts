@@ -24,6 +24,31 @@ describe('wade', () => {
     for (let t = 0; t < 180; t += 1 / 30) { c.update(1 / 30, defaultPose()); total++; if (c.state === 'still') still++ }
     expect(still / total).toBeGreaterThan(0.6)
   })
+  it('walks: strideDistance grows by exactly the ground covered, and gait rises only while stepping', () => {
+    const c = createWade(ctx(4), 0, 0)
+    const pose = defaultPose()
+    let walked = 0, px = c.x, pz = c.z, sawStep = false
+    for (let i = 0; i < 3000; i++) {
+      c.update(1 / 30, pose)
+      walked += Math.hypot(c.x - px, c.z - pz)
+      px = c.x; pz = c.z
+      if (c.state === 'step') sawStep = true
+      if (c.state === 'still' && i > 60) expect(pose.gait).toBeLessThan(1)
+    }
+    expect(sawStep).toBe(true)
+    expect(pose.strideDistance).toBeCloseTo(walked, 9)
+  })
+  it('eases gait to 1 while stepping and back to 0 when still', () => {
+    const c = createWade(ctx(5), 0, 0)
+    const pose = defaultPose()
+    let guard = 0
+    while (c.state !== 'step' && guard++ < 100000) c.update(1 / 30, pose)
+    for (let i = 0; i < 15 && c.state === 'step'; i++) c.update(1 / 30, pose)
+    expect(pose.gait).toBeGreaterThan(0.9)
+    while (c.state === 'step' && guard++ < 100000) c.update(1 / 30, pose)
+    for (let i = 0; i < 30; i++) c.update(1 / 30, pose)
+    expect(pose.gait).toBeLessThan(0.05)
+  })
   it('strikes: neck extends fast then returns', () => {
     const c = createWade(ctx(3), 0, 0)
     const pose = defaultPose()

@@ -13,10 +13,14 @@ export interface PoseState {
   tailTilt: number
   /** body lean; x pitches nose down (tip-up feeding), z rolls */
   lean: THREE.Vector3
+  /** metres walked so far; the model maps it to its own stride phase */
+  strideDistance: number
+  /** 0 standing .. 1 walking */
+  gait: number
 }
 
 export function defaultPose(): PoseState {
-  return { wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3() }
+  return { wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0 }
 }
 
 export interface BirdParts {

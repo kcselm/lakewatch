@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { BirdModel, BirdParts, PoseState } from './model'
+import { defaultPose, type BirdModel, type BirdParts, type PoseState } from './model'
 import { resolvePlumage, type SpeciesSpec, type Plumage } from './spec'
 import { paintByDirection, paintSolid } from './paint'
 
@@ -182,7 +182,7 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
     tail.rotation.z = THREE.MathUtils.degToRad(spec.tail.angle) + st.tailTilt
     body.rotation.set(st.lean.x, 0, st.lean.z)
   }
-  pose({ wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3() })
+  pose(defaultPose())
 
   // Box3.setFromObject updates the group's own world matrices as needed; the group has no
   // parent yet (or sits at its parent's origin), so this box is effectively local-space.
