@@ -70,16 +70,21 @@ function partOf(layer: Layer): Part {
   return 'where' in layer ? layer.where.part : 'skin'
 }
 
-/** Iris, pupil, and a catchlight in the eye region; outside the iris, dark. */
-function paintEye(buf: Float32Array, iris: string): void {
+/**
+ * Iris, pupil, and a catchlight in the eye region, inside a bare eyelid ring when the species has one; outside the
+ * iris (or the lid), dark. The lid takes the outer part of the eye's radius, and the iris and pupil shrink inside it.
+ */
+function paintEye(buf: Float32Array, eye: DetailSpec['eye']): void {
   const r = REGIONS.eye
-  const irisC = hexRGB(iris), dark: RGB = [0.05, 0.05, 0.05], light: RGB = [0.95, 0.95, 0.95]
+  const irisC = hexRGB(eye.iris), dark: RGB = [0.05, 0.05, 0.05], light: RGB = [0.95, 0.95, 0.95]
+  const lidC = eye.lid ? hexRGB(eye.lid.color) : null
+  const k = eye.lid ? 1 - Math.min(0.5, eye.lid.width / eye.radius) : 1
   for (let py = r.y; py < r.y + r.h; py++) {
     for (let px = r.x; px < r.x + r.w; px++) {
       const [s, t] = pixelST('eye', px, py)
       const d = Math.hypot(s - 0.5, t - 0.5) * 2
-      let c: RGB = d < 0.45 ? dark : d < 0.92 ? irisC : dark
-      if (Math.hypot(s - 0.36, t - 0.64) < 0.12) c = light
+      let c: RGB = d < 0.45 * k ? dark : d < 0.92 * k ? irisC : lidC ?? dark
+      if (Math.hypot(s - 0.5 + 0.14 * k, t - 0.5 - 0.14 * k) < 0.12 * k) c = light
       buf.set(c, (py * ATLAS_SIZE + px) * 3)
     }
   }
@@ -93,7 +98,7 @@ export function paintAtlas({ code, detail, layers, profile }: PaintInput): Uint8
   const frames = partFrames(detail, profile)
   const buf = new Float32Array(ATLAS_SIZE * ATLAS_SIZE * 3)
   for (let i = 0; i < buf.length; i += 3) buf.set(BASE_GREY, i)
-  paintEye(buf, detail.eye.iris)
+  paintEye(buf, detail.eye)
   const base = hashString(code)
   const out: Out = { alpha: 0, color: [0, 0, 0] }
   const px: Px = { s: 0, t: 0, X: 0, Y: 0, pixelMm: 0 }
@@ -172,7 +177,7 @@ export function materialFor(spec: SpeciesSpec, variant?: string): THREE.MeshStan
  * between neighbouring texels along s and along t. Roughness sees pattern (bars, streaks) and ignores smooth
  * gradients. For tests and the viewer.
  */
-export function regionStats(pixels: Uint8ClampedArray, part: Part, s: [number, number], t: [number, number]): { mean: number; std: number; roughS: number; roughT: number } {
+export function regionStats(pixels: Uint8ClampedArray, part: Part, s: [number, number], t: [number, number]): { mean: number; std: number; roughS: number; roughT: number; rgb: [number, number, number] } {
   const r = REGIONS[part]
   const lum = (x: number, y: number) => {
     const k = (y * ATLAS_SIZE + x) * 4
@@ -183,16 +188,21 @@ export function regionStats(pixels: Uint8ClampedArray, part: Part, s: [number, n
     const [ps, pt] = pixelST(part, x, y)
     return ps >= s[0] && ps <= s[1] && pt >= t[0] && pt <= t[1]
   }
-  let n = 0, sum = 0, sum2 = 0, ns = 0, ds = 0, nt = 0, dt = 0
+  let n = 0, sum = 0, sum2 = 0, ns = 0, ds = 0, nt = 0, dt = 0, red = 0, green = 0, blue = 0
   for (let y = r.y; y < r.y + r.h; y++) {
     for (let x = r.x; x < r.x + r.w; x++) {
       if (!inside(x, y)) continue
       const l = lum(x, y)
       n++; sum += l; sum2 += l * l
+      const k = (y * ATLAS_SIZE + x) * 4
+      red += pixels[k]! / 255; green += pixels[k + 1]! / 255; blue += pixels[k + 2]! / 255
       if (inside(x + 1, y)) { ns++; ds += Math.abs(lum(x + 1, y) - l) }
       if (inside(x, y + 1)) { nt++; dt += Math.abs(lum(x, y + 1) - l) }
     }
   }
   const mean = sum / (n || 1)
-  return { mean, std: Math.sqrt(Math.max(0, sum2 / (n || 1) - mean * mean)), roughS: ds / (ns || 1), roughT: dt / (nt || 1) }
+  return {
+    mean, std: Math.sqrt(Math.max(0, sum2 / (n || 1) - mean * mean)), roughS: ds / (ns || 1), roughT: dt / (nt || 1),
+    rgb: [red / (n || 1), green / (n || 1), blue / (n || 1)],
+  }
 }

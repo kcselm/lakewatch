@@ -30,6 +30,14 @@ describe('paintAtlas', () => {
     expect(neck).toBeGreaterThan(0.1)
     expect(Math.abs(neck - body) / body).toBeLessThan(0.3)
   })
+  it('paints a bare eyelid ring on the eye rim, with the iris and pupil shrunk inside it', () => {
+    const lidded = paintAtlas({ code: 'testbird', detail: { ...TEST_DETAIL, eye: { ...TEST_DETAIL.eye, lid: { color: '#ff0000', width: 0.0006 } } }, layers: [], profile })
+    const rim = regionStats(lidded, 'eye', [0.9, 0.94], [0.48, 0.52]).rgb       // d about 0.84, inside the lid
+    expect(rim[0]).toBeGreaterThan(0.9)
+    expect(rim[1]).toBeLessThan(0.1)
+    expect(regionStats(paint([]), 'eye', [0.9, 0.94], [0.48, 0.52]).rgb[0]).toBeLessThan(0.3)   // no lid: iris
+    expect(regionStats(lidded, 'eye', [0.46, 0.54], [0.46, 0.54]).mean).toBeLessThan(0.1)         // still a dark pupil
+  })
   it('paints the eye: dark pupil, a catchlight', () => {
     const px = paint([])
     expect(regionStats(px, 'eye', [0.45, 0.55], [0.45, 0.55]).mean).toBeLessThan(0.1)

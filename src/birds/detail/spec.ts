@@ -68,7 +68,11 @@ export const detailSchema = z.object({
   profile: z.array(stationSchema).min(4),
   rig: z.object({ neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string() }),
   bill: z.object({ taper: pos, curve: z.number() }),
-  eye: z.object({ radius: pos, t: unit, iris: hex }),
+  eye: z.object({
+    radius: pos, t: unit, iris: hex,
+    /** a bare eyelid ring, drawn on the eye's own rim: its colour, and its width in metres */
+    lid: z.object({ color: hex, width: pos }).optional(),
+  }),
   wing: z.object({
     /** bend of the wing in the side view, metres */
     wrist: z.tuple([z.number(), z.number()]),

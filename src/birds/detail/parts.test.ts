@@ -101,6 +101,12 @@ describe('tail', () => {
     expect(t.tip.distanceTo(t.root)).toBeCloseTo(TEST_DETAIL.measurements.tail, 4)
     expect(t.tip.x).toBeLessThan(t.root.x)
   })
+  it('is tail long to its longest feather, whatever the shape: a rounded or wedge tail keeps the published length', () => {
+    for (const shape of ['square', 'rounded', 'wedge'] as const) {
+      const t = buildTail(new Mesher(), { ...TEST_DETAIL, tail: { shape } }, profile)
+      expect(t.tip.distanceTo(t.root), shape).toBeCloseTo(TEST_DETAIL.measurements.tail, 4)
+    }
+  })
   it('shows its upper face up and its under face down', () => {
     const m = new Mesher()
     buildTail(m, TEST_DETAIL, profile)

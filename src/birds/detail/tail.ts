@@ -30,7 +30,8 @@ export interface TailResult {
 }
 
 /**
- * The tail: a thin, slightly cupped fan rooted at the tailBase station, measurements.tail long, pointing
+ * The tail: a thin, slightly cupped fan rooted at the tailBase station, measurements.tail long to its longest
+ * feather (the middle of a rounded or wedge tail, the outer ones of a square or notched one), pointing
  * straight back along the spine, lifted by `angle` degrees. Upper face 'tail', under face 'tailUnder'.
  */
 export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): TailResult {
@@ -41,9 +42,11 @@ export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): Tail
   back.set(back.x * Math.cos(a) + back.y * Math.sin(a), -back.x * Math.sin(a) + back.y * Math.cos(a))
   const up = new THREE.Vector2(back.y, -back.x)
   const rootW = base.halfWidth * 2 * ROOT_WIDTH
+  // a tail is measured to its longest feather, so a rounded or wedge tail's middle is measurements.tail long
+  const longest = 1 + Math.max(0, tipShape(detail.tail.shape, 0.5))
   const point = (s: number, t: number, lift: number) => {
     const w = rootW * (1 + (TIP_SPREAD - 1) * s)
-    const along = s * L * (1 + tipShape(detail.tail.shape, t))
+    const along = (s * L * (1 + tipShape(detail.tail.shape, t))) / longest
     const cup = -0.12 * w * (2 * t - 1) ** 2 + lift
     return new THREE.Vector3(
       base.point.x + back.x * along + up.x * cup,
