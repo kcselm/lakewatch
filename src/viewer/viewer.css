@@ -1,0 +1,15 @@
+html, body { margin: 0; height: 100%; overflow: hidden; background: #cfd8dc; font: 12px/1.4 system-ui, sans-serif; color: #1d2327; }
+#stage { position: absolute; inset: 0; }
+#stage canvas { display: block; }
+#ref { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; display: none; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+#labels span { position: absolute; transform: translate(4px, -50%); font: 10px monospace; color: #b3261e; white-space: nowrap; }
+#panel { position: absolute; top: 8px; right: 8px; width: 260px; max-height: calc(100% - 16px); overflow: auto; background: rgba(255,255,255,.88); border-radius: 6px; padding: 8px 10px; }
+#panel fieldset { border: 1px solid #c4ccd0; border-radius: 4px; margin: 0 0 8px; padding: 4px 8px 6px; }
+#panel legend { font-weight: 600; padding: 0 4px; }
+#panel label { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 2px 0; }
+#panel input[type=range] { width: 120px; }
+#panel select { max-width: 150px; }
+#panel pre { margin: 4px 0 0; font: 11px/1.35 monospace; white-space: pre-wrap; }
+#panel .row { display: flex; flex-wrap: wrap; gap: 4px; }
+#atlas { position: absolute; left: 8px; bottom: 8px; width: 256px; height: 256px; border: 1px solid #888; image-rendering: pixelated; display: none; background: #808080; }
