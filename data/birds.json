@@ -4238,5 +4238,63 @@
       "license": "cc-by",
       "sourceUrl": "https://www.inaturalist.org/photos/23982305"
     }
+  },
+  {
+    "speciesCode": "lesyel",
+    "commonName": "Lesser Yellowlegs",
+    "scientificName": "Tringa flavipes",
+    "family": "Scolopacidae",
+    "familyCommon": "Sandpipers and Allies",
+    "habitats": [
+      "wetland",
+      "shoreline"
+    ],
+    "frequency": 0.15,
+    "monthly": [
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.15
+    ],
+    "audio": [
+      {
+        "file": "media/audio/lesyel-XC1060895.mp3",
+        "type": "song",
+        "xcId": "XC1060895",
+        "recordist": "Benjamin Drillat",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1060895"
+      },
+      {
+        "file": "media/audio/lesyel-XC179714.mp3",
+        "type": "call",
+        "xcId": "XC179714",
+        "recordist": "Ian Cruickshank",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/179714"
+      },
+      {
+        "file": "media/audio/lesyel-XC1046350.mp3",
+        "type": "song",
+        "xcId": "XC1046350",
+        "recordist": "AUDEVARD Aurélien",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/1046350"
+      }
+    ],
+    "photo": {
+      "file": "media/photos/lesyel.jpg",
+      "attribution": "(c) Jonathan Irons, some rights reserved (CC BY-NC), uploaded by Jonathan Irons",
+      "license": "cc-by-nc",
+      "sourceUrl": "https://www.inaturalist.org/photos/260887463"
+    }
   }
 ]
