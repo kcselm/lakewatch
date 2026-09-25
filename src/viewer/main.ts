@@ -17,7 +17,7 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
-  neck: 0.5, lean: 0, spread: 0, phase: 0, walk: false,
+  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, walk: false, speed: 0.35,
   water: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 let state = parseState(location.hash, DEFAULTS, { has: hasSpec, variants: c => Object.keys(getSpec(c).variants) })
@@ -235,7 +235,9 @@ slider(pose, 'neck', state.neck, v => set({ neck: v }))
 slider(pose, 'lean', state.lean, v => set({ lean: v }))
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
+slider(pose, 'reach', state.reach, v => set({ reach: v }))
 check(pose, 'walk', state.walk, v => set({ walk: v }))
+slider(pose, 'walk speed, m/s', state.speed, v => set({ speed: v }), 0.05, 2, 0.05)
 const aids = group('Authoring')
 check(aids, 'stations (left bird)', state.stations, v => set({ stations: v }))
 check(aids, 'wireframe', state.wire, v => set({ wire: v }))
@@ -262,8 +264,7 @@ group('Measurements, mm').appendChild(readout)
 
 // --- loop ----------------------------------------------------------------------------------------
 const labels = document.getElementById('labels')!
-const WALK_SPEED = 0.35          // wade's pace, m/s
-const WALK_LOOP = 0.6            // metres before the walk starts over
+const WALK_LOOP = 1.2            // metres before the walk starts over
 let stride = 0
 let last = performance.now()
 const tmp = new THREE.Vector3()
@@ -272,8 +273,8 @@ function frame(): void {
   const now = performance.now()
   const dt = Math.min((now - last) / 1000, 0.1)
   last = now
-  if (state.walk) stride += WALK_SPEED * dt
-  const p = { ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, strideDistance: stride, gait: state.walk ? 1 : 0 }
+  if (state.walk) stride += state.speed * dt
+  const p = { ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach, strideDistance: stride, gait: state.walk ? 1 : 0 }
   p.lean.x = state.lean
   for (const s of slots) {
     s.model.group.position.copy(s.base)

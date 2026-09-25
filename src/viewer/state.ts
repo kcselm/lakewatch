@@ -18,12 +18,18 @@ export interface ViewerState {
   b: string; bv: string
   view: View
   field: FieldView
-  neck: number; lean: number; spread: number; phase: number
+  neck: number; lean: number; spread: number; phase: number; reach: number
   walk: boolean
+  /** walking speed, m/s */
+  speed: number
   water: boolean; wire: boolean; skel: boolean; uv: boolean; atlas: boolean; stations: boolean
 }
 
-const NUMBERS = ['neck', 'lean', 'spread', 'phase'] as const
+/** each number's range: a value outside it is clamped */
+const NUMBERS = {
+  neck: [0, 1], lean: [0, 1], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2],
+} as const satisfies Record<string, readonly [number, number]>
+const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
 const FLAGS = ['walk', 'water', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
 const STRINGS = ['a', 'av', 'b', 'bv'] as const
 
@@ -44,9 +50,9 @@ export function parseState(hash: string, defaults: ViewerState, catalog?: Catalo
       if (s[variant] && !catalog.variants(s[code]).includes(s[variant])) s[variant] = ''
     }
   }
-  for (const k of NUMBERS) {
+  for (const k of NUMBER_KEYS) {
     const v = Number(p.get(k))
-    if (p.has(k) && Number.isFinite(v)) s[k] = Math.min(Math.max(v, 0), 1)
+    if (p.has(k) && Number.isFinite(v)) s[k] = Math.min(Math.max(v, NUMBERS[k][0]), NUMBERS[k][1])
   }
   for (const k of FLAGS) if (p.has(k)) s[k] = p.get(k) === '1'
   const view = p.get('view')
@@ -61,7 +67,7 @@ export function stateHash(s: ViewerState): string {
   for (const k of STRINGS) p.set(k, s[k])
   p.set('view', s.view)
   p.set('field', s.field)
-  for (const k of NUMBERS) p.set(k, String(s[k]))
+  for (const k of NUMBER_KEYS) p.set(k, String(s[k]))
   for (const k of FLAGS) p.set(k, s[k] ? '1' : '0')
   return '#' + p.toString()
 }
