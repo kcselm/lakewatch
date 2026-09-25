@@ -201,6 +201,7 @@ interface PoseState {
   lean: THREE.Vector3;    // body lean, for wind and turning
   strideDistance: number; // metres walked; the model maps it to a stride
   gait: number;           // 0 standing .. 1 walking
+  reach: number;          // 0 .. 1, a peck or strike reaching down; at 1 the bill tip is on the ground
 }
 ```
 
@@ -221,7 +222,7 @@ Three implementations:
 ### Animation
 
 Procedural curves blended into `PoseState` by the behavior: wingbeat,
-coot head-pump, heron neck extend and strike, sandpiper run-stop-peck,
+coot head-pump, heron neck extend and strike, plover run-stop-look-peck, sandpiper walk-and-pick,
 dabbler tip-up, preen and wing-stretch idles.
 
 ### Behaviors
@@ -230,7 +231,7 @@ dabbler tip-up, preen and wing-stretch idles.
 |---|---|
 | swim | Wander in a water zone, drift downwind, dabble or dive occasionally, spawn ripple rings |
 | wade | Slow steps along a shore zone, long stillness, strike |
-| probe | Run-stop-peck along the mudflat in a loose group that moves together |
+| probe | Forage the mudflat in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together |
 | perch | Sit on the snag, shuffle, stretch, short loop flight and return |
 | flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. Instanced, per-bird wingbeat phase |
 | hover | Hold over water, dive, return to perch |
