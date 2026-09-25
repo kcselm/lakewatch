@@ -49,6 +49,20 @@ describe('wade', () => {
     for (let i = 0; i < 30; i++) c.update(1 / 30, pose)
     expect(pose.gait).toBeLessThan(0.05)
   })
+  it('strikes over a few frames, not in one: at 60 fps the first frame is barely begun, and it is all the way down by 0.15 s', () => {
+    const c = createWade(ctx(3), 0, 0)
+    const pose = defaultPose()
+    let guard = 0
+    while (c.state !== 'strike' && guard++ < 100000) c.update(1 / 60, pose)
+    expect(pose.reach).toBeLessThan(0.3)                     // the frame that began the strike
+    const first = pose.reach
+    c.update(1 / 60, pose)
+    expect(pose.reach).toBeLessThan(0.3)
+    expect(pose.reach).toBeGreaterThan(first)
+    for (let t = 2 / 60; t < 0.15; t += 1 / 60) c.update(1 / 60, pose)
+    expect(pose.reach).toBeGreaterThan(0.99)
+    expect(pose.neckExtend).toBeGreaterThan(0.99)
+  })
   it('strikes: neck extends and reaches down fast, then returns', () => {
     const c = createWade(ctx(3), 0, 0)
     const pose = defaultPose()

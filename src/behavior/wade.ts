@@ -7,6 +7,11 @@ type State = 'still' | 'step' | 'strike'
 
 const SPEED = 0.35
 const TURN = 0.8
+/** a strike eases all the way down over this long, then holds until STRIKE_HOLD before recovering, seconds */
+const STRIKE_DOWN = 0.12
+const STRIKE_HOLD = 0.25
+
+const smoothstep = (w: number) => w * w * (3 - 2 * w)
 
 export function createWade(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
   const zone = polygonOf(ctx)
@@ -15,6 +20,7 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
   let timer = 6 + ctx.rng() * 14
   let [tx, tz] = [x, z]
   let strikeT = 0
+  let from = { neck: 0, reach: 0, lean: 0 }          // the pose a strike starts from
 
   function next(): void {
     if (state === 'still') {
@@ -56,16 +62,21 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
         pose.reach = approach(pose.reach, 0, 3, dt)
         pose.lean.x = approach(pose.lean.x, 0.15, 3, dt)
       } else if (state === 'strike') {
+        if (strikeT === 0) from = { neck: pose.neckExtend, reach: pose.reach, lean: pose.lean.x }
         strikeT += dt
-        // fast extend in the first 0.25 s, then slow recover. Wider than the
-        // nominal 0.15 s strike so a single large-dt update (as in tests that
-        // step by 1/30 up to the transition frame, then by 0.15 s) still lands
-        // inside the extend phase instead of tipping into recovery early.
-        const striking = strikeT <= 0.25
-        pose.neckExtend = approach(pose.neckExtend, striking ? 1 : 0.3, striking ? 40 : 3, dt)
-        pose.reach = approach(pose.reach, striking ? 1 : 0, striking ? 40 : 3, dt)
+        // down in STRIKE_DOWN along a smoothstep, so it builds over a few frames at any frame rate, held until
+        // STRIKE_HOLD (wide enough that a single large-dt update still lands in it), then a slow recovery
+        if (strikeT <= STRIKE_HOLD) {
+          const k = smoothstep(Math.min(1, strikeT / STRIKE_DOWN))
+          pose.neckExtend = from.neck + (1 - from.neck) * k
+          pose.reach = from.reach + (1 - from.reach) * k
+          pose.lean.x = from.lean + (0.5 - from.lean) * k
+        } else {
+          pose.neckExtend = approach(pose.neckExtend, 0.3, 3, dt)
+          pose.reach = approach(pose.reach, 0, 3, dt)
+          pose.lean.x = approach(pose.lean.x, 0, 3, dt)
+        }
         pose.gait = approach(pose.gait, 0, 8, dt)
-        pose.lean.x = approach(pose.lean.x, striking ? 0.5 : 0, striking ? 30 : 3, dt)
       } else {
         pose.neckExtend = approach(pose.neckExtend, 0.3, 1.5, dt)
         pose.reach = approach(pose.reach, 0, 3, dt)
