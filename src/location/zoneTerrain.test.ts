@@ -55,6 +55,17 @@ describe('zone polygons agree with the heightfield', () => {
     })
   }
 
+  it('keeps the shallows ankle-deep, so the yellowlegs stand in water, not on it or under it', () => {
+    const shallows = loc.zones['shallows']
+    expect(shallows?.kind).toBe('polygon')
+    if (shallows?.kind !== 'polygon') return
+    for (const [x, z] of samplePolygon(shallows.points)) {
+      const y = heightfield.sample(x, z)
+      expect(y).toBeGreaterThanOrEqual(-0.15)
+      expect(y).toBeLessThanOrEqual(0.08)
+    }
+  })
+
   it('the reeds zone matches the rendered reed bed bounds', () => {
     const reeds = loc.zones['reeds']
     expect(reeds?.kind).toBe('polygon')

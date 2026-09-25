@@ -12,6 +12,7 @@
     "near-water": { "kind": "polygon", "points": [[-9, -10.5], [12, -10.5], [14, -21], [-11, -21]] },
     "reeds":      { "kind": "polygon", "points": [[-16, -2], [-3, -2], [-3, -14], [-16, -14]] },
     "mudflat":    { "kind": "polygon", "points": [[17, -6], [23, -6], [23, -8.5], [17, -8.5]] },
+    "shallows":   { "kind": "polygon", "points": [[17, -9.5], [24, -9.5], [24, -10.6], [17, -10.6]] },
     "far-shore":  { "kind": "polygon", "points": [[-30, -64], [40, -64], [40, -67], [-30, -67]] },
     "snag":       { "kind": "point",   "position": [22, 0, -48] },
     "reed-perch":   { "kind": "point", "position": [-8, 1.9, -5] },
@@ -33,7 +34,8 @@
     { "species": "marwre",  "behavior": "perch", "zone": "reed-perch-2", "count": 1 },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" },
     { "species": "leasan",  "behavior": "probe",   "zone": "mudflat",   "count": 5 },
-    { "species": "greyel",  "behavior": "wade",    "zone": "far-shore", "count": 1 },
+    { "species": "greyel",  "behavior": "wade",    "zone": "shallows",  "count": 2 },
+    { "species": "lesyel",  "behavior": "wade",    "zone": "shallows",  "count": 1 },
     { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line" }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
