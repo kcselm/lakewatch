@@ -1,9 +1,12 @@
+import * as THREE from 'three'
 import { SPECIES, getSpec, hasSpec } from './index'
 import { createBirdModel } from '../factory'
 import { buildDetailedBird } from '../detail/build'
 import { measure } from '../detail/measure'
 import { createProfile } from '../detail/profile'
 import { worstFold } from '../detail/loft'
+import { DEFAULT_STEP } from '../detail/legs'
+import { defaultPose } from '../model'
 import { loadCatalog } from '../../catalog'
 import { loadLocation } from '../../location'
 
@@ -47,6 +50,23 @@ describe('species specs', () => {
   it('no detailed species creases its body: the spine never turns tighter than the body is deep', () => {
     for (const spec of Object.values(SPECIES)) {
       if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig), spec.code).toBe(0)
+    }
+  })
+  it('every detailed species keeps its stance foot planted at its own step length (too long a step slides the foot)', () => {
+    for (const spec of Object.values(SPECIES)) {
+      if (!spec.detail) continue
+      const m = buildDetailedBird(spec)
+      const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
+      const stride = 2 * (spec.detail.stepLength ?? DEFAULT_STEP) * (m.layout.tibia + m.layout.tarsus)
+      const xs: number[] = []
+      for (const f of [0.52, 0.6, 0.7, 0.8, 0.88, 0.98, 1.08]) {        // the right foot's whole stance
+        const d = f * stride
+        m.group.position.x = d
+        m.pose({ ...defaultPose(), strideDistance: d, gait: 1 })
+        m.group.updateMatrixWorld(true)
+        xs.push(toes.getWorldPosition(new THREE.Vector3()).x)
+      }
+      expect(Math.max(...xs) - Math.min(...xs), spec.code).toBeLessThan(1e-4)
     }
   })
   it('does not take Object prototype names for species codes', () => {
