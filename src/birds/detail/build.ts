@@ -9,7 +9,7 @@ import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
 import { createBones, type Joints } from './rig'
-import { legOffsets, solveLeg, smooth } from './gait'
+import { legOffsets, solveLeg, smooth, STANCE } from './gait'
 import { neckSwing, headPitchToGround, PECK_BILL_ANGLE } from './reach'
 import { materialFor } from '../paint/painter'
 
@@ -129,6 +129,10 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const beta0 = Math.atan2(footR.y - kneeR.y, footR.x - kneeR.x)
   const stepLength = (detail.stepLength ?? DEFAULT_STEP) * (layout.tibia + layout.tarsus)
   const lift = layout.tarsus * 0.25
+  // Every walk starts from the stride phase that has the stance foot straight under the hip and the other foot
+  // mid-swing above it: re-anchored while the bird stands, so easing into a stride never slides a planted foot.
+  const neutral = (STANCE / 2) * 2 * stepLength
+  let anchor = 0
   const headRest = bones.head.position.clone()
   const neckMidRest = bones.neckMid.position.clone()
   const bodyLength = profile.length
@@ -203,7 +207,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.wingL.rotation.x = flap
     bones.wingR.rotation.x = -flap
     // legs
-    const { left, right } = legOffsets(st.strideDistance, st.gait, stepLength, lift)
+    if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
+    const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
     setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, right.x, right.y)
     setLeg(bones.tibiaL, bones.tarsusL, bones.toesL, left.x, left.y)
   }

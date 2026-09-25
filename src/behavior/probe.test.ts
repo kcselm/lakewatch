@@ -1,4 +1,4 @@
-import { createProbe, STYLES, PECK_BOTTOM } from './probe'
+import { createProbe, STYLES, PECK_BOTTOM, TURN } from './probe'
 import { defaultPose, type PoseState } from '../birds/model'
 import { makeRng } from '../catalog/rng'
 import { pointInPolygon } from '../location/zones'
@@ -54,6 +54,16 @@ describe('probe, either style', () => {
         if (s.frames.length < 15) continue
         if (s.frames.every(f => f.moved > 0)) expect(last.gait, s.state).toBeGreaterThan(0.9)
         if (s.frames.every(f => f.moved === 0)) expect(last.gait, s.state).toBeLessThan(0.05)
+      }
+    })
+    it(`${foraging}: turns at no more than TURN radians a second, never snapping round in a frame`, () => {
+      const c = createProbe(ctx(13, { foraging }), 5, 5)
+      let h = c.heading
+      for (let i = 0; i < 90 * 30; i++) {
+        c.update(1 / 30, defaultPose())
+        const d = Math.atan2(Math.sin(c.heading - h), Math.cos(c.heading - h))
+        expect(Math.abs(d)).toBeLessThanOrEqual(TURN / 30 + 1e-9)
+        h = c.heading
       }
     })
     it(`${foraging}: ruffles in a gust only while standing`, () => {
@@ -150,7 +160,8 @@ describe('probe, sandpiper', () => {
     const group = makeGroup()
     const a = createProbe(ctx(10, { foraging: 'sandpiper', group }), 1, 1)
     const b = createProbe(ctx(11, { foraging: 'sandpiper', group }), 19, 9)
-    for (let t = 0; t < 40; t += 1 / 30) { a.update(1 / 30, defaultPose()); b.update(1 / 30, defaultPose()) }
+    const pa = defaultPose(), pb = defaultPose()            // each bird keeps its own pose, as the spawner does
+    for (let t = 0; t < 40; t += 1 / 30) { a.update(1 / 30, pa); b.update(1 / 30, pb) }
     expect(Math.hypot(a.x - group.targetX, a.z - group.targetZ)).toBeLessThan(4)
     expect(Math.hypot(b.x - group.targetX, b.z - group.targetZ)).toBeLessThan(4)
   })

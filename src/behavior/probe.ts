@@ -32,8 +32,11 @@ export const PECK_BOTTOM: Record<Foraging, { lean: number; neckExtend: number; r
   sandpiper: { lean: STYLES.sandpiper.peck.lean, neckExtend: STYLES.sandpiper.peck.neckExtend, reach: 1 },
 }
 
-const TURN = 8                // rad/s
-const GAIT_RATE = 10
+/** the fastest either style turns, rad/s */
+export const TURN = 8
+/** how fast the legs come up to a full stride when the bird sets off, and settle when it stops */
+const GAIT_RISE = 30
+const GAIT_FALL = 10
 
 export function createProbe(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
   return (ctx.foraging ?? 'sandpiper') === 'plover' ? createPlover(ctx, startX, startZ) : createSandpiper(ctx, startX, startZ)
@@ -46,24 +49,31 @@ function createBody(ctx: BehaviorContext, x: number, z: number) {
   const zone = polygonOf(ctx)
   return {
     zone, x, z, heading: ctx.rng() * Math.PI * 2,
-    /** Move toward (tx, tz) at `speed`, inside the zone, walking the legs by exactly the ground covered. Returns the distance left. */
+    /**
+     * Move toward (tx, tz) at `speed`, inside the zone, walking the legs by exactly the ground covered. The pace
+     * builds with the gait, so the body never outruns legs still easing into their stride. Returns the distance left.
+     */
     moveToward(tx: number, tz: number, speed: number, dt: number, pose: PoseState): number {
       this.heading = turnToward(this.heading, Math.atan2(-(tz - this.z), tx - this.x), TURN * dt)
-      const step = Math.min(speed * dt, Math.hypot(tx - this.x, tz - this.z))
+      pose.gait = approach(pose.gait, 1, GAIT_RISE, dt)
+      const step = Math.min(speed * pose.gait * dt, Math.hypot(tx - this.x, tz - this.z))
       const [px, pz] = [this.x, this.z]
       ;[this.x, this.z] = clampToPolygon(this.x + Math.cos(this.heading) * step, this.z - Math.sin(this.heading) * step, zone.points)
       pose.strideDistance += Math.hypot(this.x - px, this.z - pz)
-      pose.gait = approach(pose.gait, 1, GAIT_RATE, dt)
       pose.lean.z = approach(pose.lean.z, 0, 4, dt)
       return Math.hypot(tx - this.x, tz - this.z)
     },
     /** Stand: the legs settle, and a gust ruffles. */
     still(dt: number, pose: PoseState): void {
-      pose.gait = approach(pose.gait, 0, GAIT_RATE, dt)
+      pose.gait = approach(pose.gait, 0, GAIT_FALL, dt)
       pose.lean.z = approach(pose.lean.z, (ctx.wind().effective - 0.3) * 0.05, 2, dt)
     },
-    /** Turn on the spot to face (tx, tz). */
-    face(tx: number, tz: number): void { this.heading = Math.atan2(-(tz - this.z), tx - this.x) },
+    /** Turn on the spot toward (tx, tz), no faster than TURN; true once facing it. */
+    faceToward(tx: number, tz: number, dt: number): boolean {
+      const want = Math.atan2(-(tz - this.z), tx - this.x)
+      this.heading = turnToward(this.heading, want, TURN * dt)
+      return Math.abs(Math.atan2(Math.sin(want - this.heading), Math.cos(want - this.heading))) < 0.05
+    },
     /** A point `d` metres away, toward a random point in the zone. */
     pointAway(d: number): [number, number] {
       const [px, pz] = randomPointInPolygon(zone.points, ctx.rng)
@@ -79,12 +89,14 @@ function createPlover(ctx: BehaviorContext, startX: number, startZ: number): Beh
   let state: 'run' | 'look' | 'peck' = 'look'
   let timer = between(ctx.rng, S.look.seconds)
   let [tx, tz] = [b.x, b.z]
+  let facing = false
 
   function run(): void {
     state = 'run'
+    facing = false                                              // a plover turns while it stands, then dashes straight
     ;[tx, tz] = b.pointAway(between(ctx.rng, S.run.distance))
-    b.face(tx, tz)                                              // a plover turns while it stands, then dashes straight
-    timer = Math.hypot(tx - b.x, tz - b.z) / S.run.speed + 1     // a guard, in case the zone edge stops it short
+    // a guard, in case the zone edge stops it short: time to turn round, run there, and get into its stride
+    timer = Math.PI / TURN + Math.hypot(tx - b.x, tz - b.z) / S.run.speed + 1
   }
   function look(): void { state = 'look'; timer = between(ctx.rng, S.look.seconds) }
 
@@ -98,7 +110,8 @@ function createPlover(ctx: BehaviorContext, startX: number, startZ: number): Beh
         pose.lean.x = approach(pose.lean.x, 0, 8, dt)
         pose.neckExtend = approach(pose.neckExtend, 0.5, 8, dt)
         pose.reach = approach(pose.reach, 0, 12, dt)
-        if (b.moveToward(tx, tz, S.run.speed, dt, pose) < 0.01 || timer <= 0) look()
+        if (!facing) { b.still(dt, pose); facing = b.faceToward(tx, tz, dt); if (timer <= 0) look() }
+        else if (b.moveToward(tx, tz, S.run.speed, dt, pose) < 0.01 || timer <= 0) look()
       } else if (state === 'look') {
         b.still(dt, pose)
         pose.lean.x = approach(pose.lean.x, S.look.lean, 8, dt)

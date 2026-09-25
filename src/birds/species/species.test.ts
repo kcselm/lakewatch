@@ -59,7 +59,8 @@ describe('species specs', () => {
       const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
       const stride = 2 * (spec.detail.stepLength ?? DEFAULT_STEP) * (m.layout.tibia + m.layout.tarsus)
       const xs: number[] = []
-      for (const f of [0.52, 0.6, 0.7, 0.8, 0.88, 0.98, 1.08]) {        // the right foot's whole stance
+      // built standing, the walk starts from the neutral phase: the right foot's whole stance is 0.2 to 0.8 of a stride
+      for (const f of [0.22, 0.3, 0.4, 0.5, 0.58, 0.68, 0.78]) {
         const d = f * stride
         m.group.position.x = d
         m.pose({ ...defaultPose(), strideDistance: d, gait: 1 })

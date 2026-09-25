@@ -7,8 +7,10 @@ import { measure, billTipNow, billAngleNow, type Measures } from '../detail/meas
 import { createProfile } from '../detail/profile'
 import { paintAtlas, regionStats } from '../paint/painter'
 import { REGIONS, pixelST, ATLAS_SIZE } from '../paint/atlas'
-import { PECK_BOTTOM } from '../../behavior/probe'
+import { PECK_BOTTOM, createProbe } from '../../behavior/probe'
+import { makeRng } from '../../catalog/rng'
 import { defaultPose } from '../model'
+import * as THREE from 'three'
 
 // Bounds from docs/research/2026-09-25-killdeer-least-sandpiper.md, section 9 (Ridgway 1919, USGS 2023, AVONET,
 // All About Birds, photo-measured). Millimetres; the head is total head (bill tip to the back of the head along the
@@ -139,6 +141,43 @@ describe('the peck reaches the ground', () => {
       const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
       m.pose(p)
       within((billAngleNow(m) * 180) / Math.PI, -95, -45)
+    })
+  }
+})
+
+describe('the feet stay planted as the probe drives the bird', () => {
+  // The bird fed by its own style for a minute on a mudflat-sized patch, posed every frame as the game does.
+  // Only straight-line frames count: planted feet swinging round the hips as a walker turns is the gait's older,
+  // separate limit.
+  const patch = { kind: 'polygon' as const, points: [[0, 0], [6, 0], [6, 2.5], [0, 2.5]] as [number, number][] }
+  for (const spec of Object.values(SPECIES)) {
+    if (!spec.detail || !spec.foraging) continue
+    it(`${spec.code} (${spec.foraging}): a planted foot slips less than 2% of the ground covered, dash starts included`, () => {
+      const m = buildDetailedBird(spec)
+      const toes = ['toesL', 'toesR'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)
+      const down = m.layout.footY + 0.0005
+      let slip = 0, ran = 0
+      for (const seed of [1, 2, 3]) {
+        const c = createProbe({ zone: patch, rng: makeRng(seed), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0, foraging: spec.foraging }, 3, 1.25)
+        const pose = defaultPose()
+        let prev: THREE.Vector3[] | null = null, px = c.x, pz = c.z, ph = c.heading
+        for (let i = 0; i < 60 * 30; i++) {
+          c.update(1 / 30, pose)
+          m.group.position.set(c.x, 0, c.z)
+          m.group.rotation.y = c.heading
+          m.pose(pose)
+          m.group.updateMatrixWorld(true)
+          const now = toes.map(t => t.getWorldPosition(new THREE.Vector3()))
+          const moved = Math.hypot(c.x - px, c.z - pz), straight = c.heading === ph
+          if (prev && moved > 0 && straight) {
+            ran += moved
+            now.forEach((p, k) => { if (p.y < down && prev![k]!.y < down) slip += Math.hypot(p.x - prev![k]!.x, p.z - prev![k]!.z) })
+          }
+          prev = now; px = c.x; pz = c.z; ph = c.heading
+        }
+      }
+      expect(ran).toBeGreaterThan(5)
+      expect(slip / ran).toBeLessThan(0.02)
     })
   }
 })

@@ -60,7 +60,8 @@ describe('buildDetailedBird', () => {
     const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
     const stride = 2 * 0.45 * (m.layout.tibia + m.layout.tarsus)
     const xs: number[] = []
-    for (const f of [0.55, 0.65, 0.75, 0.85]) {              // the right foot is in stance for these
+    // built standing, the walk starts from the neutral phase, so the right foot is in stance from 0.2 to 0.8 of a stride
+    for (const f of [0.25, 0.35, 0.45, 0.55]) {
       const d = f * stride
       m.group.position.x = d                                 // heading 0 walks along +x
       m.pose({ ...defaultPose(), strideDistance: d, gait: 1 })
@@ -68,6 +69,22 @@ describe('buildDetailedBird', () => {
       xs.push(toes.getWorldPosition(new THREE.Vector3()).x)
     }
     for (const x of xs) expect(x).toBeCloseTo(xs[0]!, 4)
+  })
+  it('steps off from standing without sliding a planted foot, whatever the stride phase it stopped at', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    const at = (n: string) => m.mesh.skeleton.bones.find(b => b.name === n)!.getWorldPosition(new THREE.Vector3())
+    for (const d of [0.013, 0.037, 0.061]) {                 // wherever the last walk left off
+      m.pose({ ...defaultPose(), strideDistance: d, gait: 0 })
+      m.group.updateMatrixWorld(true)
+      const before = [at('toesL'), at('toesR')]
+      m.pose({ ...defaultPose(), strideDistance: d, gait: 0.5 })     // easing into the stride, not yet moved
+      m.group.updateMatrixWorld(true)
+      const after = [at('toesL'), at('toesR')]
+      // one foot stays planted exactly where it stood; the other only lifts
+      const planted = before.map((p, k) => Math.abs(after[k]!.x - p.x))
+      expect(Math.min(...planted), `d ${d}`).toBeLessThan(1e-4)
+      expect(Math.max(...planted), `d ${d}`).toBeLessThan(1e-4)
+    }
   })
   it('keeps the feet down and the ankles bent back while standing', () => {
     const m = buildDetailedBird(TEST_SPEC)
