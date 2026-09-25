@@ -1,5 +1,9 @@
 import { SPECIES, getSpec, hasSpec } from './index'
-import { buildBird } from '../procedural'
+import { createBirdModel } from '../factory'
+import { buildDetailedBird } from '../detail/build'
+import { measure } from '../detail/measure'
+import { createProfile } from '../detail/profile'
+import { worstFold } from '../detail/loft'
 import { loadCatalog } from '../../catalog'
 import { loadLocation } from '../../location'
 
@@ -23,8 +27,26 @@ describe('species specs', () => {
   })
   it('every spec and variant builds without throwing', () => {
     for (const spec of Object.values(SPECIES)) {
-      expect(() => buildBird(spec)).not.toThrow()
-      for (const v of Object.keys(spec.variants)) expect(() => buildBird(spec, v)).not.toThrow()
+      expect(() => createBirdModel(spec)).not.toThrow()
+      for (const v of Object.keys(spec.variants)) expect(() => createBirdModel(spec, v)).not.toThrow()
+    }
+  })
+  it('every detailed species builds to its own measurements', () => {
+    for (const spec of Object.values(SPECIES)) {
+      const d = spec.detail
+      if (!d) continue
+      const r = measure(buildDetailedBird(spec))
+      const m = d.measurements
+      expect(Math.abs(r.length - m.length) / m.length, `${spec.code} length`).toBeLessThan(0.05)
+      for (const k of ['culmen', 'billDepth', 'tarsus', 'wingChord', 'tail'] as const) {
+        expect(Math.abs(r[k] - m[k]) / m[k], `${spec.code} ${k}`).toBeLessThan(0.02)
+      }
+      expect(Math.abs(r.tibia - m.tibia) / m.tibia, `${spec.code} tibia`).toBeLessThan(0.15)
+    }
+  })
+  it('no detailed species creases its body: the spine never turns tighter than the body is deep', () => {
+    for (const spec of Object.values(SPECIES)) {
+      if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig), spec.code).toBe(0)
     }
   })
   it('mallard has male and female variants', () => {
