@@ -1,0 +1,51 @@
+import type { V2 } from './gait'
+
+/** where the bill points at the bottom of a peck or strike: 63 degrees below horizontal */
+export const PECK_BILL_ANGLE = -1.1
+/** the most the neck swings down to reach, radians */
+export const MAX_NECK_SWING = 1.8
+
+/** The neck at the moment of reaching, in group space: two segments from `base`, and what hangs off the end. */
+export interface Neck {
+  base: V2
+  /** neck base to mid-neck, and mid-neck to the head joint: lengths and angles (radians, from +x) */
+  l1: number; a1: number
+  l2: number; a2: number
+  /** head joint to bill tip, and that line's angle when the bill points at PECK_BILL_ANGLE */
+  reach: number; tipAngle: number
+}
+
+/**
+ * How far to swing the neck down (radians) so the bill tip meets the ground (y = 0). The swing turns the first
+ * segment by half of it and the second by all of it, so the neck bends evenly along its length. Returns 0 if the tip
+ * already reaches the ground, and `max` if even the full swing leaves it above.
+ */
+export function neckSwing(n: Neck, max = MAX_NECK_SWING): number {
+  const y = (s: number) => n.base.y + n.l1 * Math.sin(n.a1 - s / 2) + n.l2 * Math.sin(n.a2 - s) + n.reach * Math.sin(n.tipAngle)
+  if (y(0) <= 0) return 0
+  // the first swing that gets there: scan for the sign change, then halve the bracket
+  const steps = 24
+  let lo = 0
+  for (let i = 1; i <= steps; i++) {
+    const hi = (max * i) / steps
+    if (y(hi) <= 0) {
+      let a = lo, b = hi
+      for (let k = 0; k < 30; k++) { const m = (a + b) / 2; if (y(m) > 0) a = m; else b = m }
+      return (a + b) / 2
+    }
+    lo = hi
+  }
+  return max
+}
+
+/**
+ * How far to pitch the head down (radians; negative lifts it) so the bill tip, now at `tip`, swings about the head
+ * joint `head` onto the ground (y = 0): down when it is short, up when a deep lean would push it under. If the
+ * ground is further than the tip can swing, the bill ends pointing straight down.
+ */
+export function headPitchToGround(head: V2, tip: V2): number {
+  const dx = tip.x - head.x, dy = tip.y - head.y
+  const r = Math.hypot(dx, dy)
+  if (r === 0) return 0
+  return Math.atan2(dy, dx) - Math.asin(Math.min(1, Math.max(-1, -head.y / r)))
+}

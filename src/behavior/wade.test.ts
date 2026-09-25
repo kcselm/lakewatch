@@ -49,7 +49,7 @@ describe('wade', () => {
     for (let i = 0; i < 30; i++) c.update(1 / 30, pose)
     expect(pose.gait).toBeLessThan(0.05)
   })
-  it('strikes: neck extends fast then returns', () => {
+  it('strikes: neck extends and reaches down fast, then returns', () => {
     const c = createWade(ctx(3), 0, 0)
     const pose = defaultPose()
     let guard = 0
@@ -57,5 +57,9 @@ describe('wade', () => {
     expect(c.state).toBe('strike')
     c.update(0.15, pose)
     expect(pose.neckExtend).toBeGreaterThan(0.9)
+    expect(pose.reach).toBeGreaterThan(0.9)
+    while (c.state === 'strike' && guard++ < 100000) c.update(1 / 30, pose)
+    for (let i = 0; i < 60; i++) c.update(1 / 30, pose)
+    expect(pose.reach).toBeLessThan(0.05)
   })
 })

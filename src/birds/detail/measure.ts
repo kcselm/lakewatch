@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import type { DetailedBirdModel } from './build'
 
 /** Field measurements of a built bird at rest pose, metres, taken the way the published tables take them. */
@@ -48,4 +49,12 @@ export function measure(model: DetailedBirdModel): Measures {
     tail: a.tailRoot.distanceTo(a.tailTip),
     projection: a.wingTip.clone().sub(a.tailTip).dot(tailAxis),
   }
+}
+
+/** Where the bill tip is now, in group space (the feet stand on y = 0), after the model's last pose(). */
+export function billTipNow(model: DetailedBirdModel): THREE.Vector3 {
+  model.group.updateMatrixWorld(true)
+  const toGroup = model.group.matrixWorld.clone().invert()
+  // the bill bone sits at the bill base and carries no rotation at rest
+  return model.anatomy.billTip.clone().sub(model.anatomy.billBase).applyMatrix4(model.parts.bill.matrixWorld).applyMatrix4(toGroup)
 }

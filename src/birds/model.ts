@@ -17,10 +17,12 @@ export interface PoseState {
   strideDistance: number
   /** 0 standing .. 1 walking */
   gait: number
+  /** 0 .. 1, how far a peck or strike has reached toward the ground; at 1 the bill tip is on it */
+  reach: number
 }
 
 export function defaultPose(): PoseState {
-  return { wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0 }
+  return { wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0 }
 }
 
 export interface BirdParts {

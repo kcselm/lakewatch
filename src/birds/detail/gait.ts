@@ -24,7 +24,8 @@ export function solveLeg(hip: V2, target: V2, a: number, b: number): { joint: V2
   }
 }
 
-const smooth = (w: number) => w * w * (3 - 2 * w)
+/** smoothstep on 0..1 */
+export const smooth = (w: number) => w * w * (3 - 2 * w)
 
 /**
  * One foot's offset from its standing position at `phase` (0..1) of a stride `stride` metres long. During

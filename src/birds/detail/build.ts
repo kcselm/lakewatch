@@ -9,7 +9,8 @@ import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
 import { createBones, type Joints } from './rig'
-import { legOffsets, solveLeg } from './gait'
+import { legOffsets, solveLeg, smooth } from './gait'
+import { neckSwing, headPitchToGround, PECK_BILL_ANGLE } from './reach'
 import { materialFor } from '../paint/painter'
 
 /** Key points of the built bird in group space at rest pose, for measurement and the viewer. */
@@ -131,6 +132,38 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const headRest = bones.head.position.clone()
   const neckMidRest = bones.neckMid.position.clone()
   const bodyLength = profile.length
+  // for the reach: the bill tip from the head joint (the head bone carries no rotation at rest), and that line's
+  // angle off the bill's own
+  const headToTip = at(bill.tip).sub(joints.head)
+  const tipReach = Math.hypot(headToTip.x, headToTip.y)
+  const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(bill.dir.y, bill.dir.x)
+  const toGroup = new THREE.Matrix4()
+  const pN = new THREE.Vector3(), pM = new THREE.Vector3(), pH = new THREE.Vector3(), pT = new THREE.Vector3()
+  const inGroup = (b: THREE.Bone, out: THREE.Vector3) => b.getWorldPosition(out).applyMatrix4(toGroup)
+
+  /**
+   * A peck or strike reaching down (`w` 0..1): the neck swings forward and down, enough for the bill to meet the
+   * ground (y = 0 in group space) when it points PECK_BILL_ANGLE below level, and then the head tips the bill onto
+   * the ground: less far if it already reaches, straight down if even the full swing leaves it short, and back up
+   * if a deep lean would push it under.
+   */
+  function reachDown(w: number) {
+    group.updateMatrixWorld(true)
+    toGroup.copy(group.matrixWorld).invert()
+    inGroup(bones.neck, pN); inGroup(bones.neckMid, pM); inGroup(bones.head, pH)
+    const swing = neckSwing({
+      base: pN,
+      l1: Math.hypot(pM.x - pN.x, pM.y - pN.y), a1: Math.atan2(pM.y - pN.y, pM.x - pN.x),
+      l2: Math.hypot(pH.x - pM.x, pH.y - pM.y), a2: Math.atan2(pH.y - pM.y, pH.x - pM.x),
+      reach: tipReach, tipAngle: PECK_BILL_ANGLE + tipOffAxis,
+    })
+    bones.neck.rotation.z -= (w * swing) / 2
+    bones.neckMid.rotation.z = -(w * swing) / 2
+    group.updateMatrixWorld(true)
+    inGroup(bones.head, pH)
+    pT.copy(headToTip).applyMatrix4(bones.head.matrixWorld).applyMatrix4(toGroup)
+    bones.head.rotation.z -= w * headPitchToGround(pH, pT)
+  }
 
   function setLeg(tibia: THREE.Bone, tarsus: THREE.Bone, toes: THREE.Bone, dx: number, dy: number) {
     const { joint, foot } = solveLeg(hip2, { x: footR.x + dx, y: footR.y + dy }, layout.tibia, layout.tarsus)
@@ -154,6 +187,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.neckMid.position.copy(neckMidRest).multiplyScalar(k)
     bones.head.position.copy(headRest).multiplyScalar(k)
     bones.head.position.x += st.headBob * bodyLength
+    bones.neckMid.rotation.z = 0
+    const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
+    if (reach > 0) reachDown(smooth(reach))
     bones.tail.rotation.z = st.tailTilt
     // wings: folded shell at rest, the spread planform once the wings open
     const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { buildDetailedBird } from './build'
-import { measure } from './measure'
+import { measure, billTipNow } from './measure'
 import { signedVolume } from './mesher'
 import { BONE_NAMES } from './rig'
 import { TEST_SPEC, TEST_DETAIL } from './fixture'
@@ -83,8 +83,8 @@ describe('buildDetailedBird', () => {
     // over-range values must pose the bird exactly as their clamped equivalents do: no stretched neck, no
     // inside-out wings, no over-long stride
     const cases: [Partial<PoseState>, Partial<PoseState>][] = [
-      [{ neckExtend: 3, wingSpread: -1, gait: 4 }, { neckExtend: 1, wingSpread: 0, gait: 1 }],
-      [{ neckExtend: -2, wingSpread: 2.5, gait: -3 }, { neckExtend: 0, wingSpread: 1, gait: 0 }],
+      [{ neckExtend: 3, wingSpread: -1, gait: 4, reach: 5 }, { neckExtend: 1, wingSpread: 0, gait: 1, reach: 1 }],
+      [{ neckExtend: -2, wingSpread: 2.5, gait: -3, reach: -1 }, { neckExtend: 0, wingSpread: 1, gait: 0, reach: 0 }],
     ]
     for (const [wild, tame] of cases) {
       m.pose({ ...defaultPose(), strideDistance: 0.05, wingPhase: 0.2, ...wild })
@@ -94,6 +94,25 @@ describe('buildDetailedBird', () => {
       const want = bones()
       got.forEach((row, i) => row.forEach((v, k) => expect(v, `${m.mesh.skeleton.bones[i]!.name}[${k}]`).toBeCloseTo(want[i]![k]!, 9)))
     }
+  })
+  it('reaches the bill tip to the ground at full reach, whenever the neck is long enough', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    for (const lean of [0.8, 1.0]) {
+      const p = defaultPose(); p.lean.x = lean; p.reach = 1
+      m.pose(p)
+      expect(billTipNow(m).y, `lean ${lean}`).toBeCloseTo(0, 4)
+    }
+  })
+  it('reaches down smoothly: the tip falls as reach rises, and a short neck leaves it above the ground', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    const ys = [0, 0.25, 0.5, 0.75, 1].map(reach => { m.pose({ ...defaultPose(), reach }); return billTipNow(m).y })
+    for (let i = 1; i < ys.length; i++) expect(ys[i]!).toBeLessThan(ys[i - 1]!)
+    expect(ys.at(-1)!).toBeGreaterThan(0)                    // standing upright, a yellowlegs can't reach its feet
+  })
+  it('does nothing at reach 0: the rest pose is the traced bird', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    m.pose(defaultPose())
+    expect(billTipNow(m).distanceTo(m.anatomy.billTip)).toBeLessThan(1e-9)
   })
   it('refuses what it cannot build', () => {
     expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'swimming' }))).toThrow(/standing/)

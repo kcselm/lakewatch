@@ -53,6 +53,7 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
         pose.gait = approach(pose.gait, 1, 8, dt)
         if (Math.hypot(tx - x, tz - z) < 0.3) next()
         pose.neckExtend = approach(pose.neckExtend, 0.55, 2, dt)
+        pose.reach = approach(pose.reach, 0, 3, dt)
         pose.lean.x = approach(pose.lean.x, 0.15, 3, dt)
       } else if (state === 'strike') {
         strikeT += dt
@@ -62,10 +63,12 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
         // inside the extend phase instead of tipping into recovery early.
         const striking = strikeT <= 0.25
         pose.neckExtend = approach(pose.neckExtend, striking ? 1 : 0.3, striking ? 40 : 3, dt)
+        pose.reach = approach(pose.reach, striking ? 1 : 0, striking ? 40 : 3, dt)
         pose.gait = approach(pose.gait, 0, 8, dt)
         pose.lean.x = approach(pose.lean.x, striking ? 0.5 : 0, striking ? 30 : 3, dt)
       } else {
         pose.neckExtend = approach(pose.neckExtend, 0.3, 1.5, dt)
+        pose.reach = approach(pose.reach, 0, 3, dt)
         pose.gait = approach(pose.gait, 0, 8, dt)
         pose.lean.x = approach(pose.lean.x, 0, 2, dt)
         // a gust ruffles: tiny roll
