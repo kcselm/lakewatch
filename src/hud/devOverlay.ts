@@ -1,3 +1,5 @@
+import { paintStats } from '../birds/paint/painter'
+
 export interface DevStats { fps: number; birds: number; gust: number; mode: string; audio: string; calls: number }
 
 export function createDevOverlay(root: HTMLElement, onToggle?: (visible: boolean) => void) {
@@ -17,7 +19,12 @@ export function createDevOverlay(root: HTMLElement, onToggle?: (visible: boolean
     update(dt: number, stats: Omit<DevStats, 'fps'>) {
       acc += dt; frames++
       if (acc >= 0.5) { fps = frames / acc; acc = 0; frames = 0 }
-      if (visible) el.textContent = `fps ${fps.toFixed(0)}\nbirds ${stats.birds}\ngust ${stats.gust.toFixed(2)}\nmode ${stats.mode}\naudio ${stats.audio}\ncalls ${stats.calls}`
+      if (visible) {
+        const paint = paintStats.atlases
+          ? `\natlases ${paintStats.atlases}: ${(paintStats.ms / paintStats.atlases).toFixed(0)} ms each, ${(paintStats.bytes / 1048576).toFixed(1)} MB`
+          : ''
+        el.textContent = `fps ${fps.toFixed(0)}\nbirds ${stats.birds}\ngust ${stats.gust.toFixed(2)}\nmode ${stats.mode}\naudio ${stats.audio}\ncalls ${stats.calls}${paint}`
+      }
     },
   }
 }

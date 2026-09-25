@@ -5,7 +5,7 @@ import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
 import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
 import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
-import { buildBird } from './procedural'
+import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
 import { buildFlockModel, type FlockModel } from './flock'
 import { getSpec, hasSpec } from './species'
@@ -97,7 +97,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const point = zone.kind === 'point'
     const perch: Vec3 | undefined = point ? (deps.perches?.[ind.zone] ?? zone.position) : undefined
     const model = hasSpec(ind.species)
-      ? buildBird(getSpec(ind.species), ind.variant)
+      ? createBirdModel(getSpec(ind.species), ind.variant)
       : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
     if (!groups.has(ind.groupKey)) groups.set(ind.groupKey, { targetX: 0, targetZ: 0, retargetAt: 0 })
     const ctx: BehaviorContext = {
