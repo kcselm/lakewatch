@@ -37,6 +37,12 @@ describe('headPitchToGround', () => {
   it('points the bill straight down when the ground is out of reach', () => {
     expect(headPitchToGround({ x: 0, y: 0.1 }, { x: 0.04, y: 0.1 })).toBeCloseTo(Math.PI / 2, 9)
   })
+  it('never turns the tip line below its floor, so the bill stops at straight down however far the ground is', () => {
+    // unfloored, a head this high would pitch the tip line a full pi/2 down; the floor holds it at -1.2
+    expect(headPitchToGround({ x: 0, y: 0.1 }, { x: 0.04, y: 0.1 }, -1.2)).toBeCloseTo(1.2, 9)
+    // a floor below the aim changes nothing
+    expect(headPitchToGround({ x: 0, y: 0.03 }, { x: 0.04, y: 0.03 }, -1.5)).toBeCloseTo(headPitchToGround({ x: 0, y: 0.03 }, { x: 0.04, y: 0.03 }), 12)
+  })
   it('lifts the bill back onto the ground when a deep lean would push it under', () => {
     const head = { x: 0, y: 0.01 }, tip = { x: 0.02, y: -0.01 }
     const p = headPitchToGround(head, tip)

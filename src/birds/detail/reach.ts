@@ -40,12 +40,14 @@ export function neckSwing(n: Neck, max = MAX_NECK_SWING): number {
 
 /**
  * How far to pitch the head down (radians; negative lifts it) so the bill tip, now at `tip`, swings about the head
- * joint `head` onto the ground (y = 0): down when it is short, up when a deep lean would push it under. If the
- * ground is further than the tip can swing, the bill ends pointing straight down.
+ * joint `head` onto the ground (y = 0): down when it is short, up when a deep lean would push it under. The
+ * head-to-tip line never turns below `floor` (radians from +x): the caller sets it where the bill itself points
+ * straight down, so when the ground is further than the tip can reach, the bill stops at vertical, short of it.
  */
-export function headPitchToGround(head: V2, tip: V2): number {
+export function headPitchToGround(head: V2, tip: V2, floor = -Infinity): number {
   const dx = tip.x - head.x, dy = tip.y - head.y
   const r = Math.hypot(dx, dy)
   if (r === 0) return 0
-  return Math.atan2(dy, dx) - Math.asin(Math.min(1, Math.max(-1, -head.y / r)))
+  const angle = Math.atan2(dy, dx)
+  return angle - Math.max(floor, Math.asin(Math.min(1, Math.max(-1, -head.y / r))))
 }

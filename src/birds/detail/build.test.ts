@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { buildDetailedBird } from './build'
-import { measure, billTipNow } from './measure'
+import { measure, billTipNow, billAngleNow } from './measure'
 import { signedVolume } from './mesher'
 import { BONE_NAMES } from './rig'
 import { TEST_SPEC, TEST_DETAIL } from './fixture'
@@ -108,6 +108,16 @@ describe('buildDetailedBird', () => {
     const ys = [0, 0.25, 0.5, 0.75, 1].map(reach => { m.pose({ ...defaultPose(), reach }); return billTipNow(m).y })
     for (let i = 1; i < ys.length; i++) expect(ys[i]!).toBeLessThan(ys[i - 1]!)
     expect(ys.at(-1)!).toBeGreaterThan(0)                    // standing upright, a yellowlegs can't reach its feet
+  })
+  it('never turns the bill past straight down, however far the neck reaches (the wade strike leans 0.5)', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    for (const lean of [0, 0.3, 0.5, 0.8, 1.0]) {
+      for (const reach of [0.5, 0.8, 1]) {
+        const p = defaultPose(); p.lean.x = lean; p.reach = reach
+        m.pose(p)
+        expect(billAngleNow(m), `lean ${lean} reach ${reach}`).toBeGreaterThanOrEqual(-Math.PI / 2 - 1e-6)
+      }
+    }
   })
   it('does nothing at reach 0: the rest pose is the traced bird', () => {
     const m = buildDetailedBird(TEST_SPEC)

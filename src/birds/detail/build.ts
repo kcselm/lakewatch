@@ -143,9 +143,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
 
   /**
    * A peck or strike reaching down (`w` 0..1): the neck swings forward and down, enough for the bill to meet the
-   * ground (y = 0 in group space) when it points PECK_BILL_ANGLE below level, and then the head tips the bill onto
-   * the ground: less far if it already reaches, straight down if even the full swing leaves it short, and back up
-   * if a deep lean would push it under.
+   * ground (y = 0 in group space) when it points PECK_BILL_ANGLE below level (or as far as MAX_NECK_SWING allows),
+   * and then the head tips the bill onto the ground: less far if it already reaches, back up if a deep lean would
+   * push it under, and never past straight down, where it stops short if the ground is out of reach.
    */
   function reachDown(w: number) {
     group.updateMatrixWorld(true)
@@ -162,7 +162,10 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     group.updateMatrixWorld(true)
     inGroup(bones.head, pH)
     pT.copy(headToTip).applyMatrix4(bones.head.matrixWorld).applyMatrix4(toGroup)
-    bones.head.rotation.z -= w * headPitchToGround(pH, pT)
+    // the bill never past straight down, even part-way through a reach, when the swing alone can tip it over
+    const floor = -Math.PI / 2 + tipOffAxis
+    const tipLine = Math.atan2(pT.y - pH.y, pT.x - pH.x)
+    bones.head.rotation.z -= Math.min(w * headPitchToGround(pH, pT, floor), tipLine - floor)
   }
 
   function setLeg(tibia: THREE.Bone, tarsus: THREE.Bone, toes: THREE.Bone, dx: number, dy: number) {

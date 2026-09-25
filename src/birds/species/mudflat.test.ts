@@ -3,7 +3,7 @@ import { SPECIES } from './index'
 import { SPEC as KILLDEER } from './killde'
 import { SPEC as LEAST } from './leasan'
 import { buildDetailedBird } from '../detail/build'
-import { measure, billTipNow, type Measures } from '../detail/measure'
+import { measure, billTipNow, billAngleNow, type Measures } from '../detail/measure'
 import { createProfile } from '../detail/profile'
 import { paintAtlas, regionStats } from '../paint/painter'
 import { REGIONS, pixelST, ATLAS_SIZE } from '../paint/atlas'
@@ -132,6 +132,13 @@ describe('the peck reaches the ground', () => {
       const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
       m.pose(p)
       within(billTipNow(m).y * 1000, bounds[style][0], bounds[style][1])
+    })
+    it(`${spec.code} (${style}): at the bottom of its peck, the bill points steeply down, never back past vertical`, () => {
+      const m = buildDetailedBird(spec)
+      const bottom = PECK_BOTTOM[style]
+      const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
+      m.pose(p)
+      within((billAngleNow(m) * 180) / Math.PI, -95, -45)
     })
   }
 })

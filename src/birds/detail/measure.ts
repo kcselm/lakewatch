@@ -58,3 +58,10 @@ export function billTipNow(model: DetailedBirdModel): THREE.Vector3 {
   // the bill bone sits at the bill base and carries no rotation at rest
   return model.anatomy.billTip.clone().sub(model.anatomy.billBase).applyMatrix4(model.parts.bill.matrixWorld).applyMatrix4(toGroup)
 }
+
+/** Where the bill points now, radians from level in the side view (negative is down), after the model's last pose(). */
+export function billAngleNow(model: DetailedBirdModel): number {
+  const tip = billTipNow(model)
+  const base = model.parts.bill.getWorldPosition(new THREE.Vector3()).applyMatrix4(model.group.matrixWorld.clone().invert())
+  return Math.atan2(tip.y - base.y, tip.x - base.x)
+}
