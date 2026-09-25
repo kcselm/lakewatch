@@ -75,6 +75,31 @@ describe('probe, either style', () => {
       for (const f of frames.filter(f => f.moved > 0)) expect(f.leanZ).toBeLessThan(0.035)
     })
   }
+  it('eases the bill into and out of every peck: at 60 fps its first frame barely lifts reach off zero', () => {
+    for (const foraging of ['plover', 'sandpiper'] as const) {
+      const c = createProbe(ctx(14, { foraging }), 5, 5)
+      const pose = defaultPose()
+      let prev = 0, starts = 0
+      const dab: number[] = []
+      for (let i = 0; i < 120 * 60; i++) {
+        const state = c.state
+        c.update(1 / 60, pose)
+        if (foraging === 'plover') {
+          // a dab is its own state: its first and last frames stay close to the rest pose
+          if (state === 'peck') {
+            if (!dab.length) { starts++; expect(pose.reach, `plover frame ${i}`).toBeLessThan(0.1) }
+            dab.push(pose.reach)
+          } else if (dab.length) { expect(dab.at(-1)!, `plover frame ${i}`).toBeLessThan(0.1); dab.length = 0 }
+        } else if (prev === 0 && pose.reach > 0) {
+          // a sandpiper's bill rests at exactly 0 between pecks
+          starts++
+          expect(pose.reach, `sandpiper frame ${i}`).toBeLessThan(0.1)
+        }
+        prev = pose.reach
+      }
+      expect(starts, foraging).toBeGreaterThan(10)
+    }
+  })
   it('feeds as a sandpiper when the species has no style', () => {
     const states = new Set(record(createProbe(ctx(4), 5, 5), 60).map(f => f.state))
     expect([...states].every(s => ['walk', 'peck', 'run'].includes(s))).toBe(true)

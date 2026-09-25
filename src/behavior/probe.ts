@@ -123,8 +123,9 @@ function createPlover(ctx: BehaviorContext, startX: number, startZ: number): Beh
         }
       } else {
         b.still(dt, pose)
-        // one tilt down and back: the bottom, halfway through, is PECK_BOTTOM
-        const down = Math.sin(Math.PI * Math.min(1, Math.max(0, 1 - timer / S.peck.seconds)))
+        // one tilt down and back, easing out of rest and into it again (sin^2, which starts and ends at zero speed);
+        // the bottom, halfway through, is PECK_BOTTOM
+        const down = Math.sin(Math.PI * Math.min(1, Math.max(0, 1 - timer / S.peck.seconds))) ** 2
         pose.lean.x = S.look.lean + (S.peck.lean - S.look.lean) * down
         pose.neckExtend = S.look.neckExtend + (S.peck.neckExtend - S.look.neckExtend) * down
         pose.reach = down
@@ -170,10 +171,14 @@ function createSandpiper(ctx: BehaviorContext, startX: number, startZ: number): 
     timer = Math.round(between(ctx.rng, S.probe.count)) / S.probe.perSecond
     phase = 0
   }
-  /** the bill going down and up, `perSecond` times a second, down for half of each */
+  /**
+   * the bill going down and up, `perSecond` times a second: down and back in the first half of each cycle (sin^2,
+   * easing out of rest and into it again), resting for the second half
+   */
   function pecking(perSecond: number, dt: number, pose: PoseState): void {
     phase += perSecond * dt
-    pose.reach = Math.max(0, Math.sin(2 * Math.PI * phase))
+    const f = phase - Math.floor(phase)
+    pose.reach = f < 0.5 ? Math.sin(2 * Math.PI * f) ** 2 : 0
     pose.lean.x = approach(pose.lean.x, S.peck.lean, 6, dt)
     pose.neckExtend = approach(pose.neckExtend, S.peck.neckExtend, 6, dt)
   }
