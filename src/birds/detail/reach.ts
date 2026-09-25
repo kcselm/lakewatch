@@ -1,7 +1,5 @@
 import type { V2 } from './gait'
 
-/** where the bill points at the bottom of a peck or strike: 63 degrees below horizontal */
-export const PECK_BILL_ANGLE = -1.1
 /** the most the neck swings down to reach, radians */
 export const MAX_NECK_SWING = 1.8
 
@@ -11,12 +9,13 @@ export interface Neck {
   /** neck base to mid-neck, and mid-neck to the head joint: lengths and angles (radians, from +x) */
   l1: number; a1: number
   l2: number; a2: number
-  /** head joint to bill tip, and that line's angle when the bill points at PECK_BILL_ANGLE */
+  /** head joint to bill tip, and that line's angle with the head tipped as far as it goes (the bill straight down) */
   reach: number; tipAngle: number
 }
 
 /**
- * How far to swing the neck down (radians) so the bill tip meets the ground (y = 0). The swing turns the first
+ * How far to swing the neck down (radians) so the bill tip, with the head tipped as far as `tipAngle`, meets the
+ * ground (y = 0): the neck makes up only what the head can't. The swing turns the first
  * segment by half of it and the second by all of it, so the neck bends evenly along its length. Returns 0 if the tip
  * already reaches the ground, and `max` if even the full swing leaves it above.
  */

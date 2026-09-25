@@ -9,6 +9,9 @@ import { DEFAULT_STEP } from '../detail/legs'
 import { defaultPose } from '../model'
 import { loadCatalog } from '../../catalog'
 import { loadLocation } from '../../location'
+import { BEHAVIORS } from '../../behavior'
+import { speciesTraits } from '../spawn'
+import { makeRng } from '../../catalog/rng'
 
 describe('species specs', () => {
   it('has a spec for every species the lake casts', () => {
@@ -83,4 +86,35 @@ describe('species specs', () => {
     const h = getSpec('grbher3')
     expect(h.legs.length + h.neck.length).toBeGreaterThan(h.body.length)
   })
+})
+
+describe('detailed birds move smoothly under their cast behavior', () => {
+  // Each detailed species in the lake's cast, fed by its own behavior for a minute at 60 fps on a flat patch and
+  // posed every frame as the game does. The fastest intended motions (a plover's dab, a wader's strike) turn a bone
+  // about 0.5-0.6 rad in a frame; a snap (a phase reset, a one-frame strike) turns it 1 rad or more.
+  const patch = { kind: 'polygon' as const, points: [[0, 0], [6, 0], [6, 2.5], [0, 2.5]] as [number, number][] }
+  const seen = new Set<string>()
+  for (const entry of loadLocation().cast) {
+    const spec = getSpec(entry.species)
+    if (!spec.detail || seen.has(spec.code) || !(entry.behavior in BEHAVIORS)) continue
+    seen.add(spec.code)
+    it(`${spec.code} (${entry.behavior}): no bone turns more than 0.7 rad in a frame`, () => {
+      const m = buildDetailedBird(spec)
+      const bones = ['body', 'neck', 'neckMid', 'head'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)
+      const c = BEHAVIORS[entry.behavior as keyof typeof BEHAVIORS]({
+        zone: patch, rng: makeRng(3), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0,
+        group: { targetX: 3, targetZ: 1.25, retargetAt: 0 }, ...speciesTraits(spec.code),
+      }, 3, 1.25)
+      const pose = defaultPose()
+      let prev: number[] | null = null, worst = 0
+      for (let i = 0; i < 60 * 60; i++) {
+        c.update(1 / 60, pose)
+        m.pose(pose)
+        const now = bones.map(b => b.rotation.z)
+        if (prev) worst = Math.max(worst, ...now.map((v, k) => Math.abs(v - prev![k]!)))
+        prev = now
+      }
+      expect(worst).toBeLessThan(0.7)
+    })
+  }
 })

@@ -145,6 +145,23 @@ describe('the peck reaches the ground', () => {
   }
 })
 
+describe('a peck moves no more of the bird than it needs', () => {
+  // The head tips first; the neck swings only for what a bill pointing straight down still can't reach. So at the
+  // bottom of a peck, either the neck hasn't swung, or the head has tipped all the way and the bill points down.
+  for (const spec of Object.values(SPECIES)) {
+    if (!spec.detail || !spec.foraging) continue
+    const style = spec.foraging
+    it(`${spec.code} (${style}): the neck swings only once the head has tipped the bill straight down`, () => {
+      const m = buildDetailedBird(spec)
+      const bottom = PECK_BOTTOM[style]
+      const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
+      m.pose(p)
+      const swing = -2 * m.mesh.skeleton.bones.find(b => b.name === 'neckMid')!.rotation.z   // mid-neck takes half the swing
+      if (swing > 1e-3) within((billAngleNow(m) * 180) / Math.PI, -95, -85)
+    })
+  }
+})
+
 describe('the feet stay planted as the probe drives the bird', () => {
   // The bird fed by its own style for a minute on a mudflat-sized patch, posed every frame as the game does.
   // Only straight-line frames count: planted feet swinging round the hips as a walker turns is the gait's older,

@@ -10,7 +10,7 @@ import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
 import { createBones, type Joints } from './rig'
 import { legOffsets, solveLeg, smooth, STANCE } from './gait'
-import { neckSwing, headPitchToGround, PECK_BILL_ANGLE } from './reach'
+import { neckSwing, headPitchToGround } from './reach'
 import { materialFor } from '../paint/painter'
 
 /** Key points of the built bird in group space at rest pose, for measurement and the viewer. */
@@ -141,15 +141,18 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const headToTip = at(bill.tip).sub(joints.head)
   const tipReach = Math.hypot(headToTip.x, headToTip.y)
   const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(bill.dir.y, bill.dir.x)
+  // where the head-to-tip line points when the bill itself points straight down
+  const floor = -Math.PI / 2 + tipOffAxis
   const toGroup = new THREE.Matrix4()
   const pN = new THREE.Vector3(), pM = new THREE.Vector3(), pH = new THREE.Vector3(), pT = new THREE.Vector3()
   const inGroup = (b: THREE.Bone, out: THREE.Vector3) => b.getWorldPosition(out).applyMatrix4(toGroup)
 
   /**
-   * A peck or strike reaching down (`w` 0..1): the neck swings forward and down, enough for the bill to meet the
-   * ground (y = 0 in group space) when it points PECK_BILL_ANGLE below level (or as far as MAX_NECK_SWING allows),
-   * and then the head tips the bill onto the ground: less far if it already reaches, back up if a deep lean would
-   * push it under, and never past straight down, where it stops short if the ground is out of reach.
+   * A peck or strike reaching down (`w` 0..1), moving no more of the bird than it needs: the head tips the bill down,
+   * and only if a bill pointing straight down still can't reach the ground (y = 0 in group space) does the neck swing
+   * forward and down, just far enough for it to (or as far as MAX_NECK_SWING allows). Then the head tips the bill onto
+   * the ground: back up if a deep lean would push it under, and never past straight down, where it stops short if
+   * the ground is out of reach.
    */
   function reachDown(w: number) {
     group.updateMatrixWorld(true)
@@ -159,7 +162,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
       base: pN,
       l1: Math.hypot(pM.x - pN.x, pM.y - pN.y), a1: Math.atan2(pM.y - pN.y, pM.x - pN.x),
       l2: Math.hypot(pH.x - pM.x, pH.y - pM.y), a2: Math.atan2(pH.y - pM.y, pH.x - pM.x),
-      reach: tipReach, tipAngle: PECK_BILL_ANGLE + tipOffAxis,
+      reach: tipReach, tipAngle: floor,
     })
     bones.neck.rotation.z -= (w * swing) / 2
     bones.neckMid.rotation.z = -(w * swing) / 2
@@ -167,7 +170,6 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     inGroup(bones.head, pH)
     pT.copy(headToTip).applyMatrix4(bones.head.matrixWorld).applyMatrix4(toGroup)
     // the bill never past straight down, even part-way through a reach, when the swing alone can tip it over
-    const floor = -Math.PI / 2 + tipOffAxis
     const tipLine = Math.atan2(pT.y - pH.y, pT.x - pH.x)
     bones.head.rotation.z -= Math.min(w * headPitchToGround(pH, pT, floor), tipLine - floor)
   }
