@@ -35,7 +35,7 @@ screenshot tests.
 | Platform | Browser, Vite + TypeScript, deployed to Cloudflare Pages |
 | 3D | Three.js, imperative render loop |
 | 2D overlay | Preact for the field guide and life list; plain DOM for the HUD |
-| Bird models | Procedural geometry in code first; GLTF from Blender behind the same interface later |
+| Bird models | Procedural geometry in code: block specs first, then a detailed builder (traced profile, measurements, painted field marks) species by species; GLTF behind the same interface remains possible |
 | Media | Reuse the birdsong-quiz harvest pipeline (eBird, xeno-canto, iNaturalist), CC non-commercial with attribution |
 | Movement | Fixed vantage point, look only |
 | Identification | Field guide picker limited to the location's species |
@@ -137,11 +137,12 @@ is a subset of what the guide offers, which keeps the picker honest.
 
 ### Art direction: stylized realism
 
-Accurate proportions, silhouettes, and plumage blocks, simplified forms, no
-photo textures. Colors are hand-picked palettes applied per part. Physically
-based lighting with a warm-cool grade, soft shadows, light fog for depth.
-The test for every asset: a birder recognizes the species from shape and
-color blocks alone.
+Accurate proportions, silhouettes, and field marks, simplified forms, no
+photo textures. Birds are field-guide plates: structure traced and measured,
+field marks painted from data. Physically based lighting with a warm-cool
+grade, soft shadows, light fog for depth. The test for every asset: a
+birder recognizes the species from shape and field marks; for birds, the
+bar is telling a Greater Yellowlegs from a Lesser.
 
 ### Composition
 
@@ -198,16 +199,22 @@ interface PoseState {
   neckExtend: number;     // 0 tucked .. 1 stretched
   tailTilt: number;
   lean: THREE.Vector3;    // body lean, for wind and turning
+  strideDistance: number; // metres walked; the model maps it to a stride
+  gait: number;           // 0 standing .. 1 walking
 }
 ```
 
-Two implementations:
+Three implementations:
 
 - **Procedural**: `buildBird(spec: SpeciesSpec, variant?)`. A spec gives
   body size and shape, neck length, bill length and shape, leg length, tail
   length, and plumage as colored regions (crown, cheek, throat, breast,
   flank, back, wing, speculum, rump, bill, legs, eye). Dimorphic species
   list plumage variants. One file per species in `src/birds/species/`.
+- **Detailed**: `buildDetailedBird(spec, variant?)` for species with a
+  `detail` block: one skinned mesh lofted from a traced side profile, built
+  to published measurements, with jointed legs and a painted atlas of field
+  marks. See `2026-09-24-detailed-birds-design.md`.
 - **GLTF**: loads a Blender export whose node names follow the part
   convention. The species file points at the file; nothing else changes.
 

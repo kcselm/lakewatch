@@ -25,7 +25,11 @@ E identify, G guide, L life list, O settings, C credits, backtick dev overlay.
 `data/locations/lake.json` is the scene: zones, cast, wind, ambience.
 `data/birds.json` is the catalog (species, media, attribution), built by the
 harvest scripts. `data/ambience.json` is the ambience manifest.
-`src/birds/species/*.ts` are the procedural bird models.
+`src/birds/species/*.ts` are the bird models: block specs for most species,
+and for converted ones a `detail` block (traced profile, measurements,
+field-mark layers) that the detailed builder turns into a skinned, painted
+bird. `npm run dev`, then `/viewer.html`, opens the model viewer: any two
+species at true scale, through the game's optics, over a reference photo.
 
 ### Harvest
 
