@@ -100,6 +100,19 @@ describe('probe, either style', () => {
       expect(starts, foraging).toBeGreaterThan(10)
     }
   })
+  it('moves the bill continuously: at 60 fps reach never changes by more than a smooth peck does in a frame', () => {
+    // the fastest smooth peck is 3 a second along sin^2, at most 6 pi / 60 = 0.31 a frame
+    for (const foraging of ['plover', 'sandpiper'] as const) {
+      const c = createProbe(ctx(15, { foraging }), 5, 5)
+      const pose = defaultPose()
+      let prev = pose.reach
+      for (let i = 0; i < 120 * 60; i++) {
+        c.update(1 / 60, pose)
+        expect(Math.abs(pose.reach - prev), `${foraging} frame ${i} (${c.state})`).toBeLessThan(0.35)
+        prev = pose.reach
+      }
+    }
+  })
   it('feeds as a sandpiper when the species has no style', () => {
     const states = new Set(record(createProbe(ctx(4), 5, 5), 60).map(f => f.state))
     expect([...states].every(s => ['walk', 'peck', 'run'].includes(s))).toBe(true)

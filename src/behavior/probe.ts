@@ -158,6 +158,8 @@ function createSandpiper(ctx: BehaviorContext, startX: number, startZ: number): 
   function move(): void {
     const [nx, nz] = nearFlock()
     const far = Math.hypot(group.targetX - b.x, group.targetZ - b.z) > S.run.whenFarther
+    // a run carries the bill level; back to walking, the next peck starts from rest rather than mid-way
+    if (state === 'run' && !far) phase = Math.ceil(phase)
     state = far ? 'run' : 'walk'
     if (far) [tx, tz] = [nx, nz]
     else {
@@ -166,10 +168,10 @@ function createSandpiper(ctx: BehaviorContext, startX: number, startZ: number): 
     }
     timer = Math.hypot(tx - b.x, tz - b.z) / (far ? S.run.speed : S.walk.speed) + 1
   }
+  /** a few quick probes on the spot; the peck phase carries on, so a peck under way doesn't snap */
   function probe(): void {
     state = 'peck'
     timer = Math.round(between(ctx.rng, S.probe.count)) / S.probe.perSecond
-    phase = 0
   }
   /**
    * the bill going down and up, `perSecond` times a second: down and back in the first half of each cycle (sin^2,
