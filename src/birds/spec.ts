@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { detailSchema } from './detail/spec'
 
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb')
 
@@ -29,6 +30,12 @@ export const speciesSpecSchema = z.object({
   variants: z.record(z.string(), plumageSchema.partial()),
   marks: z.object({ size: z.string(), bill: z.string(), head: z.string(), body: z.string(), legs: z.string() }),
   wingbeatHz: z.number().positive(),
+  /** present when the species uses the detailed builder */
+  detail: detailSchema.optional(),
+}).superRefine((s, ctx) => {
+  for (const k of Object.keys(s.detail?.variants ?? {})) {
+    if (!(k in s.variants)) ctx.addIssue({ code: 'custom', message: `detail variant ${k} is not one of the species' variants`, path: ['detail', 'variants', k] })
+  }
 })
 
 export type Plumage = z.infer<typeof plumageSchema>
