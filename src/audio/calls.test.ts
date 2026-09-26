@@ -41,6 +41,17 @@ describe('createCallScheduler', () => {
     expect(out.find(r => r.id === 2)?.prefer).toBe('any')
   })
 
+  it('the dowitcher and Pectoral prefer calls, so autumn never plays their breeding songs', () => {
+    expect(CALL_SCHEDULES['lobdow']?.prefer).toBe('call')
+    expect(CALL_SCHEDULES['pecsan']?.prefer).toBe('call')
+    const s = createCallScheduler(makeRng(5))
+    const birds = [bird(1, 'lobdow', 5), bird(2, 'pecsan', 6)]
+    s.tick(0, birds, 0)
+    const out = s.tick(1e6, birds, 0)
+    expect(out.find(r => r.id === 1)?.prefer).toBe('call')
+    expect(out.find(r => r.id === 2)?.prefer).toBe('call')
+  })
+
   it('is deterministic per seed', () => {
     const run = (seed: number) => {
       const s = createCallScheduler(makeRng(seed))

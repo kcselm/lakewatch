@@ -26,6 +26,8 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
   leasan:  { every: [20, 60], prefer: 'call' },
   greyel:  { every: [30, 90], prefer: 'call' },
   amwpel:  { every: [200, 600], prefer: 'call' },
+  lobdow:  { every: [20, 60], prefer: 'call' },
+  pecsan:  { every: [30, 90], prefer: 'call' },
 }
 
 export const MAX_SIMULTANEOUS_CALLS = 3
