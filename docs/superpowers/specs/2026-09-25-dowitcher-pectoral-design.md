@@ -2,6 +2,7 @@
 
 Date: 2026-09-25
 Status: approved; amended during planning (see "Amended during planning")
+and after the final review (motion rules, ripples, and known soft spots)
 Builds on: `2026-09-25-mudflat-birds-design.md` (foraging styles, peck reach) and
 `2026-09-24-detailed-birds-design.md` (the detailed builder, painter, and viewer)
 Amends: `2026-09-22-lakewatch-design.md` (the probe behavior, the terrain, ripples, the cast)
@@ -265,9 +266,20 @@ Motion rules:
 - `look` and `follow` ease the bill out of the stitch band and back into it.
 - Every move turns on the spot first and then goes straight, so in a convex
   zone the bird never needs the zone clamp.
+- With its bill in the mud (`creep`) the bird turns at no more than 2 rad/s,
+  and aims within 60° of the way it faces, only as far as the zone reaches
+  along that line. A spot further round is left to `follow`, which lifts the
+  head and turns at the full 8 rad/s. (Added after the final review: a
+  creeping bird had pivoted at 8 rad/s, a mean of 57° and up to 180°, with
+  its bill down.)
 - The flock target drifts at most 1.2 m every 45 s. The flock radius is 1 m,
   and a bird follows (head up, 0.12 m/s) once more than 1.5 m from the
   target.
+- The drift holds only inside the zone. A target outside it goes straight to
+  a point in the zone at the first retarget. (Added after the final review:
+  the spawner seeds every group at the vantage, and the drift took about 14
+  minutes to walk the target out to the bench, the six birds piled within
+  centimetres at its near edge the whole time.)
 - `PECK_BOTTOM.dowitcher` is the pose at the bottom of a stitch stroke.
 
 ### Ripples
@@ -282,6 +294,8 @@ Rings on the water gain a `size` (default 1):
 - The dowitcher's rings are `size` 0.4: about 0.4 m across, gone in a
   second.
 - Swimming and hovering birds keep full-size rings.
+- When the buffer is full, a new ring replaces the one nearest the end of its
+  own life (the largest `age / (RIPPLE_LIFE * size)`), not the oldest.
 
 ### Water hides what's under it
 
@@ -424,8 +438,16 @@ Peck reach:
   - the bird stays in the zone, and in a strip 0.3 m wide no frame moves it
     further than its pace (the clamp never fires)
   - the gust ruffle works when still
-- **Rings:** a small ring lives its share of a full ring's life, and a ring
-  packs its size for the shader.
+  - while creeping it turns no faster than 2 rad/s and stays within 60° of
+    the heading the creep started from
+  - a flock target seeded at the vantage is inside the zone after the first
+    retarget, and six birds from such a group keep a mean nearest-neighbour
+    distance above 0.2 m
+- **Rings:** a small ring lives its share of a full ring's life, a ring packs
+  its size for the shader, a full buffer drops the ring nearest the end of its
+  own life, and `spawnCast` hands a ring's size on to the buffer.
+- **The stitch against the research:** at `PECK_BOTTOM.dowitcher` the built
+  dowitcher's bill tip is 22–45 mm below the ground.
 - The existing continuity test (`reach` never changes by more than 0.35 in a
   frame) loops over all three styles.
 - **Schema:** `dowitcher` is accepted, and an unknown style is still
@@ -483,6 +505,41 @@ Peck reach:
   so a gait fault may hide there. The viewer's depth slider at 0 is where
   it gets checked.
 
+Found while building and in the final review, and accepted for this round:
+
+- **A notch under the dowitcher's chin**, 6.5–8.3 mm deep against the
+  photo's throat, 24–34 mm above the ground.
+  - Cause: the loft's sections are perpendicular to the spine. Where the
+    spine turns sharply, as it does with the head resting on the breast, the
+    underside can't reach forward without creasing.
+  - The best trace without a crease (the occiput's `down` at 24) leaves it at
+    that depth.
+  - The swimmer round (`2026-09-26-swimmers-design.md`, on `master`) adds a
+    per-station section tilt and retraces the chin with it.
+- **The tail hangs low.** The dowitcher's tail tip sits about 9 mm below the
+  photo's, the tail running about 23.5° down.
+  - The Greater Yellowlegs and the Pectoral show the same, so it is the
+    builder's behaviour, not any one trace.
+  - The swimmer round finds out why the builder's tail hangs low, and sets
+    each swimmer's `tail.angle` from its trace.
+- **The Pectoral's eye and forehead.**
+  - The eyeball's centre is about 1.3 mm from the photo's pupil (1.0 mm back
+    and 0.8 mm up; about 2.2 mm as rendered), against the plan's 1 mm.
+  - The forehead is 1.3–2.9 mm full at the bill base.
+  - Cause: both come from the plan's trace (the `eye` station, `eye.t`
+    0.36), which was kept. The extra 0.3 mm is within hand-overlay error,
+    and at 22 m 1.3 mm is 1–2 pixels at full zoom. The user's telescope check
+    decides whether the eye needs retracing.
+- **The ring buffer is too small for the whole cast.** With every swimmer on
+  the water, its 32 rings are full in 92–97% of frames.
+  - A full buffer now drops the ring nearest the end of its own life. The
+    dowitchers' small rings go first, at about 70% of theirs.
+  - The ducks' wakes still overflow the buffer on their own. Measured over
+    5 minutes of the lake's cast, a duck's ring is dropped at about 1.7 s of
+    its 2.5 s, against 1.6 s when the oldest went first.
+  - The cure is a bigger buffer (the water shader's uniform array) or fewer
+    wake rings per swimmer.
+
 ## Build order (as planned)
 
 The research document came first and is committed with the plan. The plan's
@@ -509,4 +566,8 @@ tasks:
 - Yellowlegs feeding styles and the alarm bob, on the same `foraging` field.
 - A run gait.
 - Birds keeping their distance from each other.
+- Section tilt in the loft, so the underside can follow a head resting on the
+  breast and the dowitcher's chin can be retraced without a notch.
+- The tail's angle: why the builder's tail hangs low, and a tail angle set
+  from each species' trace.
 - The remaining species by family.
