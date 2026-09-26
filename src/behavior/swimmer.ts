@@ -13,9 +13,10 @@ export interface SwimSettings {
   turn: number
   /**
    * its flock: the birds keep within `radius` of a target that drifts at most `drift` metres every `retargetSeconds`,
-   * and one farther than `whenFarther` from it swims back
+   * and one farther than `whenFarther` from it swims back; flockmates start at least `apart` metres apart (unset,
+   * their spacing)
    */
-  flock: FlockSettings & { drift: number; whenFarther: number }
+  flock: FlockSettings & { drift: number; whenFarther: number; apart?: number }
   /** metres kept from a flockmate, and from any other swimmer */
   spacing: { flock: number; other: number }
   /** a ring on the water every `every` seconds while swimming faster than `above` m/s: the wake, as `swim` always made */
@@ -26,7 +27,7 @@ export interface SwimSettings {
  * How a swimmer keeps company, for placing it at the start: its flock's radius (Infinity: anywhere in the zone), how
  * long the flock stays on its first patch, and the spacings it keeps.
  */
-export interface Company { radius: number; retargetSeconds: number; spacing: SwimSettings['spacing'] }
+export interface Company { radius: number; retargetSeconds: number; spacing: SwimSettings['spacing']; apart?: number }
 
 /** how fast a swimmer gathers way or slows, m/s² */
 export const ACCEL = 1
@@ -195,7 +196,7 @@ export function startSpot(zone: PolygonZone, rng: Rng, group: FlockGroup, compan
       if (!pointInPolygon(sx, sz, zone.points)) continue
     }
     spot = [sx, sz]
-    const keep = (n: Neighbour) => (n.group === group ? company.spacing.flock : Math.max(company.spacing.other, n.spacing ?? 0))
+    const keep = (n: Neighbour) => (n.group === group ? (company.apart ?? company.spacing.flock) : Math.max(company.spacing.other, n.spacing ?? 0))
     if (placed.every(n => Math.hypot(n.x - sx, n.z - sz) >= keep(n) + MARGIN)) return spot
   }
   return spot
