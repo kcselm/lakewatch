@@ -1,4 +1,4 @@
-import { lakeHeightfield, terrainColor, valueNoise2 } from './heightfield'
+import { lakeHeightfield, terrainColor, valueNoise2, BENCH } from './heightfield'
 
 describe('lakeHeightfield', () => {
   const hf = lakeHeightfield(1)
@@ -10,6 +10,15 @@ describe('lakeHeightfield', () => {
     const y = hf.sample(20, -8)
     expect(y).toBeGreaterThan(0)
     expect(y).toBeLessThan(0.4)
+  })
+  it('lays a flat bench under a few centimetres of water just past the shallows, where the dowitchers feed', () => {
+    for (let x = BENCH.x[0]; x <= BENCH.x[1]; x += 0.5) {
+      for (let z = BENCH.z[0]; z <= BENCH.z[1]; z += 0.25) expect(hf.sample(x, z), `(${x}, ${z})`).toBeCloseTo(-BENCH.depth, 9)
+    }
+    // it eases back into the lake bed within a metre: the shallows' own grid row and the deep water beyond are untouched
+    const bare = (x: number, z: number) => hf.sample(x, z) !== -BENCH.depth
+    expect(bare(22, BENCH.z[1] + 2)).toBe(true)
+    expect(bare(22, BENCH.z[0] - 2)).toBe(true)
   })
   it('rises on the far shore', () => {
     expect(hf.sample(0, -66)).toBeGreaterThan(0.5)
