@@ -309,7 +309,39 @@ describe('probe, dowitcher', () => {
     }
     expect(moves).toBeGreaterThan(10)
   })
-  it('keeps with the flock, closer than a sandpiper: members converge on the shared target', () => {
+  // the lake's bench zone, about 22 m from the vantage at the origin, where the spawner seeds every flock's target
+  const bench = { kind: 'polygon' as const, points: [[18.5, -11.8], [25.5, -11.8], [25.5, -13.9], [18.5, -13.9]] as [number, number][] }
+  it('moves a flock target that starts outside the zone straight into it: the drift limit holds only inside', () => {
+    for (let seed = 1; seed <= 8; seed++) {
+      const group = { targetX: 0, targetZ: 0, retargetAt: 0 }
+      const c = createProbe(ctx(seed, { foraging: 'dowitcher', zone: bench, group }), 22, -12.85)
+      const pose = defaultPose()
+      for (let i = 0; i < 30 * 30 && group.retargetAt === 0; i++) c.update(1 / 30, pose)
+      expect(group.retargetAt, `seed ${seed}`).toBeGreaterThan(0)
+      expect(pointInPolygon(group.targetX, group.targetZ, bench.points), `seed ${seed}`).toBe(true)
+    }
+  })
+  it('spreads over its patch: six birds whose target starts at the vantage keep a mean nearest neighbour over 0.2 m', () => {
+    // Seeded at the origin and held to its drift, the target took some 14 minutes to reach the bench, every bird
+    // followed it, and the zone clamp piled them all within centimetres at the bench's near edge.
+    let sum = 0, n = 0
+    for (let seed = 1; seed <= 4; seed++) {
+      const rng = makeRng(seed), group = { targetX: 0, targetZ: 0, retargetAt: 0 }
+      const birds = Array.from({ length: 6 }, () => {
+        const [sx, sz] = [18.5 + rng() * 7, -13.9 + rng() * 2.1]
+        return { c: createProbe(ctx(Math.floor(rng() * 1e9), { foraging: 'dowitcher', zone: bench, group }), sx, sz), pose: defaultPose() }
+      })
+      for (let i = 0; i < 240 * 30; i++) {
+        for (const b of birds) b.c.update(1 / 30, b.pose)
+        if (i < 60 * 30 || i % 30) continue                  // minutes 1 to 4, once a second
+        for (const a of birds) {
+          sum += Math.min(...birds.filter(b => b !== a).map(b => Math.hypot(a.c.x - b.c.x, a.c.z - b.c.z))); n++
+        }
+      }
+    }
+    expect(sum / n).toBeGreaterThan(0.2)
+  })
+  it('keeps with the flock: members come to within the follow distance and flock radius of the shared target', () => {
     const group = { targetX: 10, targetZ: 5, retargetAt: 1e9 }
     const a = createProbe(ctx(19, { foraging: 'dowitcher', group }), 1, 1)
     const b = createProbe(ctx(20, { foraging: 'dowitcher', group }), 19, 9)

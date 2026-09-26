@@ -1,6 +1,6 @@
 import type { BehaviorContext, BehaviorController } from './types'
 import { turnToward, approach, polygonOf } from './types'
-import { randomPointInPolygon, clampToPolygon } from '../location/zones'
+import { randomPointInPolygon, clampToPolygon, pointInPolygon } from '../location/zones'
 import type { PolygonZone } from '../location/schema'
 import type { PoseState } from '../birds/model'
 import type { Foraging } from '../birds/spec'
@@ -73,7 +73,8 @@ const ease = (t: number) => t * t * (3 - 2 * t)
 
 /**
  * A flock's shared target, which moves on now and then (anywhere in the zone, or, with `drift`, at most that many
- * metres), and spots near it for one bird.
+ * metres), and spots near it for one bird. A target outside the zone (the spawner seeds every group at the vantage)
+ * goes straight to a point in it: the drift is how a flock moves on within its patch, not how it finds the patch.
  */
 function createFlock(ctx: BehaviorContext, zone: PolygonZone, x: number, z: number, settings: { radius: number; retargetSeconds: number; drift?: number }) {
   const group = ctx.group ?? { targetX: x, targetZ: z, retargetAt: Infinity }
@@ -84,8 +85,12 @@ function createFlock(ctx: BehaviorContext, zone: PolygonZone, x: number, z: numb
       if (clock >= group.retargetAt) {
         const [px, pz] = randomPointInPolygon(zone.points, ctx.rng)
         const d = Math.hypot(px - group.targetX, pz - group.targetZ)
-        const k = settings.drift === undefined || d <= settings.drift ? 1 : settings.drift / d
-        ;[group.targetX, group.targetZ] = [group.targetX + (px - group.targetX) * k, group.targetZ + (pz - group.targetZ) * k]
+        if (settings.drift === undefined || d <= settings.drift || !pointInPolygon(group.targetX, group.targetZ, zone.points)) {
+          ;[group.targetX, group.targetZ] = [px, pz]
+        } else {
+          const k = settings.drift / d
+          ;[group.targetX, group.targetZ] = [group.targetX + (px - group.targetX) * k, group.targetZ + (pz - group.targetZ) * k]
+        }
         group.retargetAt = clock + settings.retargetSeconds
       }
       const a = ctx.rng() * Math.PI * 2, r = ctx.rng() * settings.radius
