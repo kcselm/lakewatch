@@ -37,6 +37,8 @@
     { "species": "leasan",  "behavior": "probe",   "zone": "mudflat",   "count": 5 },
     { "species": "greyel",  "behavior": "wade",    "zone": "shallows",  "count": 2 },
     { "species": "lesyel",  "behavior": "wade",    "zone": "shallows",  "count": 1 },
+    { "species": "lobdow",  "behavior": "probe",   "zone": "bench",     "count": 6 },
+    { "species": "pecsan",  "behavior": "probe",   "zone": "mudflat",   "count": 2 },
     { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line" }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
