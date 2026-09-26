@@ -3,12 +3,13 @@ import { SPEC as DOWITCHER } from './lobdow'
 import { SPEC as PECTORAL } from './pecsan'
 import { SPEC as LEAST } from './leasan'
 import { buildDetailedBird } from '../detail/build'
-import { measure, type Measures } from '../detail/measure'
+import { measure, billTipNow, type Measures } from '../detail/measure'
 import { createProfile } from '../detail/profile'
 import { paintAtlas, regionStats } from '../paint/painter'
 import { REGIONS, pixelST, ATLAS_SIZE } from '../paint/atlas'
 import type { Part } from '../detail/spec'
-import { STYLES } from '../../behavior/probe'
+import { STYLES, PECK_BOTTOM } from '../../behavior/probe'
+import { defaultPose } from '../model'
 
 // Bounds from docs/research/2026-09-25-long-billed-dowitcher-pectoral-sandpiper.md, section 10 (Ridgway 1919, USGS,
 // AVONET, photo-measured). Millimetres; the head is total head (bill tip to the back of the head along the bill axis)
@@ -61,6 +62,13 @@ describe('Long-billed Dowitcher and Pectoral Sandpiper: structure', () => {
     expect(Math.abs(shallow - D.joint)).toBeLessThanOrEqual(10)
     expect(deep).toBeGreaterThanOrEqual(D.belly)
     expect(deep).toBeLessThanOrEqual(D.wingLow - 5)
+  })
+  it("the dowitcher's bill goes 22-45 mm into the mud at the bottom of a stitch (sections 9 and 11: a third to all of it)", () => {
+    const m = buildDetailedBird(dowitcher)
+    const bottom = PECK_BOTTOM.dowitcher
+    const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
+    m.pose(p)
+    within(-billTipNow(m).y * 1000, 22, 45)
   })
 })
 
