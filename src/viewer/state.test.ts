@@ -2,8 +2,8 @@ import { parseState, stateHash, type ViewerState } from './state'
 
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: 'lesyel', bv: '', view: 'side', field: '',
-  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, walk: false, speed: 0.35,
-  water: 0, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0,
+  walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 
 describe('viewer state', () => {
@@ -37,6 +37,24 @@ describe('viewer state', () => {
     expect(s.b).toBe('mallar3')
     expect(s.bv).toBe('')
     expect(parseState('#b=mallar3&bv=female', DEFAULTS, catalog).bv).toBe('female')
+  })
+  it('round-trips the swimming controls: float, see-through, a tip-up, a head-dip, paddling, sinking', () => {
+    const s: ViewerState = {
+      ...DEFAULTS, a: 'mallar3', av: 'female', b: 'gadwal', bv: 'female', field: 'bino15', float: true, see: true,
+      lean: 1.5, tail: 0.4, reach: 1, depth: 0.12, angle: 0.45, paddle: 1, sink: 0.045, bob: -0.06,
+    }
+    expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
+  })
+  it('clamps the swimming controls to their ranges: a tip-up to 1.6 rad, the bill no steeper than straight down', () => {
+    const s = parseState('#lean=3&angle=2&depth=-1&sink=1&paddle=2&bob=0.5&tail=-2', DEFAULTS)
+    expect([s.lean, s.angle, s.depth, s.sink, s.paddle, s.bob, s.tail]).toEqual([1.6, Math.PI / 2, 0, 0.15, 1, 0.2, -0.5])
+  })
+  it('reads a hand-kept link from before the swimmers exactly as it read then, the new controls at rest', () => {
+    const old = '#a=greyel&av=&b=lesyel&bv=&view=three&field=scope22&neck=0.8&lean=0.8&spread=0&phase=0&reach=1&speed=0.35&water=0.045&walk=0&wire=1&skel=0&uv=0&atlas=0&stations=1'
+    expect(parseState(old, DEFAULTS)).toEqual({
+      ...DEFAULTS, view: 'three', field: 'scope22', neck: 0.8, lean: 0.8, reach: 1, water: 0.045, wire: true, stations: true,
+    })
+    expect(parseState('#water=1', DEFAULTS).float).toBe(false)
   })
   it('reads an empty hash as the defaults', () => {
     expect(parseState('', DEFAULTS)).toEqual(DEFAULTS)

@@ -17,9 +17,11 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
-  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, walk: false, speed: 0.35,
-  water: 0, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0,
+  walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
+/** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
+const STROKES = 2.4
 let state = parseState(location.hash, DEFAULTS, { has: hasSpec, variants: c => Object.keys(getSpec(c).variants) })
 const save = () => history.replaceState(null, '', stateHash(state))
 // a pasted or bookmarked link: start over from its state (replaceState above never fires this)
@@ -41,8 +43,8 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI
 ground.receiveShadow = true
 const grid = new THREE.GridHelper(4, 80, '#6f685a', '#7c7566')
 grid.position.y = 0.0005
-const water = new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI / 2),
-  new THREE.MeshStandardMaterial({ color: '#6f8a93', roughness: 0.15, transparent: true, opacity: 0.55 }))
+const waterMaterial = new THREE.MeshStandardMaterial({ color: '#6f8a93', roughness: 0.15, transparent: true, opacity: 0.55 })
+const water = new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI / 2), waterMaterial)
 scene.add(ground, grid, water)
 
 const camera = new THREE.PerspectiveCamera(20, 1, 0.01, 500)
@@ -107,8 +109,16 @@ function build(): void {
 }
 
 function applyLook(): void {
-  water.visible = state.water > 0
-  water.position.y = state.water
+  // Float mode is the lake as the game draws it: opaque water at y = 0, where a swimmer's waterline sits, and no ground
+  // near enough to see. See-through lets the hull show under it. Otherwise, a wader's shallow water over the ground.
+  water.visible = state.float || state.water > 0
+  water.position.y = state.float ? 0 : state.water
+  waterMaterial.opacity = state.float && !state.see ? 1 : state.float ? 0.35 : 0.55
+  waterMaterial.transparent = waterMaterial.opacity < 1
+  waterMaterial.color.set(state.float ? '#4d6a73' : '#6f8a93')
+  waterMaterial.needsUpdate = true
+  ground.position.y = state.float ? -1 : 0
+  grid.visible = !state.float && ground.visible
   spine.visible = state.stations
   for (const s of slots) {
     if (s.skeleton) s.skeleton.visible = state.skel
@@ -167,7 +177,8 @@ function applyPhoto(): void {
   ref.style.opacity = String(photo.opacity)
   ref.style.transform = `translate(${photo.x}px, ${photo.y}px) scale(${photo.scale})`
   scene.background = on ? null : BACKGROUND
-  ground.visible = grid.visible = !on
+  ground.visible = !on
+  grid.visible = !on && !state.float
 }
 
 // --- panel ---------------------------------------------------------------------------------------
@@ -230,12 +241,20 @@ select(cam, 'view', VIEWS.map(v => [v, v] as [string, string]), state.view, v =>
 select(cam, 'field view', [['', 'off (orbit)'], ...Object.entries(FIELD_VIEWS).map(([k, f]) => [k, f.label] as [string, string])], state.field,
   v => set({ field: v as ViewerState['field'] }))
 slider(cam, 'water depth, cm', state.water * 100, v => set({ water: v / 100 }), 0, 10, 0.5)
+check(cam, 'float (the lake)', state.float, v => set({ float: v }))
+check(cam, 'see-through water', state.see, v => set({ see: v }))
 const pose = group('Pose')
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
-slider(pose, 'lean', state.lean, v => set({ lean: v }))
+slider(pose, 'lean (tip-up 1.5)', state.lean, v => set({ lean: v }), 0, 1.6, 0.01)
+slider(pose, 'tail up', state.tail, v => set({ tail: v }), -0.5, 1, 0.01)
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
 slider(pose, 'reach', state.reach, v => set({ reach: v }))
+slider(pose, 'reach depth, cm', state.depth * 100, v => set({ depth: v / 100 }), 0, 30, 0.5)
+slider(pose, 'bill angle, deg', THREE.MathUtils.radToDeg(state.angle), v => set({ angle: THREE.MathUtils.degToRad(v) }), 0, 90, 1)
+slider(pose, 'paddle', state.paddle, v => set({ paddle: v }))
+slider(pose, 'sink, cm', state.sink * 100, v => set({ sink: v / 100 }), 0, 15, 0.5)
+slider(pose, 'head bob', state.bob, v => set({ bob: v }), -0.2, 0.2, 0.005)
 check(pose, 'walk', state.walk, v => set({ walk: v }))
 slider(pose, 'walk speed, m/s', state.speed, v => set({ speed: v }), 0.05, 2, 0.05)
 const aids = group('Authoring')
@@ -265,7 +284,7 @@ group('Measurements, mm').appendChild(readout)
 // --- loop ----------------------------------------------------------------------------------------
 const labels = document.getElementById('labels')!
 const WALK_LOOP = 1.2            // metres before the walk starts over
-let stride = 0
+let stride = 0, paddlePhase = 0
 let last = performance.now()
 const tmp = new THREE.Vector3()
 
@@ -274,10 +293,16 @@ function frame(): void {
   const dt = Math.min((now - last) / 1000, 0.1)
   last = now
   if (state.walk) stride += state.speed * dt
-  const p = { ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach, strideDistance: stride, gait: state.walk ? 1 : 0 }
+  if (state.paddle > 0) paddlePhase = (paddlePhase + STROKES * dt) % 1
+  const p = {
+    ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
+    reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
+    strideDistance: stride, gait: state.walk ? 1 : 0,
+  }
   p.lean.x = state.lean
   for (const s of slots) {
     s.model.group.position.copy(s.base)
+    s.model.group.position.y -= state.sink
     if (state.walk) s.model.group.position.x += stride % WALK_LOOP
     s.model.pose(p)
   }
@@ -300,7 +325,10 @@ function frame(): void {
     if (!('anatomy' in s.model)) return `${name}: block model`
     const m = measure(s.model as DetailedBirdModel)
     const f = (v: number) => (v * 1000).toFixed(1)
-    return `${name}\n  length ${f(m.length)}  culmen ${f(m.culmen)}  head ${f(m.head)}\n  culmen/head ${(m.culmen / m.head).toFixed(2)}  culmen/tarsus ${(m.culmen / m.tarsus).toFixed(2)}\n  bill depth ${f(m.billDepth)}  tip rise ${f(m.billTipRise)}\n  tarsus ${f(m.tarsus)}  bare tibia ${f(m.tibia)}\n  wing ${f(m.wingChord)}  tail ${f(m.tail)}  projection ${f(m.projection)}`
+    const floating = m.waterlineLength > 0
+      ? `\n  above water: back ${f(m.backAbove)}  crown ${f(m.crownAbove)}  tail tip ${f(m.tailTipAbove)}\n  wingtip ${f(m.wingTipAbove)}  breast ${f(m.breastFrontAbove)}  draft ${f(m.draft)}  waterline ${f(m.waterlineLength)}`
+      : ''
+    return `${name}\n  length ${f(m.length)}  culmen ${f(m.culmen)}  head ${f(m.head)}\n  culmen/head ${(m.culmen / m.head).toFixed(2)}  culmen/tarsus ${(m.culmen / m.tarsus).toFixed(2)}\n  bill depth ${f(m.billDepth)}  tip rise ${f(m.billTipRise)}  widest ${m.billWidestAt.toFixed(2)} x${m.billWidestRatio.toFixed(2)}\n  tarsus ${f(m.tarsus)}  bare tibia ${f(m.tibia)}\n  wing ${f(m.wingChord)}  tail ${f(m.tail)}  projection ${f(m.projection)}${floating}`
   }).join('\n')
   requestAnimationFrame(frame)
 }
