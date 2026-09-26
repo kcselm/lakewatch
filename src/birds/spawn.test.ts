@@ -5,6 +5,7 @@ import { Wind } from '../world/wind'
 import { RippleBuffer } from '../world/ripples'
 import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
+import { MALLARD } from '../behavior/dabbler'
 
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
@@ -63,11 +64,11 @@ describe('expandCast', () => {
 })
 
 describe('speciesTraits', () => {
-  it("hands a behavior the species' wingbeat and foraging style", () => {
-    expect(speciesTraits('killde')).toEqual({ wingbeatHz: 7, foraging: 'plover' })
-    expect(speciesTraits('leasan')).toEqual({ wingbeatHz: 9, foraging: 'sandpiper' })
+  it("hands a behavior the species' code, wingbeat, and foraging style", () => {
+    expect(speciesTraits('killde')).toEqual({ species: 'killde', wingbeatHz: 7, foraging: 'plover' })
+    expect(speciesTraits('leasan')).toEqual({ species: 'leasan', wingbeatHz: 9, foraging: 'sandpiper' })
     expect(speciesTraits('greyel').foraging).toBeUndefined()
-    expect(speciesTraits('nosuchbird')).toEqual({ wingbeatHz: 5 })
+    expect(speciesTraits('nosuchbird')).toEqual({ species: 'nosuchbird', wingbeatHz: 5 })
   })
 })
 
@@ -160,6 +161,42 @@ describe('spawnCast flocks', () => {
     expect(calls.filter(c => c === 'flockEnd')).toHaveLength(1)
     expect(calls[calls.length - 1]).toBe('flockEnd')
     expect(key).toBe('cast0')
+  })
+})
+
+describe('spawnCast swimmers', () => {
+  const pond = (cast: Location['cast'], w = 20, d = 12): Location => ({ ...loc(cast), zones: { w: { kind: 'polygon', points: [[0, 0], [w, 0], [w, d], [0, d]] } } })
+  const deps = (seed: number) => ({ registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed })
+  /** the closest any two birds come, less the spacing they keep: a flock's own between flockmates, else the other */
+  function shortestGap(birds: readonly { species: string; position: { x: number; z: number } }[]): number {
+    let gap = Infinity
+    for (let a = 0; a < birds.length; a++) {
+      for (let c = a + 1; c < birds.length; c++) {
+        const A = birds[a]!, C = birds[c]!
+        const keep = A.species === C.species ? MALLARD.spacing.flock : MALLARD.spacing.other
+        gap = Math.min(gap, Math.hypot(A.position.x - C.position.x, A.position.z - C.position.z) - keep)
+      }
+    }
+    return gap
+  }
+  it('starts each swimming flock formed round a point in its zone, every bird clear of the others', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const d = deps(seed)
+      const world = spawnCast(pond([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 4 }, { species: 'y00475', behavior: 'swim', zone: 'w', count: 6 }]), d)
+      world.update(1e-6, d.wind)
+      for (const code of ['mallar3', 'y00475']) {
+        const flock = d.registry.bySpecies(code).map(b => b.position)
+        for (const a of flock) for (const b of flock) expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThanOrEqual(2 * MALLARD.flock.radius + 1e-9)
+      }
+      expect(shortestGap(d.registry.all())).toBeGreaterThanOrEqual(0)
+    }
+  })
+  it("lets every swimmer see the others in its zone: crowded into a small pond, none comes inside another's spacing", () => {
+    const d = deps(4)
+    const world = spawnCast(pond([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 4 }, { species: 'y00475', behavior: 'swim', zone: 'w', count: 6 }], 6, 4), d)
+    let gap = Infinity
+    for (let i = 0; i < 60 * 30; i++) { world.update(1 / 30, d.wind); gap = Math.min(gap, shortestGap(d.registry.all())) }
+    expect(gap).toBeGreaterThan(-0.01)
   })
 })
 

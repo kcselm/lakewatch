@@ -1,9 +1,9 @@
 import type { BehaviorContext, BehaviorController } from './types'
-import { turnToward, approach, polygonOf } from './types'
+import { turnToward, approach, polygonOf, between, ease } from './types'
+import { createFlock } from './flock'
 import { randomPointInPolygon, clampToPolygon, pointInPolygon } from '../location/zones'
-import type { PolygonZone } from '../location/schema'
 import type { PoseState } from '../birds/model'
-import type { Foraging } from '../birds/spec'
+import type { ProbeStyle } from '../birds/spec'
 
 /**
  * How each foraging style moves, from docs/research/2026-09-25-killdeer-least-sandpiper.md, section 10, and for the
@@ -51,7 +51,7 @@ export const STYLES = {
 }
 
 /** The pose at the bottom of each style's peck, for checking that the bill reaches the ground. */
-export const PECK_BOTTOM: Record<Foraging, { lean: number; neckExtend: number; reach: number }> = {
+export const PECK_BOTTOM: Record<ProbeStyle, { lean: number; neckExtend: number; reach: number }> = {
   plover: { lean: STYLES.plover.peck.lean, neckExtend: STYLES.plover.peck.neckExtend, reach: 1 },
   sandpiper: { lean: STYLES.sandpiper.peck.lean, neckExtend: STYLES.sandpiper.peck.neckExtend, reach: 1 },
   dowitcher: { lean: STYLES.dowitcher.stitch.lean, neckExtend: STYLES.dowitcher.stitch.neckExtend, reach: 1 },
@@ -63,45 +63,12 @@ export const TURN = 8
 const GAIT_RISE = 30
 const GAIT_FALL = 10
 
+/** Feed in the species' probing style; no style, or a swimming one (validateCast rejects that), feeds as a sandpiper. */
 export function createProbe(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
-  switch (ctx.foraging ?? 'sandpiper') {
+  switch (ctx.foraging) {
     case 'plover': return createPlover(ctx, startX, startZ)
     case 'dowitcher': return createDowitcher(ctx, startX, startZ)
     default: return createSandpiper(ctx, startX, startZ)
-  }
-}
-
-const between = (rng: () => number, [lo, hi]: [number, number]) => lo + rng() * (hi - lo)
-/** smoothstep: 0 to 1, starting and ending at zero speed */
-const ease = (t: number) => t * t * (3 - 2 * t)
-
-/**
- * A flock's shared target, which moves on now and then (anywhere in the zone, or, with `drift`, at most that many
- * metres), and spots near it for one bird. A target outside the zone (the spawner seeds every group at the vantage)
- * goes straight to a point in it: the drift is how a flock moves on within its patch, not how it finds the patch.
- */
-function createFlock(ctx: BehaviorContext, zone: PolygonZone, x: number, z: number, settings: { radius: number; retargetSeconds: number; drift?: number }) {
-  const group = ctx.group ?? { targetX: x, targetZ: z, retargetAt: Infinity }
-  return {
-    group,
-    /** a spot within `radius` of the shared target, moving the target on first if it is due */
-    near(clock: number): [number, number] {
-      if (clock >= group.retargetAt) {
-        const [px, pz] = randomPointInPolygon(zone.points, ctx.rng)
-        const d = Math.hypot(px - group.targetX, pz - group.targetZ)
-        if (settings.drift === undefined || d <= settings.drift || !pointInPolygon(group.targetX, group.targetZ, zone.points)) {
-          ;[group.targetX, group.targetZ] = [px, pz]
-        } else {
-          const k = settings.drift / d
-          ;[group.targetX, group.targetZ] = [group.targetX + (px - group.targetX) * k, group.targetZ + (pz - group.targetZ) * k]
-        }
-        group.retargetAt = clock + settings.retargetSeconds
-      }
-      const a = ctx.rng() * Math.PI * 2, r = ctx.rng() * settings.radius
-      return clampToPolygon(group.targetX + Math.cos(a) * r, group.targetZ + Math.sin(a) * r, zone.points)
-    },
-    /** how far (px, pz) is from the shared target */
-    distance(px: number, pz: number): number { return Math.hypot(group.targetX - px, group.targetZ - pz) },
   }
 }
 

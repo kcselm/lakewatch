@@ -1,7 +1,7 @@
 import type { Location } from './schema'
 import type { Bird } from '../catalog/types'
 import { isConvexPolygon } from './zones'
-import type { SpeciesSpec } from '../birds/spec'
+import { isProbeStyle, isSwimStyle, type SpeciesSpec } from '../birds/spec'
 import { SPECIES } from '../birds/species'
 
 /** What validateCast reads from each species' spec: its plumage versions, and how it feeds. */
@@ -29,6 +29,9 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
     }
     const spec = Object.hasOwn(specs, entry.species) ? specs[entry.species] : undefined
     if (typeof entry.plumage === 'object') errors.push(...checkCounts(entry, i, spec))
+    const style = spec?.foraging
+    if (entry.behavior === 'swim' && isProbeStyle(style)) errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a probing style, so it cannot swim`)
+    if (entry.behavior === 'probe' && isSwimStyle(style)) errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a swimming style, so it cannot probe`)
     const zone = loc.zones[entry.zone]
     if (!zone) {
       errors.push(`cast[${i}]: zone ${entry.zone} does not exist`)

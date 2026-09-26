@@ -1,4 +1,4 @@
-import { parseSpeciesSpec, type SpeciesSpec } from '../spec'
+import { parseSpeciesSpec, isProbeStyle, type SpeciesSpec } from '../spec'
 import { SPECIES } from './index'
 import { SPEC as KILLDEER } from './killde'
 import { SPEC as LEAST } from './leasan'
@@ -131,7 +131,7 @@ describe('the peck reaches the ground', () => {
     return [-8, 2]
   }
   for (const spec of Object.values(SPECIES)) {
-    if (!spec.detail || !spec.foraging) continue
+    if (!spec.detail || !isProbeStyle(spec.foraging)) continue
     const style = spec.foraging
     it(`${spec.code} (${style}): at the bottom of its peck, the bill tip is on the ground`, () => {
       const m = buildDetailedBird(spec)
@@ -154,7 +154,7 @@ describe('a peck moves no more of the bird than it needs', () => {
   // The head tips first; the neck swings only for what a bill pointing straight down still can't reach. So at the
   // bottom of a peck, either the neck hasn't swung, or the head has tipped all the way and the bill points down.
   for (const spec of Object.values(SPECIES)) {
-    if (!spec.detail || !spec.foraging) continue
+    if (!spec.detail || !isProbeStyle(spec.foraging)) continue
     const style = spec.foraging
     it(`${spec.code} (${style}): the neck swings only once the head has tipped the bill straight down`, () => {
       const m = buildDetailedBird(spec)
@@ -173,7 +173,7 @@ describe('the feet stay planted as the probe drives the bird', () => {
   // separate limit.
   const patch = { kind: 'polygon' as const, points: [[0, 0], [6, 0], [6, 2.5], [0, 2.5]] as [number, number][] }
   for (const spec of Object.values(SPECIES)) {
-    if (!spec.detail || !spec.foraging) continue
+    if (!spec.detail || !isProbeStyle(spec.foraging)) continue
     it(`${spec.code} (${spec.foraging}): a planted foot slips less than 2% of the ground covered, dash starts included`, () => {
       const m = buildDetailedBird(spec)
       const toes = ['toesL', 'toesR'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)

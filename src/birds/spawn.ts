@@ -4,6 +4,8 @@ import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
 import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
+import { companyOf } from '../behavior/swim'
+import { startSpot } from '../behavior/swimmer'
 import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
@@ -94,11 +96,14 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
 
 const STANDING: Behavior[] = ['wade', 'probe']
 
-/** What a species brings to its behavior: its wingbeat, and how it feeds. A species with no spec flaps at 5 Hz. */
-export function speciesTraits(code: string): Pick<BehaviorContext, 'wingbeatHz' | 'foraging'> {
-  if (!hasSpec(code)) return { wingbeatHz: 5 }
+/**
+ * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, and
+ * how it feeds. A species with no spec flaps at 5 Hz.
+ */
+export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging'> {
+  if (!hasSpec(code)) return { species: code, wingbeatHz: 5 }
   const spec = getSpec(code)
-  return { wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
+  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
 }
 
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }
@@ -113,6 +118,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const object = new THREE.Group()
   const rng = makeRng(deps.seed)
   const groups = new Map<string, NonNullable<BehaviorContext['group']>>()
+  /** the swimmers in each zone, which every swimmer there keeps its distance from */
+  const swimmers = new Map<string, BehaviorController[]>()
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
 
@@ -123,20 +130,35 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const model = hasSpec(ind.species)
       ? createBirdModel(getSpec(ind.species), ind.variant)
       : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
-    if (!groups.has(ind.groupKey)) groups.set(ind.groupKey, { targetX: 0, targetZ: 0, retargetAt: 0 })
+    const swim = ind.behavior === 'swim' && zone.kind === 'polygon'
+    const traits = speciesTraits(ind.species)
+    const company = swim ? companyOf(traits.foraging, ind.species) : undefined
+    if (!groups.has(ind.groupKey)) {
+      // A probing flock's target starts at the vantage and goes straight to its patch. A swimming flock starts formed,
+      // round a point in its zone, and works that patch before it drifts on: otherwise every duck would spend the first
+      // minute swimming to its flock, all of them making wakes.
+      const [gx, gz] = swim && zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [0, 0]
+      groups.set(ind.groupKey, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
+    }
+    const group = groups.get(ind.groupKey)!
+    if (swim && !swimmers.has(ind.zone)) swimmers.set(ind.zone, [])
+    const inZone = swimmers.get(ind.zone) ?? []
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
-      group: ind.behavior === 'probe' ? groups.get(ind.groupKey) : undefined,
+      group: ind.behavior === 'probe' || swim ? group : undefined,
       perch,
-      ...speciesTraits(ind.species),
+      neighbours: swim ? () => inZone : undefined,
+      ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
-    const [sx, sz] = zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
+    const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, inZone)
+      : zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
+    if (swim) inZone.push(controller)
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
     object.add(model.group)
     birds.push({ controller, pose: defaultPose(), model })

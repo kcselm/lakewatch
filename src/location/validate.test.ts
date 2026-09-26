@@ -42,6 +42,15 @@ describe('validateCast', () => {
     const bad = { ...loc, zones: { water: { kind: 'polygon' as const, points: [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]] as [number, number][] } } }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['zone water: polygon must be convex'])
   })
+  it('rejects a probing style on a swimmer and a swimming style on a prober', () => {
+    const specs = { killde: { variants: {}, foraging: 'plover' as const }, pibgre: { variants: {}, foraging: 'grebe' as const } }
+    const catalog = [bird('killde', ['wetland']), bird('pibgre', ['wetland'])]
+    const one = (species: string, behavior: 'swim' | 'probe'): Location => ({ ...loc, cast: [{ species, behavior, zone: 'water', count: 1 }] })
+    expect(validateCast(one('killde', 'swim'), catalog, specs)).toEqual(['cast[0]: killde feeds as a plover, a probing style, so it cannot swim'])
+    expect(validateCast(one('pibgre', 'probe'), catalog, specs)).toEqual(['cast[0]: pibgre feeds as a grebe, a swimming style, so it cannot probe'])
+    expect(validateCast(one('killde', 'probe'), catalog, specs)).toEqual([])
+    expect(validateCast(one('pibgre', 'swim'), catalog, specs)).toEqual([])
+  })
   describe('plumage counts', () => {
     const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland'])]
     const one = (entry: Partial<CastEntry>): Location => ({

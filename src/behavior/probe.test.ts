@@ -3,7 +3,7 @@ import { defaultPose, type PoseState } from '../birds/model'
 import { makeRng } from '../catalog/rng'
 import { pointInPolygon } from '../location/zones'
 import type { BehaviorContext, BehaviorController } from './types'
-import type { Foraging } from '../birds/spec'
+import { PROBE_STYLES } from '../birds/spec'
 
 const zone = { kind: 'polygon' as const, points: [[0, 0], [20, 0], [20, 10], [0, 10]] as [number, number][] }
 const makeGroup = () => ({ targetX: 10, targetZ: 5, retargetAt: 0 })
@@ -378,6 +378,6 @@ describe('probe, dowitcher', () => {
 
 describe('PECK_BOTTOM', () => {
   it('has a style for every foraging kind, each reaching all the way', () => {
-    for (const k of ['plover', 'sandpiper', 'dowitcher'] as Foraging[]) expect(PECK_BOTTOM[k].reach).toBe(1)
+    for (const k of PROBE_STYLES) expect(PECK_BOTTOM[k].reach).toBe(1)
   })
 })
