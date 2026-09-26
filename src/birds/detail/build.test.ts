@@ -45,6 +45,17 @@ describe('buildDetailedBird', () => {
     expect(Math.abs(r.tibia - m.tibia) / m.tibia).toBeLessThan(0.15)
     expect(Math.abs(r.length - m.length) / m.length).toBeLessThan(0.05)
   })
+  it('measures how high a wader stands: joint below belly below wing, the belly at its lowest point', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    const r = measure(m)
+    expect(r.joint).toBeCloseTo(m.anatomy.knee.y, 9)
+    expect(r.joint).toBeGreaterThan(0)
+    expect(r.belly).toBeGreaterThan(r.joint)
+    // the lowest point of the body, which a hunched bird carries forward of its hips; the loft's rings sample the
+    // belly, so under the hips it may sit a fraction of a millimetre above the exact belly line
+    expect(r.belly).toBeLessThanOrEqual(m.anatomy.bellyY + 0.001)
+    expect(r.wingLow).toBeGreaterThan(r.belly)
+  })
   it('swaps the folded wing for the spread one as the wings open', () => {
     const m = buildDetailedBird(TEST_SPEC)
     const bones = Object.fromEntries(m.mesh.skeleton.bones.map(b => [b.name, b]))
@@ -134,6 +145,26 @@ describe('buildDetailedBird', () => {
         m.pose(p)
         expect(billAngleNow(m), `lean ${lean} reach ${reach}`).toBeGreaterThanOrEqual(-Math.PI / 2 - 1e-6)
       }
+    }
+  })
+  it('probes into the ground by probeDepth at full reach, and leaves the rest pose alone', () => {
+    const deep = buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, detail: { ...TEST_DETAIL, probeDepth: 0.02 } }))
+    for (const lean of [0.8, 1.0]) {
+      const p = defaultPose(); p.lean.x = lean; p.reach = 1
+      deep.pose(p)
+      expect(billTipNow(deep).y, `lean ${lean}`).toBeCloseTo(-0.02, 3)
+      expect(billAngleNow(deep), `lean ${lean}`).toBeGreaterThanOrEqual(-Math.PI / 2 - 1e-6)
+    }
+    deep.pose(defaultPose())
+    expect(billTipNow(deep).distanceTo(deep.anatomy.billTip)).toBeLessThan(1e-9)
+  })
+  it('takes probeDepth 0 to mean the ground itself: the same peck as no probeDepth at all', () => {
+    const none = buildDetailedBird(TEST_SPEC)
+    const zero = buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, detail: { ...TEST_DETAIL, probeDepth: 0 } }))
+    for (const reach of [0.3, 0.7, 1]) {
+      const p = defaultPose(); p.lean.x = 0.8; p.reach = reach
+      none.pose(p); zero.pose(p)
+      expect(billTipNow(zero).distanceTo(billTipNow(none)), `reach ${reach}`).toBeLessThan(1e-12)
     }
   })
   it('does nothing at reach 0: the rest pose is the traced bird', () => {

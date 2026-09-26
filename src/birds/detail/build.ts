@@ -30,6 +30,9 @@ export interface Anatomy {
   knee: THREE.Vector3
   foot: THREE.Vector3
   bellyY: number
+  /** the lowest point of the body (the loft) and of the folded wing, at rest */
+  bodyLowY: number
+  wingLowY: number
   /** skin vertices from the occiput forward (the head) */
   head: THREE.Vector3[]
   /** every labelled station's spine point, and the spine itself (101 points, tail to bill base), for the viewer */
@@ -104,7 +107,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
 
   const headStart = profile.uOf('occiput')
   const headVerts: THREE.Vector3[] = []
+  let bodyLowY = Infinity
   loft.ringU.forEach((u, i) => {
+    for (let j = 0; j < RADIAL; j++) bodyLowY = Math.min(bodyLowY, m.position(loft.first + i * RADIAL + j).y)
     if (u < headStart) return
     for (let j = 0; j < RADIAL; j++) headVerts.push(m.position(loft.first + i * RADIAL + j))
   })
@@ -114,6 +119,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     tailRoot: at(tail.root), tailTip: at(tail.tip),
     wrist: at(fold.wrist), wingTip: at(fold.tip),
     hip: hipR, knee: kneeR, foot: footR, bellyY: layout.bellyY + offset.y,
+    bodyLowY, wingLowY: fold.low + offset.y,
     head: headVerts,
     stations: detail.profile.flatMap(s => (s.label ? [{ label: s.label, position: spineAt(s.label) }] : [])),
     spine: Array.from({ length: 101 }, (_, k) => at(profile.sampleAt(k / 100).point)),
@@ -143,23 +149,25 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(bill.dir.y, bill.dir.x)
   // where the head-to-tip line points when the bill itself points straight down
   const floor = -Math.PI / 2 + tipOffAxis
+  // a reach aims the bill tip this far below the ground; the solvers aim at y = 0, so they work in a frame raised by it
+  const depth = detail.probeDepth ?? 0
   const toGroup = new THREE.Matrix4()
   const pN = new THREE.Vector3(), pM = new THREE.Vector3(), pH = new THREE.Vector3(), pT = new THREE.Vector3()
   const inGroup = (b: THREE.Bone, out: THREE.Vector3) => b.getWorldPosition(out).applyMatrix4(toGroup)
 
   /**
    * A peck or strike reaching down (`w` 0..1), moving no more of the bird than it needs: the head tips the bill down,
-   * and only if a bill pointing straight down still can't reach the ground (y = 0 in group space) does the neck swing
-   * forward and down, just far enough for it to (or as far as MAX_NECK_SWING allows). Then the head tips the bill onto
-   * the ground: back up if a deep lean would push it under, and never past straight down, where it stops short if
-   * the ground is out of reach.
+   * and only if a bill pointing straight down still can't reach its mark (`probeDepth` below the ground, y = 0 in
+   * group space) does the neck swing forward and down, just far enough for it to (or as far as MAX_NECK_SWING allows).
+   * Then the head tips the bill onto the mark: back up if a deep lean would push it further, and never past straight
+   * down, where it stops short if the mark is out of reach.
    */
   function reachDown(w: number) {
     group.updateMatrixWorld(true)
     toGroup.copy(group.matrixWorld).invert()
     inGroup(bones.neck, pN); inGroup(bones.neckMid, pM); inGroup(bones.head, pH)
     const swing = neckSwing({
-      base: pN,
+      base: { x: pN.x, y: pN.y + depth },
       l1: Math.hypot(pM.x - pN.x, pM.y - pN.y), a1: Math.atan2(pM.y - pN.y, pM.x - pN.x),
       l2: Math.hypot(pH.x - pM.x, pH.y - pM.y), a2: Math.atan2(pH.y - pM.y, pH.x - pM.x),
       reach: tipReach, tipAngle: floor,
@@ -171,7 +179,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     pT.copy(headToTip).applyMatrix4(bones.head.matrixWorld).applyMatrix4(toGroup)
     // the bill never past straight down, even part-way through a reach, when the swing alone can tip it over
     const tipLine = Math.atan2(pT.y - pH.y, pT.x - pH.x)
-    bones.head.rotation.z -= Math.min(w * headPitchToGround(pH, pT, floor), tipLine - floor)
+    const pitch = headPitchToGround({ x: pH.x, y: pH.y + depth }, { x: pT.x, y: pT.y + depth }, floor)
+    bones.head.rotation.z -= Math.min(w * pitch, tipLine - floor)
   }
 
   function setLeg(tibia: THREE.Bone, tarsus: THREE.Bone, toes: THREE.Bone, dx: number, dy: number) {

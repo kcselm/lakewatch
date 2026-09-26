@@ -57,6 +57,8 @@ export interface FoldResult {
   /** right wing, profile frame */
   wrist: THREE.Vector3
   tip: THREE.Vector3
+  /** the folded wing's lowest point, profile frame y */
+  low: number
 }
 
 /**
@@ -75,6 +77,7 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec, profile: Profile
     const y = wy + dir.y * s * chord + down.y * t * h
     return new THREE.Vector3(x, y, Math.max(bodySurfaceZ(profile, x, y) + GAP, MIN_Z))
   }
+  let low = Infinity
   for (const side of [1, -1] as const) {
     const bone = side > 0 ? 'wingFoldR' : 'wingFoldL'
     const grid: number[][] = []
@@ -83,6 +86,7 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec, profile: Profile
       for (let j = 0; j < FOLD_T; j++) {
         const s = i / (FOLD_S - 1), t = j / (FOLD_T - 1)
         const p = point(s, t)
+        low = Math.min(low, p.y)
         p.z *= side
         row.push(m.vertex(p, 'wingFold', s, t, [[bone, 1]]))
       }
@@ -97,7 +101,7 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec, profile: Profile
       }
     }
   }
-  return { wrist: point(0, 0), tip: point(1, 0) }
+  return { wrist: point(0, 0), tip: point(1, 0), low }
 }
 
 /** Right shoulder joint for the spread wing (profile frame): above the flank, just behind the wrist. */

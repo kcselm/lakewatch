@@ -83,6 +83,8 @@ export const detailSchema = z.object({
   }),
   tail: z.object({ shape: z.enum(['square', 'rounded', 'wedge', 'notched']), angle: z.number().optional() }),
   stepLength: pos.optional(),
+  /** how far below the ground the bill tip goes at the bottom of a reach, metres; a prober pushes its bill into the mud */
+  probeDepth: z.number().min(0).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
   sources: z.array(z.string().min(1)).min(1),
