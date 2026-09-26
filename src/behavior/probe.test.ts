@@ -278,6 +278,29 @@ describe('probe, dowitcher', () => {
     expect(rings.length).toBeGreaterThan(30)
     for (let i = 1; i < rings.length; i++) expect(rings[i]!.t - rings[i - 1]!.t).toBeGreaterThanOrEqual(S.ripple.every - 1e-9)
   })
+  it('turns slowly with its bill in the mud: while it creeps, at no more than 2 rad/s and never past 60 degrees', () => {
+    // a spot behind it is left to follow, which lifts the head first
+    const rate = 2, cone = Math.PI / 3
+    const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
+    for (let seed = 1; seed <= 6; seed++) {
+      const c = createProbe(dctx(seed), 1, 0.5)
+      const pose = defaultPose()
+      let h = c.heading, start = NaN, creeps = 0
+      for (let i = 0; i < 300 * 60; i++) {
+        const state = c.state
+        if (state !== 'creep') start = NaN
+        else if (Number.isNaN(start)) { start = c.heading; creeps++ }
+        c.update(1 / 60, pose)
+        if (state === 'creep') {
+          const turned = Math.abs(wrap(c.heading - h)), off = Math.abs(wrap(c.heading - start))
+          if (turned > rate / 60 + 1e-9) expect.fail(`seed ${seed}, frame ${i}: turned ${turned.toFixed(4)} rad in a frame`)
+          if (off > cone + 1e-9) expect.fail(`seed ${seed}, frame ${i}: ${((off * 180) / Math.PI).toFixed(1)} degrees off`)
+        }
+        h = c.heading
+      }
+      expect(creeps, `seed ${seed}`).toBeGreaterThan(10)
+    }
+  })
   it('never leans on the zone clamp in a strip 0.3 m wide: every frame moves it no further than its pace', () => {
     // Flock spots near the edge get clamped to just inside it, so a bird that curved round while walking would clip
     // the edge and the clamp would jump it several centimetres. Turning on the spot first, it never does.

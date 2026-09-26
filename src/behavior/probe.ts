@@ -32,7 +32,11 @@ export const STYLES = {
   dowitcher: {
     // tipped well forward, the bill rests on the mud at the top of a stroke (reach 0) and goes in to probeDepth at the bottom
     stitch: { seconds: [2, 5] as [number, number], perSecond: 3, high: 0, lean: 0.8, neckExtend: 1 },
-    creep: { speed: 0.025, distance: [0.03, 0.1] as [number, number] },
+    /**
+     * a step or two with the bill still in the mud: turning no faster than `turn` rad/s, and never more than `within`
+     * radians off the way it faces (a spot further round is left to follow, which lifts the head first)
+     */
+    creep: { speed: 0.025, distance: [0.03, 0.1] as [number, number], turn: 2, within: Math.PI / 3 },
     look: { chance: 0.4, seconds: [1.5, 3.5] as [number, number] },
     follow: { speed: 0.12, whenFarther: 1.5 },
     /** how long the head takes to go down into the water, or come up out of it */
@@ -107,11 +111,12 @@ function createBody(ctx: BehaviorContext, x: number, z: number) {
   return {
     zone, x, z, heading: ctx.rng() * Math.PI * 2,
     /**
-     * Move toward (tx, tz) at `speed`, inside the zone, walking the legs by exactly the ground covered. The pace
-     * builds with the gait, so the body never outruns legs still easing into their stride. Returns the distance left.
+     * Move toward (tx, tz) at `speed`, inside the zone, walking the legs by exactly the ground covered, and turning
+     * no faster than `turn`. The pace builds with the gait, so the body never outruns legs still easing into their
+     * stride. Returns the distance left.
      */
-    moveToward(tx: number, tz: number, speed: number, dt: number, pose: PoseState): number {
-      this.heading = turnToward(this.heading, Math.atan2(-(tz - this.z), tx - this.x), TURN * dt)
+    moveToward(tx: number, tz: number, speed: number, dt: number, pose: PoseState, turn = TURN): number {
+      this.heading = turnToward(this.heading, Math.atan2(-(tz - this.z), tx - this.x), turn * dt)
       pose.gait = approach(pose.gait, 1, GAIT_RISE, dt)
       const step = Math.min(speed * pose.gait * dt, Math.hypot(tx - this.x, tz - this.z))
       const [px, pz] = [this.x, this.z]
@@ -130,6 +135,11 @@ function createBody(ctx: BehaviorContext, x: number, z: number) {
       const want = Math.atan2(-(tz - this.z), tx - this.x)
       this.heading = turnToward(this.heading, want, TURN * dt)
       return Math.abs(Math.atan2(Math.sin(want - this.heading), Math.cos(want - this.heading))) < 0.05
+    },
+    /** Turn on the spot to the heading `want`, no faster than `turn`; true once facing it exactly. */
+    turnTo(want: number, dt: number, turn: number): boolean {
+      this.heading = turnToward(this.heading, want, turn * dt)
+      return Math.abs(Math.atan2(Math.sin(want - this.heading), Math.cos(want - this.heading))) < 1e-9
     },
     /** A point `d` metres away, toward a random point in the zone. */
     pointAway(d: number): [number, number] {
@@ -274,12 +284,15 @@ function createDowitcher(ctx: BehaviorContext, startX: number, startZ: number): 
   let sinceRing = Infinity
   let facing = false
   let [tx, tz] = [b.x, b.z]
+  /** the heading a move turns to before it sets off */
+  let aim = b.heading
 
   function stitch(): void { state = 'stitch'; timer = between(ctx.rng, S.stitch.seconds) }
   function look(): void { state = 'look'; timer = between(ctx.rng, S.look.seconds) }
   /**
    * Creep a little way toward a spot near the flock, or follow it with the head up if it has moved on. Either way the
-   * bird turns on the spot first and then goes straight, so in a convex zone it never strays out and needs the clamp.
+   * bird turns on the spot first, all the way, and then goes straight, so in a convex zone it never strays out and
+   * needs the clamp.
    */
   function move(): void {
     const [nx, nz] = flock.near(clock)
@@ -287,12 +300,19 @@ function createDowitcher(ctx: BehaviorContext, startX: number, startZ: number): 
     if (flock.distance(b.x, b.z) > S.follow.whenFarther) {
       state = 'follow'
       ;[tx, tz] = [nx, nz]
+      aim = Math.atan2(-(tz - b.z), tx - b.x)
       timer = Math.PI / TURN + Math.hypot(tx - b.x, tz - b.z) / S.follow.speed + 1
     } else {
       state = 'creep'
-      const d = Math.hypot(nx - b.x, nz - b.z) || 1, len = Math.min(d, between(ctx.rng, S.creep.distance))
-      ;[tx, tz] = [b.x + ((nx - b.x) / d) * len, b.z + ((nz - b.z) / d) * len]
-      timer = Math.PI / TURN + len / S.creep.speed + 1
+      // toward the spot, but with the bill in the mud no further round than `within` from the way it faces, and only
+      // as far along that line as the zone reaches: at the edge, facing out, it just turns, and creeps on next time
+      const off = Math.atan2(-(nz - b.z), nx - b.x) - b.heading
+      aim = b.heading + Math.max(-S.creep.within, Math.min(S.creep.within, Math.atan2(Math.sin(off), Math.cos(off))))
+      let len = Math.min(Math.hypot(nx - b.x, nz - b.z), between(ctx.rng, S.creep.distance))
+      while (len >= 0.01 && !pointInPolygon(b.x + Math.cos(aim) * len, b.z - Math.sin(aim) * len, b.zone.points)) len /= 2
+      if (len < 0.01) len = 0
+      ;[tx, tz] = [b.x + Math.cos(aim) * len, b.z - Math.sin(aim) * len]
+      timer = Math.PI / S.creep.turn + len / S.creep.speed + 1
     }
   }
 
@@ -314,12 +334,13 @@ function createDowitcher(ctx: BehaviorContext, startX: number, startZ: number): 
         b.still(dt, pose)
         if (timer <= 0) stitch()
       } else {
-        const speed = state === 'creep' ? S.creep.speed : S.follow.speed
+        // with the bill in the mud it turns slowly; with the head up, at the full rate
+        const [speed, turn] = state === 'creep' ? [S.creep.speed, S.creep.turn] : [S.follow.speed, TURN]
         if (!facing) {
           b.still(dt, pose)
-          facing = b.faceToward(tx, tz, dt)
+          facing = b.turnTo(aim, dt, turn)
           if (timer <= 0) stitch()
-        } else if (b.moveToward(tx, tz, speed, dt, pose) < 0.01 || timer <= 0) stitch()
+        } else if (Math.hypot(tx - b.x, tz - b.z) < 0.01 || b.moveToward(tx, tz, speed, dt, pose, turn) < 0.01 || timer <= 0) stitch()
       }
       // The bill runs between the stitch's high point and the bottom, along sin^2, as far as the head is down. The
       // phase never resets, so a bout picks up where the last left off, and the head eases in and out (smoothstep).
