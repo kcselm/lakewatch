@@ -41,9 +41,24 @@ export interface Measures {
   draft: number
   /** floating, the body's length along the water (y = 0) in the side view; 0 when the water misses it */
   waterlineLength: number
+  /**
+   * Where the built bill is widest, as a fraction of its length from the base (the middle of a stretch where it
+   * stays widest), and that width over the width at the base.
+   */
+  billWidestAt: number
+  billWidestRatio: number
 }
 
+const measured = new WeakMap<DetailedBirdModel, Measures>()
+
+/** The measures of a built bird at rest (taken once per model: the viewer asks every frame). */
 export function measure(model: DetailedBirdModel): Measures {
+  let r = measured.get(model)
+  if (!r) { r = measureOnce(model); measured.set(model, r) }
+  return r
+}
+
+function measureOnce(model: DetailedBirdModel): Measures {
   const a = model.anatomy
   const culmen = a.billTip.distanceTo(a.billBase)
   let totalHead = 0
@@ -56,6 +71,10 @@ export function measure(model: DetailedBirdModel): Measures {
   const drop = a.hip.y - a.knee.y
   const bare = drop > 0 ? Math.min(1, Math.max(0, (a.bellyY - a.knee.y) / drop)) : 0
   const tailAxis = a.tailTip.clone().sub(a.tailRoot).normalize()
+  // the bill's width every 1% of its length; the widest point is the middle of the widest stretch
+  const widths = Array.from({ length: 101 }, (_, k) => billWidthAt(model, k / 100))
+  const widest = Math.max(...widths)
+  const at = widths.flatMap((w, k) => (w >= widest - 1e-7 ? [k / 100] : []))
   return {
     length: a.billTip.distanceTo(a.tailTip),
     culmen,
@@ -77,7 +96,47 @@ export function measure(model: DetailedBirdModel): Measures {
     breastFrontAbove: a.breastFront.y,
     draft: -a.bodyLowY,
     waterlineLength: a.waterline.front - a.waterline.back,
+    billWidestAt: (at[0]! + at[at.length - 1]!) / 2,
+    billWidestRatio: widest / widths[0]!,
   }
+}
+
+/**
+ * The built bill's cross-section at rest, at fraction `s` of its length from the base (0) to the tip (1): the points
+ * where the plane square to the bill's base direction, that far along, cuts the bill's triangles.
+ */
+function billSection(model: DetailedBirdModel, s: number): THREE.Vector3[] {
+  const a = model.anatomy
+  const g = model.mesh.geometry
+  const pos = g.getAttribute('position') as THREE.BufferAttribute
+  const index = g.getIndex()!
+  const bill = a.closed.find(c => c.name === 'bill')!
+  const along = s * a.billTip.clone().sub(a.billBase).dot(a.billDir) + a.billBase.dot(a.billDir)
+  const p = new THREE.Vector3(), q = new THREE.Vector3()
+  const out: THREE.Vector3[] = []
+  for (let i = bill.indexFirst; i < bill.indexFirst + bill.indexCount; i += 3) {
+    for (let k = 0; k < 3; k++) {
+      p.fromBufferAttribute(pos, index.getX(i + k))
+      q.fromBufferAttribute(pos, index.getX(i + ((k + 1) % 3)))
+      const dp = p.dot(a.billDir) - along, dq = q.dot(a.billDir) - along
+      if (dp < 0 === dq < 0) continue
+      out.push(p.clone().lerp(q, dp / (dp - dq)))
+    }
+  }
+  return out
+}
+
+/** The built bill's width (across, z) at rest, at fraction `s` of its length from the base (0) to the tip (1), metres. */
+export function billWidthAt(model: DetailedBirdModel, s: number): number {
+  const pts = billSection(model, s)
+  return pts.length ? Math.max(...pts.map(v => v.z)) - Math.min(...pts.map(v => v.z)) : 0
+}
+
+/** The built bill's depth (top to bottom, square to the bill) at rest, at fraction `s` of its length from the base, metres. */
+export function billDepthAt(model: DetailedBirdModel, s: number): number {
+  const a = model.anatomy
+  const h = billSection(model, s).map(v => v.clone().sub(a.billBase).dot(a.billUp))
+  return h.length ? Math.max(...h) - Math.min(...h) : 0
 }
 
 /** Where the bill tip is now, in group space (the feet stand on y = 0), after the model's last pose(). */

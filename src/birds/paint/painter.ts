@@ -5,6 +5,7 @@ import { createProfile, type Profile } from '../detail/profile'
 import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
 import { SPAN, ROOT_CHORD, outlineAt } from '../detail/wing'
 import { ROOT_WIDTH, TIP_SPREAD } from '../detail/tail'
+import { billScale } from '../detail/bill'
 import type { SpeciesSpec } from '../spec'
 
 /** Running totals for the dev overlay. */
@@ -35,9 +36,13 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     wingUnder: spread,
     tail,
     tailUnder: tail,
-    bill: flat(m.culmen * 1000, s => (Math.PI * (m.billDepth + m.billWidth) * 1000 / 4) * (1 - 0.85 * s ** detail.bill.taper)),
+    // half the bill's girth: a tapered bill's width and depth shrink together, a profiled one's each its own way
+    bill: flat(m.culmen * 1000, detail.bill.profile
+      ? s => { const k = billScale(detail.bill, s); return (Math.PI * (m.billDepth * k.depth + m.billWidth * k.width) * 1000) / 4 }
+      : s => (Math.PI * (m.billDepth + m.billWidth) * 1000 / 4) * billScale(detail.bill, s).width),
     legs: flat(10, () => 10),
     eye: flat(detail.eye.radius * 2000, () => detail.eye.radius * 2000),
+    shield: detail.bill.shield ? flat(detail.bill.shield.length * 1000, () => detail.bill.shield!.width * 1000) : flat(1, () => 1),
   }
 }
 

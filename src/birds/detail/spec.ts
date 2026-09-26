@@ -5,7 +5,7 @@ const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -24,7 +24,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -67,7 +67,25 @@ export const detailSchema = z.object({
   }),
   profile: z.array(stationSchema).min(4),
   rig: z.object({ neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string() }),
-  bill: z.object({ taper: pos, curve: z.number() }),
+  bill: z.object({
+    /** width and depth fall to 1 − 0.85 σ^taper of the base's at σ along the bill; a higher taper keeps it deep longer */
+    taper: pos.optional(),
+    /** the tip lifts by curve × culmen over the distal half (negative droops it) */
+    curve: z.number(),
+    /**
+     * The bill's width and depth along it, in place of `taper`: [s, width, depth] with s a fraction of the culmen from
+     * the base (0) to the tip (1), and width and depth multiples of measurements.billWidth and billDepth; linear
+     * between points, and held beyond the first and last.
+     */
+    profile: z.array(z.tuple([unit, z.number().min(0), z.number().min(0)])).min(2).optional(),
+    /** how far the tip drops over the bill's last tenth, metres: a duck's nail, a grebe's hooked tip */
+    hook: z.number().min(0).optional(),
+    /**
+     * A frontal shield (the Coot's): a plate from the top of the bill's base up the forehead, `length` along it,
+     * `width` across, standing `thickness` off the head at its middle, all metres. Painted as its own part, 'shield'.
+     */
+    shield: z.object({ length: pos, width: pos, thickness: pos }).optional(),
+  }),
   eye: z.object({
     radius: pos, t: unit, iris: hex,
     /** a bare eyelid ring, drawn on the eye's own rim: its colour, and its width in metres */
@@ -94,6 +112,10 @@ export const detailSchema = z.object({
   variants: z.record(z.string(), z.array(layerSchema)),
   sources: z.array(z.string().min(1)).min(1),
 }).superRefine((d, ctx) => {
+  if (d.bill.taper === undefined && !d.bill.profile) ctx.addIssue({ code: 'custom', message: 'a bill needs a taper or a profile', path: ['bill'] })
+  d.bill.profile?.forEach(([s], i, list) => {
+    if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'bill profile points must run from base to tip', path: ['bill', 'profile', i] })
+  })
   const labels = new Set(d.profile.flatMap(s => (s.label ? [s.label] : [])))
   const need = (label: string, path: (string | number)[]) => {
     if (!labels.has(label)) ctx.addIssue({ code: 'custom', message: `unknown station label: ${label}`, path })

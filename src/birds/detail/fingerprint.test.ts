@@ -3,6 +3,9 @@ import { SPECIES } from '../species'
 import { buildDetailedBird, type DetailedBirdModel } from './build'
 import { billTipNow } from './measure'
 import { defaultPose, type PoseState } from '../model'
+import { paintAtlas } from '../paint/painter'
+import { createProfile } from './profile'
+import { layersFor } from './spec'
 
 /**
  * FNV-1a over 32-bit integers. Every float is rounded to a micrometre (or a millionth of a texture) first, so the
@@ -95,5 +98,31 @@ describe('the shipped detailed birds build exactly as before', () => {
       const m = buildDetailedBird(spec)
       expect({ geometry: geometryPrint(m), poses: posePrint(m) }).toEqual(EXPECTED[spec.code])
     })
+  }
+})
+
+/** Every texel of a species' painted atlas, for one plumage. */
+function atlasPrint(spec: (typeof SPECIES)[string], variant?: string): string {
+  const d = spec.detail!
+  const px = paintAtlas({ code: spec.code, detail: d, layers: layersFor(d, variant), profile: createProfile(d.profile) })
+  const h = hasher()
+  for (let i = 0; i < px.length; i += 4) h.int(px[i]! | (px[i + 1]! << 8) | (px[i + 2]! << 16))
+  return h.hex()
+}
+
+// Painted on master at c588f75. New atlas regions go in free space, so every shipped bird's atlas stays texel for texel
+// what it was.
+const EXPECTED_ATLAS: Record<string, string> = {
+  killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: '57473eeb',
+}
+
+describe('the shipped detailed birds paint exactly as before', () => {
+  const atlases = Object.values(SPECIES).filter(s => s.detail).flatMap(s => [undefined, ...Object.keys(s.variants)].map(v => [s, v] as const))
+  it('covers every detailed species and plumage', () => {
+    expect(atlases.map(([s, v]) => (v ? `${s.code}:${v}` : s.code)).sort()).toEqual(Object.keys(EXPECTED_ATLAS).sort())
+  })
+  for (const [spec, variant] of atlases) {
+    const key = variant ? `${spec.code}:${variant}` : spec.code
+    it(`${key}: the same atlas`, () => expect(atlasPrint(spec, variant)).toBe(EXPECTED_ATLAS[key]))
   }
 })

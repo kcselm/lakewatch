@@ -4,7 +4,7 @@ import type { SpeciesSpec } from '../spec'
 import { createProfile, type Profile } from './profile'
 import { Mesher } from './mesher'
 import { buildLoft, RADIAL, type LoftResult } from './loft'
-import { buildBill, buildEyes, type BillResult } from './bill'
+import { buildBill, buildEyes, buildShield, type BillResult } from './bill'
 import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
@@ -44,8 +44,10 @@ export interface Anatomy {
   /** every labelled station's spine point, and the spine itself (101 points, tail to bill base), for the viewer */
   stations: { label: string; position: THREE.Vector3 }[]
   spine: THREE.Vector3[]
-  /** index ranges of the closed sub-meshes (loft, bill), for volume checks */
+  /** index ranges of the closed sub-meshes (loft, bill, and a shield if the bird has one), for volume checks */
   closed: { name: string; indexFirst: number; indexCount: number }[]
+  /** a frontal shield's midline: where it leaves the top of the bill's base, and its top; null without one */
+  shield: { base: THREE.Vector3; top: THREE.Vector3 } | null
 }
 
 export interface DetailedBirdModel extends BirdModel {
@@ -73,6 +75,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const m = new Mesher()
   const loft: LoftResult = buildLoft(m, profile, detail.rig)
   const bill: BillResult = buildBill(m, detail, profile)
+  const shield = buildShield(m, detail, profile)
   buildEyes(m, detail, profile)
   const fold = buildFoldedWings(m, detail, profile)
   const shoulder = shoulderAt(detail, profile)
@@ -156,7 +159,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     closed: [
       { name: 'loft', indexFirst: loft.indexFirst, indexCount: loft.indexCount },
       { name: 'bill', indexFirst: bill.indexFirst, indexCount: bill.indexCount },
+      ...(shield ? [{ name: 'shield', indexFirst: shield.indexFirst, indexCount: shield.indexCount }] : []),
     ],
+    shield: shield && { base: at(shield.base), top: at(shield.top) },
   }
 
   // rest angles of each leg, for turning IK solutions into bone rotations
