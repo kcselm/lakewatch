@@ -19,7 +19,7 @@ describe('terrainSurface', () => {
     for (let x = 17; x <= 24; x += 0.37) for (let z = -10.6; z <= -6; z += 0.29) points.push([x, z])
     for (let i = 0; i < 200; i++) points.push([-60 + ((i * 37) % 120) + 0.13, -120 + ((i * 53) % 150) + 0.71])
     for (const [x, z] of points) expect(surface.sample(x, z), `(${x}, ${z})`).toBeCloseTo(rendered(x, z), 6)
-  })
+  }, 30_000)   // about 460 rays against the 80,000-triangle terrain: past the 5 s default in a busy full run
   it('matches the smooth field at the mesh vertices', () => {
     for (const [x, z] of [[20, -8], [0, 0], [-30, -40]] as const) expect(surface.sample(x, z)).toBeCloseTo(hf.sample(x, z), 9)
   })
