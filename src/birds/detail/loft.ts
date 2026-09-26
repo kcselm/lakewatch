@@ -64,7 +64,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail 
     for (let j = 0; j < RADIAL; j++) {
       const theta = (j / RADIAL) * Math.PI * 2
       const o = sectionOffset(theta, s.up, s.down, s.halfWidth)
-      p.set(s.point.x + s.normal.x * o.n, s.point.y + s.normal.y * o.n, o.z)
+      p.set(s.point.x + s.axis.x * o.n, s.point.y + s.axis.y * o.n, o.z)
       row.push(m.vertex(p, 'skin', u, ringT(theta), weights))
     }
     ring.push(row)
@@ -93,8 +93,9 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail 
 }
 
 /**
- * The furthest any ring of the loft folds back over the ring before it, metres (0 when none do). A spine that
- * turns tighter than the section is deep on its inside creases the surface; species tests hold this at 0.
+ * The furthest any ring of the loft folds back over the ring before it, metres (0 when none do): how far behind the
+ * earlier ring's plane (square to the spine, or turned by its tilt) the next ring reaches. A spine that turns tighter
+ * than the section is deep on its inside creases the surface; species tests hold this at 0.
  */
 export function worstFold(profile: Profile, rig: LoftRig): number {
   const m = new Mesher()
@@ -103,7 +104,8 @@ export function worstFold(profile: Profile, rig: LoftRig): number {
   let worst = 0
   for (let i = 0; i < RINGS - 1; i++) {
     const s = profile.sampleAt(r.ringU[i]!)
-    t.set(s.tangent.x, s.tangent.y, 0)
+    // the ring's plane faces along the spine, turned with the section's axis
+    t.set(s.axis.y, -s.axis.x, 0)
     for (let j = 0; j < RADIAL; j++) {
       const step = m.position(r.first + (i + 1) * RADIAL + j).sub(m.position(r.first + i * RADIAL + j)).dot(t)
       worst = Math.max(worst, -step)

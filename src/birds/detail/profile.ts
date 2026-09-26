@@ -11,6 +11,11 @@ export interface ProfileSample {
   tangent: THREE.Vector2
   /** unit normal: the tangent turned 90 degrees counter-clockwise, so "up" for a level spine and "back" for a rising neck */
   normal: THREE.Vector2
+  /**
+   * The direction the cross-section's upper side points: the normal, turned back by the stations' tilt (interpolated
+   * along the spine) so the lower side swings forward. The same as the normal where nothing is tilted.
+   */
+  axis: THREE.Vector2
   up: number
   down: number
   halfWidth: number
@@ -62,6 +67,8 @@ export function createProfile(stations: readonly Station[]): Profile {
   const lengths = curve.getLengths(DIVISIONS)
   const length = lengths[DIVISIONS]!
   const ups = stations.map(s => s.up), downs = stations.map(s => s.down), widths = stations.map(s => s.halfWidth)
+  const tilts = stations.map(s => THREE.MathUtils.degToRad(s.tilt ?? 0))
+  const tilted = tilts.some(a => a !== 0)
   const floor = Math.min(...ups, ...downs, ...widths) * 0.5
 
   const uAtT = (t: number): number => {
@@ -82,8 +89,10 @@ export function createProfile(stations: readonly Station[]): Profile {
     curve.getTangent(t, p3)
     const tangent = new THREE.Vector2(p3.x, p3.y).normalize()
     const normal = new THREE.Vector2(-tangent.y, tangent.x)
+    const a = tilted ? scalarAt(tilts, t) : 0
+    const axis = a === 0 ? normal.clone() : normal.clone().multiplyScalar(Math.cos(a)).addScaledVector(tangent, -Math.sin(a))
     return {
-      point, tangent, normal,
+      point, tangent, normal, axis,
       up: Math.max(floor, scalarAt(ups, t)),
       down: Math.max(floor, scalarAt(downs, t)),
       halfWidth: Math.max(floor, scalarAt(widths, t)),

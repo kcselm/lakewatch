@@ -151,7 +151,7 @@ export function buildShield(m: Mesher, detail: DetailSpec, profile: Profile): Sh
   const N = 400
   const top = Array.from({ length: N + 1 }, (_, k) => {
     const s = profile.sampleAt(1 - (k / N) * 0.5)
-    return { s, p: s.point.clone().addScaledVector(s.normal, s.up) }
+    return { s, p: s.point.clone().addScaledVector(s.axis, s.up) }
   })
   const along = [0]
   for (let k = 1; k <= N; k++) along.push(along[k - 1]! + top[k]!.p.distanceTo(top[k - 1]!.p))
@@ -168,7 +168,7 @@ export function buildShield(m: Mesher, detail: DetailSpec, profile: Profile): Sh
     // on the head's surface at z across the top: the superellipse section's upper side
     const z = Math.min(Math.abs(b) * sh.width / 2, s.halfWidth * 0.95)
     const n = s.up * (1 - (z / s.halfWidth) ** SQUARENESS) ** (1 / SQUARENESS)
-    return new THREE.Vector3(s.point.x + s.normal.x * (n + lift), s.point.y + s.normal.y * (n + lift), Math.sign(b) * z)
+    return new THREE.Vector3(s.point.x + s.axis.x * (n + lift), s.point.y + s.axis.y * (n + lift), Math.sign(b) * z)
   }
   const faces: number[][][] = []
   for (const face of ['top', 'under'] as const) {
@@ -204,9 +204,9 @@ export function buildShield(m: Mesher, detail: DetailSpec, profile: Profile): Sh
 export function eyePlacement(detail: DetailSpec, profile: Profile): { center: THREE.Vector3; outward: THREE.Vector3 } {
   const s = profile.sampleAt(profile.uOf('eye'))
   const { n, z } = sectionOffset(detail.eye.t * Math.PI, s.up, s.down, s.halfWidth)
-  const surface = new THREE.Vector3(s.point.x + s.normal.x * n, s.point.y + s.normal.y * n, z)
+  const surface = new THREE.Vector3(s.point.x + s.axis.x * n, s.point.y + s.axis.y * n, z)
   const ext = n >= 0 ? s.up : s.down
-  const outward = new THREE.Vector3(s.normal.x * n / ext, s.normal.y * n / ext, z / s.halfWidth).normalize()
+  const outward = new THREE.Vector3(s.axis.x * n / ext, s.axis.y * n / ext, z / s.halfWidth).normalize()
   return { center: surface.addScaledVector(outward, -detail.eye.radius * 0.35), outward }
 }
 

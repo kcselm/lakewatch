@@ -78,14 +78,15 @@ function posePrint(m: DetailedBirdModel): string {
 }
 
 // Prints taken on master at c588f75, before the swimmers round. A change to the builder that moves any shipped
-// bird's mesh, its skinning, its texture layout, or any of its poses by a micrometre changes these.
+// bird's mesh, its skinning, its texture layout, or any of its poses by a micrometre changes these. The one change
+// since: the swimmers round retraced the dowitcher's throat with tilted sections (Task 5), so its prints are new.
 const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   killde: { geometry: 'f5d077d0', poses: '4d9550b0' },
   leasan: { geometry: '83eeff1f', poses: '0cd6b93e' },
   greyel: { geometry: '7671be05', poses: '88449834' },
   lesyel: { geometry: '923592bf', poses: 'e640b069' },
   pecsan: { geometry: 'fc0011fe', poses: 'bac5bab5' },
-  lobdow: { geometry: '2951d8a8', poses: 'be6320da' },
+  lobdow: { geometry: 'bedf44dc', poses: '449d38d8' },          // the throat retraced (Task 5)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -111,9 +112,9 @@ function atlasPrint(spec: (typeof SPECIES)[string], variant?: string): string {
 }
 
 // Painted on master at c588f75. New atlas regions go in free space, so every shipped bird's atlas stays texel for texel
-// what it was.
+// what it was. The dowitcher's is new: its retraced neck and head (Task 5) give its skin new lengths and girths.
 const EXPECTED_ATLAS: Record<string, string> = {
-  killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: '57473eeb',
+  killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: 'e1e47f53',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {

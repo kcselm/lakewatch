@@ -69,6 +69,16 @@ describe('buildLoft', () => {
   it('never folds a ring back over its neighbour (the neck turn is gentle enough)', () => {
     expect(worstFold(profile, TEST_DETAIL.rig)).toBe(0)
   })
+  it('keeps a deep throat under a sharp turn clear of creases when its sections tilt', () => {
+    // a head resting on the breast: the throat bulges forward under the turn from the neck to the head, and sections
+    // square to the spine fold over each other there
+    const throat: Record<string, number> = { nape: 0.03, occiput: 0.028, crown: 0.02 }
+    const deep = TEST_DETAIL.profile.map(s => (s.label! in throat ? { ...s, down: throat[s.label!]! } : s))
+    expect(worstFold(createProfile(deep), TEST_DETAIL.rig)).toBeGreaterThan(0.001)
+    const tilt: Record<string, number> = { crown: 15, eye: 10 }
+    const tilted = deep.map(s => (s.label! in tilt ? { ...s, tilt: tilt[s.label!]! } : s))
+    expect(worstFold(createProfile(tilted), TEST_DETAIL.rig)).toBe(0)
+  })
   it('catches a spine that turns too tightly for its girth', () => {
     const tight = TEST_DETAIL.profile.map(s => (s.label === 'crown' ? { ...s, x: s.x - 0.012, y: s.y + 0.006 } : s))
     expect(worstFold(createProfile(tight), TEST_DETAIL.rig)).toBeGreaterThan(0.0005)

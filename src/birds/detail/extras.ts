@@ -31,7 +31,8 @@ export interface PartResult {
 export function buildCurl(m: Mesher, part: PartSpec, profile: Profile): PartResult {
   const indexFirst = m.indexCount
   const s = profile.sampleAt(profile.uOf(part.at) + (part.dx ?? 0) / profile.length)
-  const up = new THREE.Vector3(s.normal.x, s.normal.y, 0), fwd = new THREE.Vector3(s.tangent.x, s.tangent.y, 0)
+  // the section's own up and forward, so a tilted station's back still carries it
+  const up = new THREE.Vector3(s.axis.x, s.axis.y, 0), fwd = new THREE.Vector3(s.axis.y, -s.axis.x, 0)
   // a little inside the back, so the loops grow out of the feathers
   const base = new THREE.Vector3(s.point.x, s.point.y, 0).addScaledVector(up, s.up - CURL_RADIUS)
   const r = part.height / 2

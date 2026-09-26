@@ -18,6 +18,12 @@ export const stationSchema = z.object({
   /** surface depth below the spine */
   down: pos,
   halfWidth: pos,
+  /**
+   * Degrees the cross-section turns away from square to the spine: positive swings its lower side (belly, throat)
+   * forward toward the bill and its upper side back. Where the spine turns sharply (a head resting on the breast),
+   * tilted sections keep clear of each other, so the underside can follow the throat without creasing. Default 0.
+   */
+  tilt: z.number().min(-60).max(60).optional(),
 })
 export type Station = z.infer<typeof stationSchema>
 
