@@ -44,6 +44,25 @@ export class Mesher {
     return target.set(this.pos[i * 3]!, this.pos[i * 3 + 1]!, this.pos[i * 3 + 2]!)
   }
 
+  /**
+   * Where the horizontal plane at height `y` cuts the triangles from index `indexFirst` for `indexCount` indices: its
+   * x extent, the side view's length at that height. Null if the plane misses them.
+   */
+  spanAtHeight(y: number, indexFirst: number, indexCount: number): [number, number] | null {
+    let lo = Infinity, hi = -Infinity
+    for (let i = indexFirst; i < indexFirst + indexCount; i += 3) {
+      for (let k = 0; k < 3; k++) {
+        const a = this.index[i + k]!, b = this.index[i + ((k + 1) % 3)]!
+        const ya = this.pos[a * 3 + 1]! - y, yb = this.pos[b * 3 + 1]! - y
+        if (ya < 0 === yb < 0) continue
+        const xa = this.pos[a * 3]!, xb = this.pos[b * 3]!
+        const x = xa + ((xb - xa) * ya) / (ya - yb)
+        lo = Math.min(lo, x); hi = Math.max(hi, x)
+      }
+    }
+    return lo <= hi ? [lo, hi] : null
+  }
+
   /** Move every vertex (the builder authors in the profile frame, then shifts into group space). */
   translate(offset: THREE.Vector3): void {
     for (let i = 0; i < this.pos.length; i += 3) {

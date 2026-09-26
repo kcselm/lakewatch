@@ -14,6 +14,12 @@ const STAND = 0.92
 const TARSUS_THICKNESS = 0.045
 /** default step length as a fraction of leg length (tibia + tarsus) */
 export const DEFAULT_STEP = 0.45
+/**
+ * A swimmer's legs at rest, folded back under the body: the tibia straight down from the hip (so the bare tibia below
+ * the belly is exactly measurements.tibia), the tarsus and the toes trailing back and a little down. Radians from +x.
+ */
+export const SWIM_TIBIA = -Math.PI / 2
+export const SWIM_TARSUS = -2.75
 
 export interface LegLayout {
   /** right hip joint, profile frame; the left mirrors z */
@@ -29,12 +35,14 @@ export interface LegLayout {
   /** foot joint height above the ground (the toes' radius) */
   footY: number
   tarsusRadius: number
-  /** standing positions, right leg, profile frame */
+  /** standing positions (a swimmer's: folded back), right leg, profile frame */
   knee: THREE.Vector3
   foot: THREE.Vector3
+  /** a swimmer's legs, folded back under the body with the toes trailing; a standing bird's stand on the ground */
+  swimming: boolean
 }
 
-export function legLayout(detail: DetailSpec, profile: Profile): LegLayout {
+export function legLayout(detail: DetailSpec, profile: Profile, swimming = false): LegLayout {
   const s = profile.sampleAt(profile.uOf(detail.rig.hip))
   const hip = new THREE.Vector3(s.point.x, s.point.y - s.down * HIP_DEPTH, s.halfWidth * HIP_SPREAD)
   const bellyY = s.point.y - s.down
@@ -43,12 +51,18 @@ export function legLayout(detail: DetailSpec, profile: Profile): LegLayout {
   const standHeight = STAND * (tibia + m.tarsus)
   const tarsusRadius = (m.tarsus * TARSUS_THICKNESS) / 2
   const footY = tarsusRadius * 0.7
+  if (swimming) {
+    const knee = hip.clone().add(new THREE.Vector3(Math.cos(SWIM_TIBIA), Math.sin(SWIM_TIBIA), 0).multiplyScalar(tibia))
+    const foot = knee.clone().add(new THREE.Vector3(Math.cos(SWIM_TARSUS), Math.sin(SWIM_TARSUS), 0).multiplyScalar(m.tarsus))
+    return { hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight: hip.y - foot.y, footY, tarsusRadius, knee, foot, swimming }
+  }
   const target = { x: hip.x, y: hip.y - standHeight }
   const { joint, foot } = solveLeg({ x: hip.x, y: hip.y }, target, tibia, m.tarsus)
   return {
     hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight, footY, tarsusRadius,
     knee: new THREE.Vector3(joint.x, joint.y, hip.z),
     foot: new THREE.Vector3(foot.x, foot.y, hip.z),
+    swimming,
   }
 }
 
@@ -71,12 +85,16 @@ export function buildLegs(m: Mesher, layout: LegLayout): void {
     tube(m, hip, knee, r * 1.5, r * 1.1, 'legs', 0.5, 0.5, [[B.tibia, 1]])
     tube(m, knee.clone().add(new THREE.Vector3(0.6 * r, 0, 0)), knee.clone().add(new THREE.Vector3(-0.6 * r, 0, 0)), r * 1.25, r * 1.25, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
     tube(m, knee, foot, r, r * 0.9, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
+    // standing, the toes spread forward along the ground; a swimmer's trail back in line with the tarsus
+    const along = layout.swimming ? new THREE.Vector3(Math.cos(SWIM_TARSUS), Math.sin(SWIM_TARSUS), 0) : new THREE.Vector3(1, 0, 0)
     for (const toe of TOES) {
       const a = toe.angle * side
-      const tip = foot.clone().add(new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).multiplyScalar(layout.toe * toe.length))
+      const tip = foot.clone().add(along.clone().multiplyScalar(Math.cos(a)).add(new THREE.Vector3(0, 0, Math.sin(a))).multiplyScalar(layout.toe * toe.length))
       tube(m, foot, tip, r * 0.7, r * 0.45, 'legs', 0.5, 0.5, [[B.toes, 1]], 5)
     }
-    const hind = foot.clone().add(new THREE.Vector3(-layout.toe * 0.25, layout.footY, 0))
+    const hind = layout.swimming
+      ? foot.clone().addScaledVector(along, -layout.toe * 0.25).add(new THREE.Vector3(0, layout.footY, 0))
+      : foot.clone().add(new THREE.Vector3(-layout.toe * 0.25, layout.footY, 0))
     tube(m, foot, hind, r * 0.6, r * 0.4, 'legs', 0.5, 0.5, [[B.toes, 1]], 5)
   }
 }

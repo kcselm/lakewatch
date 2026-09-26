@@ -33,6 +33,12 @@ export interface Anatomy {
   /** the lowest point of the body (the loft) and of the folded wing, at rest */
   bodyLowY: number
   wingLowY: number
+  /** the highest point of the back, behind the neck base, at rest */
+  backTopY: number
+  /** the frontmost point of the body (the loft from the tail to the neck base) lower than the neck base: the breast, at rest */
+  breastFront: THREE.Vector3
+  /** where the plane y = 0 (a swimmer's waterline) cuts the body in the side view: its rear and front x; 0, 0 if it misses */
+  waterline: { back: number; front: number }
   /** skin vertices from the occiput forward (the head) */
   head: THREE.Vector3[]
   /** every labelled station's spine point, and the spine itself (101 points, tail to bill base), for the viewer */
@@ -51,14 +57,18 @@ export interface DetailedBirdModel extends BirdModel {
 
 /** bone scale that hides a part: a skinned mesh cannot hide a piece of itself */
 const HIDDEN = 1e-4
+/** how far a swimmer's leg swings each way in a paddle stroke, radians: the tibia about the hip, the tarsus about the joint */
+const PADDLE_SWING = 0.5
 
 export function buildDetailedBird(spec: SpeciesSpec, variant?: string): DetailedBirdModel {
   const detail = spec.detail
   if (!detail) throw new Error(`${spec.code}: no detail block`)
-  if (spec.posture !== 'standing') throw new Error(`${spec.code}: the detailed builder supports standing birds only (posture ${spec.posture})`)
+  const swimming = spec.posture === 'swimming'
+  if (!swimming && spec.posture !== 'standing') throw new Error(`${spec.code}: the detailed builder builds standing and swimming birds only (posture ${spec.posture})`)
+  if (swimming && !detail.float) throw new Error(`${spec.code}: a swimming bird needs detail.float, its waterline`)
   if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
   const profile = createProfile(detail.profile)
-  const layout = legLayout(detail, profile)
+  const layout = legLayout(detail, profile, swimming)
 
   const m = new Mesher()
   const loft: LoftResult = buildLoft(m, profile, detail.rig)
@@ -70,8 +80,16 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const tail = buildTail(m, detail, profile)
   buildLegs(m, layout)
 
-  // profile frame -> group space: hips over the origin, feet on y = 0
-  const offset = new THREE.Vector3(-layout.hip.x, layout.standHeight + layout.footY - layout.hip.y, 0)
+  // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Swimming: the traced waterline on
+  // y = 0, and the middle of the body at the water (midway between where the water meets it at the stern and at the
+  // breast, in the side view) over the origin, where it pivots
+  let offset: THREE.Vector3
+  if (swimming) {
+    const wl = detail.float!.waterline
+    const span = m.spanAtHeight(wl, loft.indexFirst, loft.indexCount)
+    if (!span) throw new Error(`${spec.code}: the waterline (y = ${wl} m) misses the body`)
+    offset = new THREE.Vector3(-(span[0] + span[1]) / 2, -wl, 0)
+  } else offset = new THREE.Vector3(-layout.hip.x, layout.standHeight + layout.footY - layout.hip.y, 0)
   m.translate(offset)
   const at = (v: THREE.Vector3 | THREE.Vector2) => new THREE.Vector3(v.x, v.y, 'z' in v ? v.z : 0).add(offset)
   const spineAt = (label: string) => at(profile.sampleAt(profile.uOf(label)).point)
@@ -79,8 +97,12 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
 
   const hipMid = at(layout.hip).setZ(0)
   const hipR = at(layout.hip), kneeR = at(layout.knee), footR = at(layout.foot)
+  // A swimmer's body pivots at the origin, on the water under the middle of the body. Its legs gather, when hidden,
+  // a quarter of the way up from the belly to the hips: inside the body and under the water.
+  const pivot = swimming ? new THREE.Vector3() : hipMid
+  const legsAt = swimming ? at(new THREE.Vector3(layout.hip.x, layout.bellyY + 0.25 * (layout.hip.y - layout.bellyY), 0)) : hipMid
   const joints: Joints = {
-    root: hipMid.clone(), body: hipMid.clone(), legs: hipMid.clone(),
+    root: pivot.clone(), body: pivot.clone(), legs: legsAt.clone(),
     neck: spineAt(detail.rig.neckBase), neckMid: spineAt(detail.rig.neckMid), head: spineAt(detail.rig.head),
     bill: at(bill.base), tail: at(tail.root),
     wingFoldR: at(fold.wrist), wingFoldL: mirror(at(fold.wrist)),
@@ -106,20 +128,28 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   }
 
   const headStart = profile.uOf('occiput')
+  const neckStart = profile.uOf(detail.rig.neckBase), neckY = spineAt(detail.rig.neckBase).y
   const headVerts: THREE.Vector3[] = []
-  let bodyLowY = Infinity
+  let bodyLowY = Infinity, backTopY = -Infinity
+  const breastFront = new THREE.Vector3(-Infinity, 0, 0)
   loft.ringU.forEach((u, i) => {
-    for (let j = 0; j < RADIAL; j++) bodyLowY = Math.min(bodyLowY, m.position(loft.first + i * RADIAL + j).y)
+    for (let j = 0; j < RADIAL; j++) {
+      const p = m.position(loft.first + i * RADIAL + j)
+      bodyLowY = Math.min(bodyLowY, p.y)
+      if (u <= neckStart) backTopY = Math.max(backTopY, p.y)
+      if (u <= neckStart && p.y < neckY && p.x > breastFront.x) breastFront.copy(p)
+    }
     if (u < headStart) return
     for (let j = 0; j < RADIAL; j++) headVerts.push(m.position(loft.first + i * RADIAL + j))
   })
+  const water = m.spanAtHeight(0, loft.indexFirst, loft.indexCount) ?? [0, 0]
   const anatomy: Anatomy = {
     billBase: at(bill.base), billTip: at(bill.tip), billDir: bill.dir.clone(), billUp: bill.up.clone(),
     billBaseRing: bill.baseRing.map(v => v.clone().add(offset)),
     tailRoot: at(tail.root), tailTip: at(tail.tip),
     wrist: at(fold.wrist), wingTip: at(fold.tip),
     hip: hipR, knee: kneeR, foot: footR, bellyY: layout.bellyY + offset.y,
-    bodyLowY, wingLowY: fold.low + offset.y,
+    bodyLowY, wingLowY: fold.low + offset.y, backTopY, breastFront, waterline: { back: water[0], front: water[1] },
     head: headVerts,
     stations: detail.profile.flatMap(s => (s.label ? [{ label: s.label, position: spineAt(s.label) }] : [])),
     spine: Array.from({ length: 101 }, (_, k) => at(profile.sampleAt(k / 100).point)),
@@ -147,22 +177,24 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const headToTip = at(bill.tip).sub(joints.head)
   const tipReach = Math.hypot(headToTip.x, headToTip.y)
   const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(bill.dir.y, bill.dir.x)
-  // where the head-to-tip line points when the bill itself points straight down
-  const floor = -Math.PI / 2 + tipOffAxis
-  // a reach aims the bill tip this far below the ground; the solvers aim at y = 0, so they work in a frame raised by it
-  const depth = detail.probeDepth ?? 0
+  // a reach aims the bill tip below the ground by the species' probeDepth and the pose's reachDepth; the solvers aim at
+  // y = 0, so they work in a frame raised by it
+  const probeDepth = detail.probeDepth ?? 0
   const toGroup = new THREE.Matrix4()
   const pN = new THREE.Vector3(), pM = new THREE.Vector3(), pH = new THREE.Vector3(), pT = new THREE.Vector3()
   const inGroup = (b: THREE.Bone, out: THREE.Vector3) => b.getWorldPosition(out).applyMatrix4(toGroup)
 
   /**
    * A peck or strike reaching down (`w` 0..1), moving no more of the bird than it needs: the head tips the bill down,
-   * and only if a bill pointing straight down still can't reach its mark (`probeDepth` below the ground, y = 0 in
-   * group space) does the neck swing forward and down, just far enough for it to (or as far as MAX_NECK_SWING allows).
-   * Then the head tips the bill onto the mark: back up if a deep lean would push it further, and never past straight
-   * down, where it stops short if the mark is out of reach.
+   * and only if a bill pointing as steeply as it may (`reachAngle` below level; straight down for every peck) still
+   * can't reach its mark (`depth` below the ground or water, y = 0 in group space) does the neck swing forward and down,
+   * just far enough for it to (or as far as MAX_NECK_SWING allows). Then the head tips the bill onto the mark: back up
+   * if a deep lean would push it further, and never steeper than `reachAngle`, where it stops short if the mark is out
+   * of reach.
    */
-  function reachDown(w: number) {
+  function reachDown(w: number, depth: number, reachAngle: number) {
+    // where the head-to-tip line points when the bill itself points reachAngle below level
+    const floor = -reachAngle + tipOffAxis
     group.updateMatrixWorld(true)
     toGroup.copy(group.matrixWorld).invert()
     inGroup(bones.neck, pN); inGroup(bones.neckMid, pM); inGroup(bones.head, pH)
@@ -192,8 +224,22 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     toes.rotation.z = -(beta - beta0)
   }
 
+  const legsRest = bones.legs.position.clone()
+
+  /** A swimmer's legs: hidden at paddle 0; shown, folded back and going wherever the body goes, paddling alternately. */
+  function paddleLegs(st: PoseState) {
+    const paddle = THREE.MathUtils.clamp(st.paddle, 0, 1)
+    bones.legs.scale.setScalar(paddle > 0 ? 1 : HIDDEN)
+    // the legs hang from root, so a standing bird's feet stay planted while it leans; a swimmer's follow its body
+    bones.legs.quaternion.copy(bones.body.quaternion)
+    bones.legs.position.copy(legsRest).sub(bones.body.position).applyQuaternion(bones.body.quaternion).add(bones.body.position)
+    const stroke = paddle * PADDLE_SWING * Math.sin(st.paddlePhase * Math.PI * 2)
+    bones.tibiaR.rotation.z = stroke; bones.tarsusR.rotation.z = stroke
+    bones.tibiaL.rotation.z = -stroke; bones.tarsusL.rotation.z = -stroke
+  }
+
   function pose(st: PoseState) {
-    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips
+    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
     bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
     // neck: 0.5 is the traced rest posture. Tucking draws the head down into the shoulders; extending
     // lengthens the neck a little and tips it forward, so a strike reaches out and down.
@@ -207,7 +253,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.head.position.x += st.headBob * bodyLength
     bones.neckMid.rotation.z = 0
     const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
-    if (reach > 0) reachDown(smooth(reach))
+    if (reach > 0) reachDown(smooth(reach), probeDepth + Math.max(0, st.reachDepth), THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
     bones.tail.rotation.z = st.tailTilt
     // wings: folded shell at rest, the spread planform once the wings open
     const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)
@@ -218,6 +264,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.wingL.rotation.x = flap
     bones.wingR.rotation.x = -flap
     // legs
+    if (swimming) { paddleLegs(st); return }
     if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
     const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
     setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, right.x, right.y)

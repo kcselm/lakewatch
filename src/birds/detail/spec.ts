@@ -85,6 +85,11 @@ export const detailSchema = z.object({
   stepLength: pos.optional(),
   /** how far below the ground the bill tip goes at the bottom of a reach, metres; a prober pushes its bill into the mud */
   probeDepth: z.number().min(0).optional(),
+  /**
+   * A swimmer's waterline: its height in the traced side view (the profile frame), metres, where the water meets the
+   * bird in the reference photo. The builder puts it at y = 0. Required for a species whose posture is 'swimming'.
+   */
+  float: z.object({ waterline: z.number() }).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
   sources: z.array(z.string().min(1)).min(1),

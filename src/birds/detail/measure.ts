@@ -26,6 +26,21 @@ export interface Measures {
   joint: number
   belly: number
   wingLow: number
+  /**
+   * Floating, how high above the water (y = 0): the highest point of the back behind the neck base; the crown (the
+   * highest point of the head); the tail tip (for a bird with no tail, the rearmost point of the body); the folded
+   * wingtip; and the front of the breast (the frontmost point of the body, from the tail to the neck base, that lies
+   * below the neck base). A standing bird reports them too, above the ground, where they mean little.
+   */
+  backAbove: number
+  crownAbove: number
+  tailTipAbove: number
+  wingTipAbove: number
+  breastFrontAbove: number
+  /** floating, how deep the lowest point of the body sits under the water (positive) */
+  draft: number
+  /** floating, the body's length along the water (y = 0) in the side view; 0 when the water misses it */
+  waterlineLength: number
 }
 
 export function measure(model: DetailedBirdModel): Measures {
@@ -55,6 +70,13 @@ export function measure(model: DetailedBirdModel): Measures {
     joint: a.knee.y,
     belly: a.bodyLowY,
     wingLow: a.wingLowY,
+    backAbove: a.backTopY,
+    crownAbove: Math.max(...a.head.map(v => v.y)),
+    tailTipAbove: a.tailTip.y,
+    wingTipAbove: a.wingTip.y,
+    breastFrontAbove: a.breastFront.y,
+    draft: -a.bodyLowY,
+    waterlineLength: a.waterline.front - a.waterline.back,
   }
 }
 
@@ -64,6 +86,17 @@ export function billTipNow(model: DetailedBirdModel): THREE.Vector3 {
   const toGroup = model.group.matrixWorld.clone().invert()
   // the bill bone sits at the bill base and carries no rotation at rest
   return model.anatomy.billTip.clone().sub(model.anatomy.billBase).applyMatrix4(model.parts.bill.matrixWorld).applyMatrix4(toGroup)
+}
+
+/**
+ * Where the tail tip is now, in group space (on the water, or the ground), after the model's last pose(): the stern of
+ * a tipped-up duck. For a bird with no tail, the rearmost point of its body.
+ */
+export function tailTipNow(model: DetailedBirdModel): THREE.Vector3 {
+  model.group.updateMatrixWorld(true)
+  const toGroup = model.group.matrixWorld.clone().invert()
+  // the tail bone sits at the tail root and carries no rotation at rest
+  return model.anatomy.tailTip.clone().sub(model.anatomy.tailRoot).applyMatrix4(model.parts.tail.matrixWorld).applyMatrix4(toGroup)
 }
 
 /** Where the bill points now, radians from level in the side view (negative is down), after the model's last pose(). */

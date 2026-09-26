@@ -3,7 +3,7 @@ import { buildDetailedBird } from './build'
 import { measure, billTipNow, billAngleNow } from './measure'
 import { signedVolume } from './mesher'
 import { BONE_NAMES } from './rig'
-import { TEST_SPEC, TEST_DETAIL } from './fixture'
+import { TEST_SPEC, TEST_DETAIL, TEST_SWIM_SPEC, TEST_SWIM_DETAIL } from './fixture'
 import { parseSpeciesSpec } from '../spec'
 import { defaultPose, type PoseState } from '../model'
 import { birdModelContract } from '../contract.testkit'
@@ -173,7 +173,10 @@ describe('buildDetailedBird', () => {
     expect(billTipNow(m).distanceTo(m.anatomy.billTip)).toBeLessThan(1e-9)
   })
   it('refuses what it cannot build', () => {
-    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'swimming' }))).toThrow(/standing/)
+    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'perched' }))).toThrow(/standing and swimming/)
+    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'swimming' }))).toThrow(/detail.float/)
+    const sunk = { ...TEST_SWIM_DETAIL, float: { waterline: 1 } }
+    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SWIM_SPEC, detail: sunk }))).toThrow(/misses the body/)
     expect(() => buildDetailedBird(TEST_SPEC, 'male')).toThrow(/variant/)
     expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, detail: undefined }))).toThrow(/detail/)
   })

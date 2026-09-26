@@ -19,10 +19,21 @@ export interface PoseState {
   gait: number
   /** 0 .. 1, how far a peck or strike has reached toward the ground; at 1 the bill tip is on it */
   reach: number
+  /** 0 legs hidden (floating) .. 1 legs shown and paddling; only swimmers set it */
+  paddle: number
+  /** 0..1 paddle stroke cycle, advanced by the behaviour like wingPhase */
+  paddlePhase: number
+  /** metres below the ground or water surface a reach aims, added to the species' probeDepth; 0 = the surface itself */
+  reachDepth: number
+  /** the steepest the bill may point during a reach, radians below level; PI/2 = straight down (every existing peck) */
+  reachAngle: number
 }
 
 export function defaultPose(): PoseState {
-  return { wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0 }
+  return {
+    wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2,
+  }
 }
 
 export interface BirdParts {
