@@ -22,15 +22,17 @@ export interface ViewerState {
   walk: boolean
   /** walking speed, m/s */
   speed: number
-  water: boolean; wire: boolean; skel: boolean; uv: boolean; atlas: boolean; stations: boolean
+  /** depth of the water over the ground, metres; 0 hides it */
+  water: number
+  wire: boolean; skel: boolean; uv: boolean; atlas: boolean; stations: boolean
 }
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
-  neck: [0, 1], lean: [0, 1], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2],
+  neck: [0, 1], lean: [0, 1], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
-const FLAGS = ['walk', 'water', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
+const FLAGS = ['walk', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
 const STRINGS = ['a', 'av', 'b', 'bv'] as const
 
 /** What the viewer can show: species codes it knows, and each one's plumages. */
@@ -42,6 +44,8 @@ export interface Catalog { has(code: string): boolean; variants(code: string): s
  */
 export function parseState(hash: string, defaults: ViewerState, catalog?: Catalog): ViewerState {
   const p = new URLSearchParams(hash.replace(/^#/, ''))
+  // water was once an on-off flag for a plane 3 cm up; an old link still shows it there
+  if (p.get('water') === '1') p.set('water', '0.03')
   const s: ViewerState = { ...defaults }
   for (const k of STRINGS) { const v = p.get(k); if (v !== null) s[k] = v }
   if (catalog) {
