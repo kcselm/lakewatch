@@ -10,8 +10,14 @@ export class RippleBuffer {
 
   get rings(): readonly Ripple[] { return this.list }
 
+  /** Add a ring; when full, make room by dropping the one nearest the end of its own life (not simply the oldest). */
   spawn(x: number, z: number, size = 1): void {
-    if (this.list.length >= this.max) this.list.shift()
+    if (this.list.length >= this.max) {
+      const used = (r: Ripple) => r.age / (RIPPLE_LIFE * r.size)
+      let worn = 0
+      this.list.forEach((r, i) => { if (used(r) > used(this.list[worn]!)) worn = i })
+      this.list.splice(worn, 1)
+    }
     this.list.push({ x, z, age: 0, size })
   }
 
