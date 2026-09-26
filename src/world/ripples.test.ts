@@ -17,12 +17,25 @@ describe('RippleBuffer', () => {
     r.spawn(2, 2)
     expect(r.rings.map(x => x.x)).toEqual([1, 2])
   })
-  it('packs into a float array with age and padding', () => {
+  it('packs into a float array with age and size', () => {
     const r = new RippleBuffer(2)
     r.spawn(3, 4)
     const out = new Float32Array(8)
     r.pack(out)
-    expect(Array.from(out.slice(0, 4))).toEqual([3, 4, 0, 0])
+    expect(Array.from(out.slice(0, 4))).toEqual([3, 4, 0, 1])
     expect(out[6]).toBe(99)   // empty slot age sentinel: never rendered
+  })
+  it('keeps a small ring, a bill going into the water, for its share of a full ring life', () => {
+    const r = new RippleBuffer(4)
+    r.spawn(0, 0, 0.4)
+    r.spawn(1, 1)
+    r.update(0.9)
+    expect(r.rings.map(x => x.size)).toEqual([0.4, 1])
+    r.update(0.2)                                    // 1.1 s: past the small ring's 0.4 x 2.5 s
+    expect(r.rings.map(x => x.size)).toEqual([1])
+    const out = new Float32Array(16)
+    r.spawn(2, 2, 0.4)
+    r.pack(out)
+    expect(out[7]).toBeCloseTo(0.4, 6)
   })
 })
