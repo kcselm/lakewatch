@@ -112,7 +112,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
-      onRipple: (x, z) => deps.ripples.spawn(x, z),
+      onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
       group: ind.behavior === 'probe' ? groups.get(ind.groupKey) : undefined,
       perch,
       ...speciesTraits(ind.species),

@@ -44,11 +44,13 @@ void main() {
   float ring = 0.0;
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     vec4 r = uRipples[i];
-    if (r.z > ${RIPPLE_LIFE.toFixed(1)}) continue;
+    // w is the ring's size: a small one (a bill going in) spreads slower, fades sooner, and is fainter
+    float life = ${RIPPLE_LIFE.toFixed(1)} * r.w;
+    if (r.z > life) continue;
     float d = distance(p, r.xy);
-    float radius = r.z * 1.1;
-    float fade = 1.0 - r.z / ${RIPPLE_LIFE.toFixed(1)};
-    ring += smoothstep(0.12, 0.0, abs(d - radius)) * fade * 0.6;
+    float radius = r.z * 1.1 * r.w;
+    float fade = 1.0 - r.z / life;
+    ring += smoothstep(0.12 * r.w, 0.0, abs(d - radius)) * fade * 0.6 * r.w;
   }
   // Perturbed normal from the height field
   float e = 0.15;
@@ -77,7 +79,7 @@ void main() {
 
 export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBuffer): WorldModule & { object: THREE.Mesh } {
   const packed = new Float32Array(MAX_RIPPLES * 4)
-  const rippleUniform = Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4(0, 0, 99, 0))
+  const rippleUniform = Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4(0, 0, 99, 1))
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       ...wind.uniforms,
@@ -101,7 +103,7 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
     update(dt) {
       ripples.update(dt)
       ripples.pack(packed)
-      for (let i = 0; i < MAX_RIPPLES; i++) rippleUniform[i]!.set(packed[i * 4]!, packed[i * 4 + 1]!, packed[i * 4 + 2]!, 0)
+      for (let i = 0; i < MAX_RIPPLES; i++) rippleUniform[i]!.set(packed[i * 4]!, packed[i * 4 + 1]!, packed[i * 4 + 2]!, packed[i * 4 + 3]!)
     },
   }
 }

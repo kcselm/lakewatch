@@ -3,5 +3,7 @@
   "leasan": ["wetland", "shoreline"],
   "wessan": ["wetland", "shoreline"],
   "greyel": ["wetland", "shoreline"],
-  "lesyel": ["wetland", "shoreline"]
+  "lesyel": ["wetland", "shoreline"],
+  "lobdow": ["wetland", "shoreline"],
+  "pecsan": ["wetland", "shoreline"]
 }

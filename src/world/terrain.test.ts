@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { lakeHeightfield } from './heightfield'
+import { lakeHeightfield, BENCH } from './heightfield'
 import { createTerrain, terrainSurface } from './terrain'
 
 describe('terrainSurface', () => {
@@ -19,6 +19,11 @@ describe('terrainSurface', () => {
     for (let x = 17; x <= 24; x += 0.37) for (let z = -10.6; z <= -6; z += 0.29) points.push([x, z])
     for (let i = 0; i < 200; i++) points.push([-60 + ((i * 37) % 120) + 0.13, -120 + ((i * 53) % 150) + 0.71])
     for (const [x, z] of points) expect(surface.sample(x, z), `(${x}, ${z})`).toBeCloseTo(rendered(x, z), 6)
+  }, 30_000)   // about 460 rays against the 80,000-triangle terrain: past the 5 s default in a busy full run
+  it('renders the dowitcher bench flat: its top covers whole cells of the mesh', () => {
+    for (let x = BENCH.x[0]; x <= BENCH.x[1]; x += 0.25) {
+      for (let z = BENCH.z[0]; z <= BENCH.z[1]; z += 0.25) expect(surface.sample(x, z), `(${x}, ${z})`).toBeCloseTo(-BENCH.depth, 6)
+    }
   })
   it('matches the smooth field at the mesh vertices', () => {
     for (const [x, z] of [[20, -8], [0, 0], [-30, -40]] as const) expect(surface.sample(x, z)).toBeCloseTo(hf.sample(x, z), 9)

@@ -4,6 +4,7 @@ import { BirdRegistry } from './registry'
 import { Wind } from '../world/wind'
 import { RippleBuffer } from '../world/ripples'
 import type { Location } from '../location/schema'
+import { STYLES } from '../behavior/probe'
 
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
@@ -146,5 +147,16 @@ describe('spawnCast flocks', () => {
     expect(calls.filter(c => c === 'flockEnd')).toHaveLength(1)
     expect(calls[calls.length - 1]).toBe('flockEnd')
     expect(key).toBe('cast0')
+  })
+})
+
+describe('spawnCast rings', () => {
+  it("hands a ring's size on to the ripple buffer: a dowitcher's bill makes a small ring", () => {
+    const l: Location = { ...loc([{ species: 'lobdow', behavior: 'probe', zone: 'w', count: 1 }]), zones: { w: { kind: 'polygon', points: [[0, 0], [4, 0], [4, 4], [0, 4]] } } }
+    const wind = new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 })
+    const ripples = new RippleBuffer()
+    const world = spawnCast(l, { registry: new BirdRegistry(), wind, ground: () => -0.045, ripples, seed: 1 })
+    for (let i = 0; i < 30 * 30 && ripples.rings.length === 0; i++) world.update(1 / 30, wind)
+    expect(ripples.rings.map(r => r.size)).toEqual([STYLES.dowitcher.ripple.size])
   })
 })

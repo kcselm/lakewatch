@@ -18,7 +18,7 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, walk: false, speed: 0.35,
-  water: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  water: 0, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 let state = parseState(location.hash, DEFAULTS, { has: hasSpec, variants: c => Object.keys(getSpec(c).variants) })
 const save = () => history.replaceState(null, '', stateHash(state))
@@ -43,7 +43,6 @@ const grid = new THREE.GridHelper(4, 80, '#6f685a', '#7c7566')
 grid.position.y = 0.0005
 const water = new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI / 2),
   new THREE.MeshStandardMaterial({ color: '#6f8a93', roughness: 0.15, transparent: true, opacity: 0.55 }))
-water.position.y = 0.03
 scene.add(ground, grid, water)
 
 const camera = new THREE.PerspectiveCamera(20, 1, 0.01, 500)
@@ -108,7 +107,8 @@ function build(): void {
 }
 
 function applyLook(): void {
-  water.visible = state.water
+  water.visible = state.water > 0
+  water.position.y = state.water
   spine.visible = state.stations
   for (const s of slots) {
     if (s.skeleton) s.skeleton.visible = state.skel
@@ -229,7 +229,7 @@ const cam = group('Camera')
 select(cam, 'view', VIEWS.map(v => [v, v] as [string, string]), state.view, v => set({ view: v as ViewerState['view'] }))
 select(cam, 'field view', [['', 'off (orbit)'], ...Object.entries(FIELD_VIEWS).map(([k, f]) => [k, f.label] as [string, string])], state.field,
   v => set({ field: v as ViewerState['field'] }))
-check(cam, 'shallow water', state.water, v => set({ water: v }))
+slider(cam, 'water depth, cm', state.water * 100, v => set({ water: v / 100 }), 0, 10, 0.5)
 const pose = group('Pose')
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
 slider(pose, 'lean', state.lean, v => set({ lean: v }))

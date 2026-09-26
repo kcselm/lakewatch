@@ -1018,6 +1018,35 @@ July-August comparison sample (15 July-20 August): 126831012 (2022-07-18), 12725
 
 ---
 
+## Appendix: Harvest notes
+
+All 16 ids on the `rejected` list in `data/reviews.json` are **Pectoral Sandpiper** recordings from xeno-canto, rejected during the harvest (plan Task 6). Every Long-billed Dowitcher clip was kept. Each clip was judged on its xeno-canto metadata and a spectrogram of the 10 s game clip, not by ear.
+
+`selectClips` alternates song and call, and the Pectoral's xeno-canto songs are almost all Alaska breeding-display recordings. So each refill of the song slot pulled another display song, which an early-autumn lake never hears. The first two were harvested and rejected. The other 14 were screened ahead of the harvest and rejected on the same evidence, so one re-run pulled two autumn *krrip* calls (XC686790 and XC109918).
+
+| XC id | Reason |
+|---|---|
+| XC1050169 | Recorded "in the hand" (a handled bird). A loud hum near 800 Hz runs throughout, about 10 dB above the weak bird notes. Not a natural *krrip*. |
+| XC1010231 | Breeding-ground "song" (North Slope, Alaska, June). Dim tonal notes near 3.3 kHz and no *krrip*: the wrong call. |
+| XC1010230 | Display song (North Slope, June): tonal harmonic stacks, fundamental near 1.3 kHz, in repeated bursts. |
+| XC1010210 | Display song (Utqiagvik, June): a loud 200-400 Hz hoot band and tonal trills, with heavy wind noise. |
+| XC406470 | Display song (Barrow, June): a pulsed hoot series near 400 Hz through most of the clip. |
+| XC406471 | Display song (Barrow, June): a harmonic pulse series, then loud low wind rumble. |
+| XC406469 | Display song (Barrow, June): regular block notes at 1.4-2.2 kHz over a low hoot band. |
+| XC406468 | Display song (Barrow, June): a hoot series near 300 Hz and loud low noise, with other birds later. |
+| XC406466 | Display song (Barrow, June): almost only a faint hoot series near 300 Hz. |
+| XC406464 | Display song (Barrow, June): display hooting near 300 Hz fills the middle of the clip, with only a few *krrip*-like notes. |
+| XC406461 | Display song (Barrow, June): tonal whistles at 2-4 kHz, then a hoot series. |
+| XC51882 | *Krrip* bursts are present (Salta, Argentina, a commercial-CD cut), but another species calls throughout at similar strength, over an insect band and a dense chorus at the end. |
+| XC1060874 | Display song (Utqiagvik): hoots, then a dense buzzy trill, with Lapland Longspur, Pacific Loon and Northern Pintail behind. |
+| XC1046340 | Display song (Utqiagvik): a loud hoot series near 300-400 Hz, with White-fronted Goose behind. |
+| XC987132 | Recorded "in the hand" (Entre Ríos, Argentina). *Krrip*-like notes, but a loud insect band near 7.5 kHz throughout, five other species, and a spliced silent gap. |
+| XC426277 | Display song (Utqiagvik) with a singing Dunlin and calling Red Phalaropes: the recordist's own remark. |
+
+The list was added in the harvest commit (`6a64f40`). Its working notes, with each clip's full metadata and measured band levels, were not committed; this table is the record.
+
+---
+
 ## References
 
 - **[Ridgway 1919]** Ridgway, R. 1919. *The Birds of North and Middle America*, Part VIII. Bulletin of the United States National Museum 50(8).

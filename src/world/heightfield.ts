@@ -6,6 +6,20 @@ export interface Heightfield {
 
 function smooth(t: number) { return t * t * (3 - 2 * t) }
 
+/**
+ * A flat shelf under the water just past the shallows, where the dowitchers feed belly-deep: `depth` metres down over
+ * [x0, x1] by [z0, z1], easing back into the lake bed over a metre. Its edges sit on the terrain mesh's 2 m grid (even
+ * coordinates), so its top covers whole cells and renders flat.
+ */
+export const BENCH = { depth: 0.045, x: [18, 26], z: [-14, -12] } as const
+
+/** 1 over [a, b], easing to 0 within `margin` outside it */
+function plateau(v: number, a: number, b: number, margin = 1): number {
+  const rise = Math.min(1, Math.max(0, (v - (a - margin)) / margin))
+  const fall = Math.min(1, Math.max(0, (b + margin - v) / margin))
+  return smooth(rise) * smooth(fall)
+}
+
 /** 2D value noise, 0..1. */
 export function valueNoise2(x: number, z: number, seed: number): number {
   const xi = Math.floor(x), zi = Math.floor(z)
@@ -20,7 +34,8 @@ function fbm(x: number, z: number, seed: number): number {
   return 0.6 * valueNoise2(x, z, seed) + 0.3 * valueNoise2(x * 2.1, z * 2.1, seed + 1) + 0.1 * valueNoise2(x * 4.3, z * 4.3, seed + 2)
 }
 
-export function lakeHeightfield(seed: number): Heightfield {
+/** The lake's ground; `bench: false` leaves out the dowitchers' bench, to compare the lake bed around it. */
+export function lakeHeightfield(seed: number, { bench: withBench = true }: { bench?: boolean } = {}): Heightfield {
   return {
     sample(x, z) {
       // Basin: an ellipse centred at (2, -36), radii 44 x 32. Inside is below water.
@@ -36,6 +51,9 @@ export function lakeHeightfield(seed: number): Heightfield {
       const mx = (x - 20) / 12, mz = (z + 8) / 6
       const mud = Math.exp(-(mx * mx + mz * mz))
       y = y * (1 - mud) + 0.08 * mud
+      // Bench: blended the same way, so its top stays flat
+      const bench = withBench ? plateau(x, BENCH.x[0], BENCH.x[1]) * plateau(z, BENCH.z[0], BENCH.z[1]) : 0
+      y = y * (1 - bench) - BENCH.depth * bench
       // Far shore: rise beyond z = -62
       if (z < -62) y += Math.min(3, (-62 - z) * 0.35)
       return y

@@ -9,7 +9,7 @@ export const plumageSchema = z.object({
 })
 
 /** how a species feeds when the cast puts it on `probe` */
-export const FORAGING = ['plover', 'sandpiper'] as const
+export const FORAGING = ['plover', 'sandpiper', 'dowitcher'] as const
 export type Foraging = (typeof FORAGING)[number]
 
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const

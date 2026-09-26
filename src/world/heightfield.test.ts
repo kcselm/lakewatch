@@ -1,4 +1,4 @@
-import { lakeHeightfield, terrainColor, valueNoise2 } from './heightfield'
+import { lakeHeightfield, terrainColor, valueNoise2, BENCH } from './heightfield'
 
 describe('lakeHeightfield', () => {
   const hf = lakeHeightfield(1)
@@ -10,6 +10,17 @@ describe('lakeHeightfield', () => {
     const y = hf.sample(20, -8)
     expect(y).toBeGreaterThan(0)
     expect(y).toBeLessThan(0.4)
+  })
+  it('lays a flat bench under a few centimetres of water just past the shallows, where the dowitchers feed', () => {
+    for (let x = BENCH.x[0]; x <= BENCH.x[1]; x += 0.5) {
+      for (let z = BENCH.z[0]; z <= BENCH.z[1]; z += 0.25) expect(hf.sample(x, z), `(${x}, ${z})`).toBeCloseTo(-BENCH.depth, 9)
+    }
+    // it eases back into the lake bed within a metre: 2 m out on every side (the shallows' own grid row, the deep water
+    // beyond, and either end) the ground is exactly the lake bed without the bench, while half a metre out it is not
+    const bed = lakeHeightfield(1, { bench: false })
+    const around: [number, number][] = [[22, BENCH.z[1] + 2], [22, BENCH.z[0] - 2], [BENCH.x[0] - 2, -13], [BENCH.x[1] + 2, -13]]
+    for (const [x, z] of around) expect(hf.sample(x, z), `(${x}, ${z})`).toBe(bed.sample(x, z))
+    expect(hf.sample(22, BENCH.z[1] + 0.5)).not.toBe(bed.sample(22, BENCH.z[1] + 0.5))
   })
   it('rises on the far shore', () => {
     expect(hf.sample(0, -66)).toBeGreaterThan(0.5)

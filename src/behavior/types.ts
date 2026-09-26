@@ -8,7 +8,8 @@ export interface BehaviorContext {
   rng: Rng
   wind: () => { dirX: number; dirZ: number; effective: number }
   ground: (x: number, z: number) => number
-  onRipple?: (x: number, z: number) => void
+  /** a ring on the water at (x, z); `size` (0..1, default 1) for a smaller ring than a swimming bird's */
+  onRipple?: (x: number, z: number, size?: number) => void
   group?: { targetX: number; targetZ: number; retargetAt: number }
   /** world-space perch point for perch and hover; the spawner resolves it from the point zone */
   perch?: Vec3

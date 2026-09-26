@@ -22,6 +22,10 @@ export interface Measures {
   tail: number
   /** how far the folded wingtip reaches past the tail tip, along the tail */
   projection: number
+  /** standing, how high above the ground: the intertarsal joint, the lowest point of the body, and of the folded wing */
+  joint: number
+  belly: number
+  wingLow: number
 }
 
 export function measure(model: DetailedBirdModel): Measures {
@@ -48,6 +52,9 @@ export function measure(model: DetailedBirdModel): Measures {
     wingChord: a.wrist.distanceTo(a.wingTip),
     tail: a.tailRoot.distanceTo(a.tailTip),
     projection: a.wingTip.clone().sub(a.tailTip).dot(tailAxis),
+    joint: a.knee.y,
+    belly: a.bodyLowY,
+    wingLow: a.wingLowY,
   }
 }
 
