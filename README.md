@@ -28,8 +28,10 @@ harvest scripts. `data/ambience.json` is the ambience manifest.
 `src/birds/species/*.ts` are the bird models: block specs for most species,
 and for converted ones a `detail` block (traced profile, measurements,
 field-mark layers) that the detailed builder turns into a skinned, painted
-bird. `npm run dev`, then `/viewer.html`, opens the model viewer: any two
-species at true scale, through the game's optics, over a reference photo.
+bird. A probing species can also set `probeDepth`, how far (in metres) its
+bill goes into the mud at the bottom of a peck. `npm run dev`, then
+`/viewer.html`, opens the model viewer: any two species at true scale,
+through the game's optics, over a reference photo.
 
 ### Harvest
 

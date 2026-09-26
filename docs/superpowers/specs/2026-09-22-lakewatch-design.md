@@ -159,12 +159,14 @@ Each is a module with one job and an `update(dt, wind)` entry point.
 - **Wind**: owns direction, base strength, and a gust curve from seeded
   noise. Exposes a small uniform block that every other component reads.
   Nothing animates independently of it.
-- **Terrain**: heightfield mesh for bank, mudflat, far shore. Vertex color
+- **Terrain**: heightfield mesh for bank, mudflat, far shore, and a flat
+  underwater bench past the shallows where the dowitchers feed. Vertex color
   by height and slope (mud, gravel, grass).
 - **Water**: custom shader. Sky-gradient reflection, animated ripple normals
   whose direction and amplitude follow the wind, depth-based color toward
-  shore, wind streaks during gusts, ripple rings spawned by swimming birds.
-  No reflection render pass.
+  shore, wind streaks during gusts, ripple rings spawned by swimming birds,
+  and small, short ones where a dowitcher's bill goes in. No reflection
+  render pass.
 - **Vegetation**: instanced reed and grass blades with vertex-shader sway.
   Gusts roll across the bed as a moving front rather than in sync. Noise
   tint so the bed is not uniform.
@@ -222,8 +224,9 @@ Three implementations:
 ### Animation
 
 Procedural curves blended into `PoseState` by the behavior: wingbeat,
-coot head-pump, heron neck extend and strike, plover run-stop-look-peck, sandpiper walk-and-pick,
-dabbler tip-up, preen and wing-stretch idles.
+coot head-pump, heron neck extend and strike, plover run-stop-look-peck,
+sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up, preen and
+wing-stretch idles.
 
 ### Behaviors
 
@@ -231,7 +234,7 @@ dabbler tip-up, preen and wing-stretch idles.
 |---|---|
 | swim | Wander in a water zone, drift downwind, dabble or dive occasionally, spawn ripple rings |
 | wade | Slow steps along a shore zone, long stillness, strike |
-| probe | Forage the mudflat in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together |
+| probe | Forage in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together; a dowitcher stands belly-deep in a tight flock and stitches, its bill going down and up and its head dipping into the water |
 | perch | Sit on the snag, shuffle, stretch, short loop flight and return |
 | flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. Instanced, per-bird wingbeat phase |
 | hover | Hold over water, dive, return to perch |
