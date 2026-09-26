@@ -30,6 +30,16 @@ describe('parseLocation', () => {
     const bad = { ...base, cast: [{ ...base.cast[0], count: 0 }] }
     expect(() => parseLocation(bad)).toThrow()
   })
+  it('takes plumage as one version, mixed, or a count of birds for each version', () => {
+    for (const plumage of ['male', 'mixed', { male: 1, female: 2 }]) {
+      expect(parseLocation({ ...base, cast: [{ ...base.cast[0], plumage }] }).cast[0]!.plumage).toEqual(plumage)
+    }
+  })
+  it('rejects a version count that is not a whole number of birds', () => {
+    for (const plumage of [{ male: 1.5 }, { male: 0 }, { male: -1 }, { male: 'two' }, ['male']]) {
+      expect(() => parseLocation({ ...base, cast: [{ ...base.cast[0], plumage }] }), JSON.stringify(plumage)).toThrow(/plumage/)
+    }
+  })
   it('rejects wind strength outside 0..1', () => {
     const bad = { ...base, wind: { ...base.wind, strength: 1.5 } }
     expect(() => parseLocation(bad)).toThrow()

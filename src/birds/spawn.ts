@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Location, Behavior, LaneZone, Vec3 } from '../location/schema'
+import type { Location, Behavior, LaneZone, Vec3, CastEntry } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
@@ -39,11 +39,28 @@ export interface FlockEntry { species: string; variant?: string; zone: string; c
 
 export const DEFAULT_FLOCK_EVERY: [number, number] = [120, 300]
 
-function pickVariant(species: string, plumage: string | undefined, rng: Rng): string | undefined {
+/** One version for a bird: the one named, a random pick for `mixed`, or none (counts per version are for versionsFor). */
+function pickVariant(species: string, plumage: CastEntry['plumage'], rng: Rng): string | undefined {
+  if (typeof plumage === 'object') return undefined
   const variants = hasSpec(species) ? Object.keys(getSpec(species).variants) : []
   if (plumage === 'mixed' && variants.length > 0) return variants[Math.floor(rng() * variants.length)]
   if (plumage && plumage !== 'mixed' && variants.includes(plumage)) return plumage
   return undefined
+}
+
+/**
+ * A version for each bird of an entry. Counts per version are dealt out exactly, in a shuffled order, so no version
+ * always lands on the same bird of the flock; a version the species doesn't have (validateCast names it) is none.
+ */
+function versionsFor(entry: CastEntry, rng: Rng): (string | undefined)[] {
+  if (typeof entry.plumage !== 'object') return Array.from({ length: entry.count }, () => pickVariant(entry.species, entry.plumage, rng))
+  const known = hasSpec(entry.species) ? Object.keys(getSpec(entry.species).variants) : []
+  const deck = Object.entries(entry.plumage).flatMap(([v, n]) => Array.from({ length: n }, () => (known.includes(v) ? v : undefined)))
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[deck[i], deck[j]] = [deck[j], deck[i]]
+  }
+  return Array.from({ length: entry.count }, (_, n) => deck[n])
 }
 
 /** Per-bird behaviors, one record per individual. Flyovers are flocks: see flockEntries. */
@@ -55,8 +72,8 @@ export function expandCast(loc: Location, rng: Rng): Individual[] {
       console.warn(`cast[${i}] ${entry.species}: behavior ${entry.behavior} is not implemented yet; skipped`)
       return
     }
-    for (let n = 0; n < entry.count; n++) {
-      out.push({ species: entry.species, variant: pickVariant(entry.species, entry.plumage, rng), behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}` })
+    for (const variant of versionsFor(entry, rng)) {
+      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}` })
     }
   })
   return out

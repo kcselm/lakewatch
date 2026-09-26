@@ -19,7 +19,11 @@ const castEntry = z.object({
   behavior: behaviorSchema,
   zone: z.string().min(1),
   count: z.number().int().min(1),
-  plumage: z.enum(['male', 'female', 'mixed']).optional(),
+  /**
+   * one version for every bird, `mixed` for a random pick each, or how many birds wear each version (summing to
+   * `count`; validateCast checks the names and the sum)
+   */
+  plumage: z.union([z.enum(['male', 'female', 'mixed']), z.record(z.string(), z.number().int().min(1))]).optional(),
   everySeconds: z.tuple([z.number().positive(), z.number().positive()]).optional(),
   /** flyover only: pelicans fly a line, geese a V. Default line. */
   formation: z.enum(['line', 'vee']).optional(),

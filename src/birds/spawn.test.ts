@@ -28,6 +28,19 @@ describe('expandCast', () => {
     const out = expandCast(loc([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 2, plumage: 'female' }]), makeRng(3))
     expect(out.every(b => b.variant === 'female')).toBe(true)
   })
+  it('assigns exactly the counts a record gives, each version in a different spot from seed to seed', () => {
+    const orders = new Set<string>()
+    for (let seed = 1; seed <= 20; seed++) {
+      const out = expandCast(loc([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 4, plumage: { male: 1, female: 3 } }]), makeRng(seed))
+      expect(out.map(b => b.variant).sort()).toEqual(['female', 'female', 'female', 'male'])
+      orders.add(out.map(b => b.variant).join())
+    }
+    expect(orders.size).toBe(4)          // the drake has been first, second, third, and last
+  })
+  it('gives a flyover flock no version from a record (validateCast rejects one there)', () => {
+    const out = flockEntries(loc([{ species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 3, plumage: { male: 1, female: 2 } }]), makeRng(7))
+    expect(out[0]!.variant).toBeUndefined()
+  })
   it('leaves flyover entries to flockEntries', () => {
     const l = loc([{ species: 'cangoo', behavior: 'flyover', zone: 'sky', count: 5 }])
     expect(expandCast(l, makeRng(4))).toEqual([])
