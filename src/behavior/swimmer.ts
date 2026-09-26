@@ -51,14 +51,16 @@ export function createSwimmer(ctx: BehaviorContext, x: number, z: number, S: Swi
     speed: 0,
     /** this bird's own controller, so it can tell itself from its neighbours; the style sets it */
     self: null as Neighbour | null,
+    /** a neighbour it may come as close to as it likes: its partner in a shoveler's spin */
+    partner: null as Neighbour | null,
 
     /** how close this bird lets `n` come: its flock spacing for a flockmate, else the larger of the two birds' own */
     spacingTo(n: Neighbour): number {
       return n.group !== undefined && n.group === flock.group ? S.spacing.flock : Math.max(S.spacing.other, n.spacing ?? 0)
     },
-    /** the other swimmers in the zone */
+    /** the other swimmers in the zone, but for a partner */
     others(): Neighbour[] {
-      return (ctx.neighbours?.() ?? []).filter(n => n !== body.self)
+      return (ctx.neighbours?.() ?? []).filter(n => n !== body.self && n !== body.partner)
     },
     /** true when no other swimmer is closer to (px, pz) than this bird keeps, with `extra` metres to spare */
     clearAt(px: number, pz: number, extra = 0): boolean {

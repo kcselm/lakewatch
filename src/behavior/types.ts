@@ -4,10 +4,37 @@ import type { PoseState } from '../birds/model'
 import type { Foraging } from '../birds/spec'
 
 /** A flock's shared record: its target, and when the target next moves on. Flockmates hold the same object. */
-export interface FlockGroup { targetX: number; targetZ: number; retargetAt: number }
+export interface FlockGroup {
+  targetX: number; targetZ: number; retargetAt: number
+  /** two shovelers of the flock spinning together, if any are */
+  spin?: Spin
+}
 
-/** Another swimmer, as a swimmer sees it: where it is, how close it lets others come, and its flock. */
-export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'spacing' | 'group'>
+/**
+ * Two flockmates turning about their midpoint, nose to tail, `apart` metres between their centres. Both birds read it,
+ * so the pair turns as one: the first advances the turn, and the second takes its place opposite.
+ */
+export interface Spin {
+  readonly pair: readonly [Neighbour, Neighbour]
+  /** the midpoint they turn about */
+  readonly cx: number
+  readonly cz: number
+  readonly apart: number
+  /** +1 counter-clockwise seen from above, -1 clockwise, for the whole bout */
+  readonly dir: 1 | -1
+  /** radians a second */
+  readonly rate: number
+  /** the first bird's bearing from the midpoint (0 = +x, counter-clockwise from above), and its clock when it set it */
+  angle: number
+  at: number
+  /** the first bird's clock when the bout ends, or, while the two gather, when it gives up waiting */
+  ends: number
+  /** false while the two swim to their places on the circle; true once both are there and turning */
+  spinning: boolean
+}
+
+/** Another swimmer, as a swimmer sees it: where it is and faces, what it is doing, how close it lets others come, its flock. */
+export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'heading' | 'state' | 'spacing' | 'group'>
 
 export interface BehaviorContext {
   zone: Zone

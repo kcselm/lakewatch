@@ -1,0 +1,289 @@
+import type { BehaviorContext, BehaviorController, Spin } from './types'
+import { approach, between, ease, turnToward, wrap } from './types'
+import { createSwimmer, pickByShare, mid, type SwimSettings } from './swimmer'
+import { pointInPolygon } from '../location/zones'
+import type { PoseState } from '../birds/model'
+
+type Range = readonly [number, number]
+
+/** The Northern Shoveler's settings. */
+export interface ShovelerSettings extends SwimSettings {
+  cruising: { share: number }
+  loaf: { share: number; seconds: Range }
+  preen: { share: number; seconds: Range }
+  alert: { share: number; seconds: Range }
+  /**
+   * skimming, half of it travelling (head down the whole time, then up for `up` seconds) and half pottering nearly
+   * on the spot (the face dipping for `down` seconds and raised for `raised`); the bill held `reachAngle` below level,
+   * in the surface film (`film` metres under) or the face under to the eye (`face` metres); the heading wandering
+   * `wander` radians either way at `wanderHz`, no side-to-side sweep; a small ring every `ringEvery` seconds
+   */
+  skim: {
+    share: number; travelling: number
+    travel: { speed: number; seconds: Range; up: number }
+    potter: { speed: number; seconds: Range; down: Range; raised: Range }
+    reachAngle: number; film: number; face: number; ease: number
+    wander: number; wanderHz: number
+    ring: { every: number; size: number; ahead: number }
+  }
+  /**
+   * a pair spinning nose to tail about their midpoint, `apart` metres between centres, once round every `revolution`
+   * seconds, one direction a bout; a bout usually `seconds`, now and then `long`; a partner must be a flockmate within
+   * `within` metres, feeding or resting; the pair swims `gather` m/s to its places first, and gives up after `wait` s
+   */
+  circle: { share: number; apart: number; revolution: number; seconds: Range; long: Range; longChance: number; within: number; gather: number; wait: number; ring: number }
+  /** rare tip-ups while feeding: `perSecond` of feeding, `seconds` long, only `lean` radians nose-down */
+  tipUp: { perSecond: number; seconds: Range; lean: number; tail: number; strokes: number; down: number; up: number; ring: number }
+}
+
+/**
+ * From docs/research/2026-09-25-northern-shoveler.md, section 11 (section 7.3 for the video it rests on). Every number
+ * is an estimate from video of a few birds, mostly in winter and spring, except the time budget, which is Webb &
+ * Brotherson 1988's wintering drakes with feeding raised for a morning.
+ */
+export const SHOVELER: ShovelerSettings = {
+  // cruising 0.45 m/s (0.36-0.6), as the old swim; bouts as the dabbler's
+  cruise: { speed: 0.45, seconds: [4, 14] },
+  turn: 1.2,
+  // three birds within about 3 m: radius 1.5
+  flock: { radius: 1.5, retargetSeconds: 60, drift: 3, whenFarther: 3 },
+  // feeding 0.2-0.35 m centre to centre, the spinning pair 0.25; birds of other flocks as the dabbler's
+  spacing: { flock: 0.25, other: 0.8 },
+  // the full wake only above a travelling skim's 0.32 m/s: skimming leaves its own smaller ring
+  wake: { every: 0.9, size: 1, above: 0.35 },
+  // skim 38%, circle 5%, cruise 22%, loaf 34%; the loaf split between resting and preening as Webb & Brotherson's
+  // 21.9% and 16.9%, and a little of it alert (scans of 1-2 s, Guillemain et al. 2001, in mallard section 11)
+  cruising: { share: 0.22 },
+  loaf: { share: 0.18, seconds: [10, 60] },
+  preen: { share: 0.14, seconds: [5, 20] },
+  alert: { share: 0.02, seconds: [1, 2] },
+  skim: {
+    share: 0.38, travelling: 0.5,
+    // 0.32 m/s (0.28-0.37), the head down 30-60 s, then up about 2 s
+    travel: { speed: 0.32, seconds: [30, 60], up: 2 },
+    // 0.03 m/s (0.01-0.12), the face down 0.75-2.75 s and up 0.25-1.0 s; a bout of 20-60 s is ours
+    potter: { speed: 0.03, seconds: [20, 60], down: [0.75, 2.75], raised: [0.25, 1] },
+    // the bill 20-35 degrees to the surface, typically 25-30 (27 here); the travelling bird's bill in the surface film
+    // (0.008 m, the contract's 0.005-0.01), the potterer's face under to the eye (the eye is 3-4 cm up in a skim)
+    reachAngle: 0.47, film: 0.008, face: 0.035, ease: 0.2,
+    // a yaw wander of 5-8 degrees either way (6.5 here) at 0.3-0.6 Hz (0.45)
+    wander: 0.113, wanderHz: 0.45,
+    // the ring a skimming bill trails is ours: half a wake, every 1.5 s
+    ring: { every: 1.5, size: 0.5, ahead: 0.15 },
+  },
+  // two birds 0.25 m apart, 3.4 s a revolution (3.0-4.75), bouts of 4-8 s and now and then a minute or two (1 in 10
+  // here is ours); a partner anywhere in the flock's 3 m, gathering at 0.15 m/s and giving up after 12 s, are ours
+  circle: { share: 0.05, apart: 0.25, revolution: 3.4, seconds: [4, 8], long: [60, 120], longChance: 0.1, within: 3, gather: 0.15, wait: 12, ring: 0.6 },
+  // about one per 10 minutes of feeding, 1-2.5 s, 50-60 degrees nose-down (55 here); the feet and tilt times as the
+  // dabbler's
+  tipUp: { perSecond: 1 / 600, seconds: [1, 2.5], lean: 0.96, tail: 0.4, strokes: 2.4, down: 0.35, up: 0.25, ring: 0.6 },
+}
+
+type State = 'cruise' | 'loaf' | 'preen' | 'alert' | 'skim' | 'circle' | 'tipUp'
+const NECK: Record<State, number> = { cruise: 0.3, loaf: 0.15, preen: 0.3, alert: 1, skim: 1, circle: 1, tipUp: 1 }
+/** what a flockmate may be doing when asked to spin: feeding or resting, not under way or already spinning */
+const FREE: readonly string[] = ['skim', 'loaf', 'preen', 'alert']
+const step = (v: number, want: number, by: number) => (v < want ? Math.min(want, v + by) : Math.max(want, v - by))
+
+/**
+ * The `shoveler` style: skim with the bill in the water (travelling, or pottering with the face dipping), spin in a
+ * pair, now and then tip up a little way, cruise, loaf, preen, and look about.
+ */
+export function createShoveler(ctx: BehaviorContext, startX: number, startZ: number, S: ShovelerSettings = SHOVELER): BehaviorController {
+  const b = createSwimmer(ctx, startX, startZ, S)
+  const group = b.flock.group
+  let state: State = 'loaf'
+  let timer = 0
+  let clock = 0
+  let following = false
+  let travelling = false
+  /** pottering: the face is down; travelling: the head is down (not yet in its closing look up) */
+  let down = false
+  let [tx, tz] = [b.x, b.z]
+  let bill = 0, face = 0, tilt = 0, skimming = 0, preen = 0
+  let sinceWake = 0, sinceRing = 0, paddlePhase = 0, lastRev = 0
+  /** how long a pottering bout has left to run */
+  let skimLeft = 0
+
+  const TABLE = {
+    cruise: { share: S.cruising.share, mean: mid(S.cruise.seconds) },
+    loaf: { share: S.loaf.share, mean: mid(S.loaf.seconds) },
+    preen: { share: S.preen.share, mean: mid(S.preen.seconds) },
+    alert: { share: S.alert.share, mean: mid(S.alert.seconds) },
+    skim: { share: S.skim.share, mean: S.skim.travelling * (mid(S.skim.travel.seconds) + S.skim.travel.up) + (1 - S.skim.travelling) * mid(S.skim.potter.seconds) },
+    // each spin gives two birds their circling, so a bird starts one at half the share
+    circle: { share: S.circle.share / 2, mean: (1 - S.circle.longChance) * mid(S.circle.seconds) + S.circle.longChance * mid(S.circle.long) },
+  }
+  const ring = (size: number, ahead: number) => ctx.onRipple?.(b.x + Math.cos(b.heading) * ahead, b.z - Math.sin(b.heading) * ahead, size)
+
+  function next(): void {
+    following = b.flock.distance(b.x, b.z) > S.flock.whenFarther
+    if (following) {
+      state = 'cruise'
+      ;[tx, tz] = b.spot(clock)
+      timer = Math.hypot(tx - b.x, tz - b.z) / S.cruise.speed + 10
+      return
+    }
+    state = pickByShare(ctx.rng, TABLE)
+    if (state === 'circle' && !invite()) state = 'skim'
+    if (state === 'skim') skim(ctx.rng() < S.skim.travelling)
+    else if (state !== 'circle') {
+      timer = between(ctx.rng, state === 'cruise' ? S.cruise.seconds : S[state].seconds)
+      if (state === 'cruise') [tx, tz] = b.spot(clock)
+    }
+  }
+  function skim(travel: boolean): void {
+    state = 'skim'
+    travelling = travel
+    down = true
+    timer = travel ? between(ctx.rng, S.skim.travel.seconds) : between(ctx.rng, S.skim.potter.down)
+    ;[tx, tz] = b.spot(clock)
+    skimLeft = travel ? 0 : between(ctx.rng, S.skim.potter.seconds)
+  }
+
+  /** Start a spin with the nearest flockmate that is feeding or resting close by, if the circle has room; true if one starts. */
+  function invite(): boolean {
+    if (group.spin) return false
+    const partner = b.others()
+      .filter(n => n.group === group && FREE.includes(n.state) && Math.hypot(n.x - b.x, n.z - b.z) <= S.circle.within)
+      .sort((p, q) => Math.hypot(p.x - b.x, p.z - b.z) - Math.hypot(q.x - b.x, q.z - b.z))[0]
+    if (!partner) return false
+    const [cx, cz] = [(b.x + partner.x) / 2, (b.z + partner.z) / 2]
+    const r = S.circle.apart / 2
+    // room to turn: the circle in the zone, and no other swimmer inside what it keeps from either bird
+    for (let k = 0; k < 8; k++) if (!pointInPolygon(cx + Math.cos((k * Math.PI) / 4) * (r + 0.05), cz + Math.sin((k * Math.PI) / 4) * (r + 0.05), b.zone.points)) return false
+    if (!b.others().every(n => n === partner || Math.hypot(n.x - cx, n.z - cz) >= b.spacingTo(n) + r + 0.1)) return false
+    bout = between(ctx.rng, ctx.rng() < S.circle.longChance ? S.circle.long : S.circle.seconds)
+    group.spin = {
+      pair: [self, partner], cx, cz, apart: S.circle.apart, dir: ctx.rng() < 0.5 ? 1 : -1, rate: (2 * Math.PI) / S.circle.revolution,
+      angle: Math.atan2(-(b.z - cz), b.x - cx), at: clock, ends: clock + S.circle.wait, spinning: false,
+    }
+    state = 'circle'
+    b.partner = partner
+    lastRev = 0
+    return true
+  }
+  /** the first bird's drawn length for the spin it has asked for */
+  let bout = 0
+  /** where this bird of the pair belongs on the circle now: its point, and the heading along it */
+  function place(s: Spin): [number, number, number] {
+    const first = s.pair[0] === self
+    // the second bird takes the first's angle forward to its own clock, so the pair turns as one whichever updates first
+    const a = s.angle + (s.spinning ? s.dir * s.rate * (clock - s.at) : 0) * (first ? 0 : 1) + (first ? 0 : Math.PI)
+    const r = s.apart / 2
+    return [s.cx + Math.cos(a) * r, s.cz - Math.sin(a) * r, a + (s.dir * Math.PI) / 2]
+  }
+  /** One frame of a spin, for either bird: swim to its place, then turn with the other; false once the bout is over. */
+  function spin(s: Spin, dt: number): boolean {
+    const first = s.pair[0] === self
+    if (first && s.spinning) {
+      s.angle += s.dir * s.rate * dt
+      s.at = clock
+      if (Math.floor(Math.abs(s.angle) / (2 * Math.PI)) !== lastRev) { lastRev = Math.floor(Math.abs(s.angle) / (2 * Math.PI)); ring(S.circle.ring, 0) }
+    }
+    const [px, pz, along] = place(s)
+    if (!s.spinning) {
+      // swim to its place, then turn on it to face along the circle
+      if (Math.hypot(px - b.x, pz - b.z) >= 0.01) b.swimTo(px, pz, S.circle.gather, dt)
+      else b.swim(dt, 0, along)
+      if (first) {
+        const [ox, oz] = [s.cx * 2 - px, s.cz * 2 - pz]
+        const other = s.pair[1]
+        const facing = (h: number) => Math.abs(wrap(h - along)) < 0.05
+        const there = Math.hypot(px - b.x, pz - b.z) < 0.01 && Math.hypot(ox - other.x, oz - other.z) < 0.01 && facing(b.heading) && Math.abs(wrap(other.heading - along - Math.PI)) < 0.05
+        if (there) { s.spinning = true; s.at = clock; s.ends = clock + bout; ring(S.circle.ring, 0) }
+        // a pair that can't get to their places in time: no spin after all
+        else if (clock > s.ends) return false
+      }
+      return true
+    }
+    b.x = px
+    b.z = pz
+    b.speed = (s.rate * s.apart) / 2
+    // the heading comes round to the circle's tangent, then turns with it
+    b.heading = turnToward(b.heading, along, (s.rate + S.turn) * dt)
+    return !(first && clock >= s.ends)
+  }
+
+  const self: BehaviorController = {
+    name: 'swim',
+    get state() { return state },
+    get x() { return b.x }, get y() { return 0 }, get z() { return b.z },
+    // a skimming bird's head wanders a few degrees either way as it paddles
+    get heading() { return b.heading + ease(skimming) * S.skim.wander * Math.sin(2 * Math.PI * S.skim.wanderHz * clock) },
+    spacing: S.spacing.other,
+    group,
+    update(dt: number, pose: PoseState) {
+      clock += dt
+      timer -= dt
+      sinceRing += dt
+      // a flockmate that has asked this bird to spin: it leaves whatever it was doing and joins
+      if (group.spin && group.spin.pair[1] === self && state !== 'circle') { state = 'circle'; b.partner = group.spin.pair[0] }
+      if (state === 'circle') {
+        const s = group.spin
+        if (!s || !spin(s, dt)) {
+          if (s && s.pair[0] === self) group.spin = undefined
+          // after a spin the pair feeds side by side, pottering, and keeps its distance again
+          b.partner = null
+          skim(false)
+        }
+      } else if (state === 'cruise') {
+        if (b.swimTo(tx, tz, S.cruise.speed, dt) < 0.05) {
+          if (following || timer < 1) next()
+          else [tx, tz] = b.spot(clock)
+        } else if (timer <= 0) next()
+      } else if (state === 'skim') {
+        const speed = travelling ? S.skim.travel.speed : S.skim.potter.speed
+        if (b.swimTo(tx, tz, down || !travelling ? speed : 0, dt) < 0.05) [tx, tz] = b.spot(clock)
+        if (travelling && down && sinceRing >= S.skim.ring.every && b.speed > speed / 2) { sinceRing = 0; ring(S.skim.ring.size, S.skim.ring.ahead) }
+        skimLeft -= dt
+        if (timer <= 0) {
+          if (travelling) {
+            if (down) { down = false; timer = S.skim.travel.up }
+            else next()
+          } else if (down) { down = false; timer = between(ctx.rng, S.skim.potter.raised) }
+          else if (skimLeft <= 0) next()
+          else { down = true; timer = between(ctx.rng, S.skim.potter.down); ring(S.skim.ring.size * 0.6, S.skim.ring.ahead) }
+        } else if (ctx.rng() < S.tipUp.perSecond * dt) {
+          state = 'tipUp'
+          timer = between(ctx.rng, S.tipUp.seconds) + (S.tipUp.down - S.tipUp.up) / 2
+          ring(S.tipUp.ring, 0)
+        }
+      } else if (state === 'tipUp') {
+        b.float(dt)
+        if (timer <= 0) { ring(S.tipUp.ring, 0); skim(false) }
+      } else {
+        b.float(dt)
+        if (timer <= 0) next()
+      }
+      sinceWake += dt
+      if (b.speed > S.wake.above && sinceWake >= S.wake.every) { sinceWake = 0; ctx.onRipple?.(b.x, b.z, S.wake.size) }
+
+      // posture, each part eased at a steady rate and shaped with smoothstep
+      const feeding = state === 'skim' || state === 'circle'
+      const wantBill = feeding && (down || state === 'circle') ? 1 : 0
+      const wantFace = (state === 'skim' && !travelling && down) || state === 'circle' ? 1 : 0
+      const wantTilt = state === 'tipUp' ? 1 : 0
+      bill = step(bill, wantBill, dt / S.skim.ease)
+      face = step(face, wantFace, dt / S.skim.ease)
+      tilt = step(tilt, wantTilt, dt / (wantTilt > tilt ? S.tipUp.down : S.tipUp.up))
+      skimming = step(skimming, state === 'skim' ? 1 : 0, dt)
+      const kBill = ease(bill), kFace = ease(face), kTilt = ease(tilt)
+      pose.reach = kBill * (1 - kTilt)
+      pose.reachDepth = S.skim.film + (S.skim.face - S.skim.film) * kFace
+      pose.reachAngle = S.skim.reachAngle
+      pose.lean.x = S.tipUp.lean * kTilt
+      pose.tailTilt = S.tipUp.tail * kTilt
+      pose.paddle = kTilt
+      paddlePhase = (paddlePhase + S.tipUp.strokes * dt) % 1
+      pose.paddlePhase = paddlePhase
+      preen = approach(preen, state === 'preen' ? 1 : 0, 2, dt)
+      pose.lean.z = preen * 0.1 * Math.sin(clock * Math.PI * 0.8)
+      pose.neckExtend = approach(pose.neckExtend, NECK[state], 3, dt)
+      pose.headBob = approach(pose.headBob, 0, 4, dt)
+    },
+  }
+  b.self = self
+  next()
+  return self
+}
