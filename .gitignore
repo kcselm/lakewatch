@@ -4,3 +4,4 @@ dist
 data/raw
 .wrangler
 .playwright-mcp
+.worktrees
