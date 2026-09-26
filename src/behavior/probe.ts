@@ -24,7 +24,8 @@ export const STYLES = {
   sandpiper: {
     walk: { speed: 0.1, distance: [0.15, 0.6] as [number, number], pecksPerSecond: 2.5 },
     probe: { count: [2, 5] as [number, number], perSecond: 3, chance: 0.4 },
-    peck: { lean: 0.3, neckExtend: 0.5 },
+    // tipped far enough for the longer-legged Pectoral to reach the mud; the Least's head lifts its bill back onto it
+    peck: { lean: 0.4, neckExtend: 0.5 },
     run: { speed: 0.4, whenFarther: 2 },
     flock: { radius: 1.5, retargetSeconds: 45 },
   },
