@@ -1,10 +1,11 @@
 # Dowitcher and Pectoral: design spec
 
 Date: 2026-09-25
-Status: draft for review
+Status: approved; amended during planning (see "Amended during planning")
 Builds on: `2026-09-25-mudflat-birds-design.md` (foraging styles, peck reach) and
 `2026-09-24-detailed-birds-design.md` (the detailed builder, painter, and viewer)
-Amends: `2026-09-22-lakewatch-design.md` (the probe behavior, the cast)
+Amends: `2026-09-22-lakewatch-design.md` (the probe behavior, the terrain, ripples, the cast)
+Plan: `docs/superpowers/plans/2026-09-25-dowitcher-pectoral.md`
 
 ## Purpose
 
@@ -22,10 +23,10 @@ Each brings an identification a birder makes at this lake in late September:
   in a tight flock with a sewing-machine motion, its head going into the
   water again and again.
 
-Success looks like this. Through the telescope, a player sees a knot of
-dowitchers standing belly-deep in a loose line along the water's edge. Their
-long bills stitch up and down, their heads dip under, and rings spread where
-the bills go in. On the mudflat, a bigger, bibbed sandpiper walks and picks
+Success looks like this. Through the telescope, a player sees a loose flock
+of dowitchers standing belly-deep on a shallow underwater bench just past the
+yellowlegs. Their long bills stitch up and down, their heads dip, and small
+rings spread where the bills go in. On the mudflat, a bigger, bibbed sandpiper walks and picks
 among the Leasts. The legs step without sliding, and every bill reaches the
 mud.
 
@@ -38,9 +39,10 @@ In scope:
 - A third foraging style, `dowitcher`, on `probe`.
 - `probeDepth` on the detail block: how far the bill goes into the ground at
   the bottom of a reach.
-- A new zone, `shallows-edge`, traced on the belly-deep contour. The
-  `shallows` zone is trimmed to meet it.
+- An underwater bench blended into the heightfield past the shallows, and a
+  new zone, `bench`, on it.
 - The zone-terrain tests sample the rendered terrain, not the smooth field.
+- Rings on the water gain a size, so a bill going in makes a small ring.
 - The viewer's "shallow water" checkbox becomes a water depth slider.
 - A research document for both species.
 - Cast entries: six dowitchers and two Pectorals.
@@ -61,7 +63,7 @@ Out of scope:
 | Decision | Choice |
 |---|---|
 | Which dowitcher | Long-billed only: the expected dowitcher inland in late September |
-| Dowitcher water | A new zone on the belly-deep contour of the existing terrain (about 3–7 cm of water), no heightfield change |
+| Dowitcher water | A new zone on the belly-deep contour of the existing terrain, no heightfield change. Superseded during planning by an underwater bench; see below |
 | Pectoral placement | The existing `mudflat`, with the Leasts |
 | Where stitching lives | A third foraging style on `probe`, not a style on `wade` or a new behavior |
 | Pectoral motion | The `sandpiper` style, unchanged, with its own cast entry and group |
@@ -76,6 +78,45 @@ cm of water. A dowitcher's belly is about 5 cm off the ground, so at 10 cm
 the bird would look like it was swimming. Belly-deep is about 3–7 cm, and the
 research sets the exact band.
 
+## Amended during planning
+
+The research and a scratch build changed these, each recorded in the plan's
+"Decisions made while planning":
+
+- **An underwater bench replaces the thin strip** (the user's decision).
+  - The research set the dowitcher's water at 3.5–5.5 cm. On the existing
+    terrain that band is only 8–10 cm wide, too narrow for a flock.
+  - A flat shelf at −4.5 cm is blended into the heightfield over x 18–26,
+    z −14 to −12, lined up with the terrain mesh's 2 m grid so it renders flat.
+  - The `bench` zone on it is 7 m × 2.1 m, about 25 m from the vantage. The
+    shallows are not trimmed.
+- **Zones must be convex, and a dowitcher turns on the spot before it moves**,
+  so it never needs the zone clamp.
+- **The flock drifts** at most 1.2 m every 45 s rather than jumping anywhere
+  in the zone. Its radius is 1 m, and a bird follows once more than 1.5 m from
+  the target.
+- **The stitch pose:**
+  - the body is tipped forward 0.8 rad with the neck stretched
+  - the bill rests on the mud at the top of a stroke and goes 27 mm in at the
+    bottom
+  - `probeDepth` is 0.027 m, inside the research's 22–45 mm; the model has no
+    crouch, so 35 mm would bury the bill at rest
+  - 3 strokes a second, in stitches of 2–5 s, with creeps of 3–10 cm between
+    them and a 1.5–3.5 s look after 40% of stitches
+- **Rings on the water come in sizes.** A dowitcher's ring is small (`size`
+  0.4), short, faint, and at most one a second per bird, so six birds don't
+  crowd the ducks' wakes out of the 32-ring buffer.
+- **`probeDepth` raises the solvers' frame.** `reach.ts` does not change.
+- **The sandpiper's peck leans 0.4.** The Pectoral's longer legs need it; the
+  Least still lands exactly on the ground.
+- **Three standing measures** are added to `measure.ts`: joint, belly, and
+  the folded wing's lowest point.
+- **Research corrections:**
+  - Pectoral legs dull olive-yellow.
+  - Dowitcher tertials have "duller to no" internal marks, painted plain.
+  - The shallow-end rule reads "no bare *tarsus* shows"; the bare tibia sits
+    above the joint.
+
 ## Changes to the Lakewatch design spec
 
 In the Behaviors table, the `probe` row becomes:
@@ -85,6 +126,10 @@ In the Behaviors table, the `probe` row becomes:
 ```
 
 In Animation, after `sandpiper walk-and-pick`, add `dowitcher stitch`.
+
+The Terrain line gains "and a flat underwater bench past the shallows where
+the dowitchers feed", and the Water line's ripple rings gain "and small, short
+ones where a dowitcher's bill goes in".
 
 ## Research
 
@@ -120,8 +165,8 @@ supply:
     table
   - Where no source gives a number, the document says so and gives a value
     chosen by eye against a cited video, marked as such.
-- **The depth band** for `shallows-edge`, from the published feeding depths
-  and the belly and joint heights (see The scene).
+- **The depth band** for the dowitcher's water, from the published feeding
+  depths and the belly and joint heights (see The scene).
 - **Tracing references:** a side-on photo of each, legs visible. The
   harvested guide photo is used if it qualifies. Otherwise the research
   finds a Creative Commons photo, cites it with licence and URL, and never
@@ -144,32 +189,37 @@ supply:
 
 ## The scene
 
-### `shallows-edge`
+### The dowitcher's water
 
-A new polygon zone along the belly-deep contour, just past the shallows. Its
-depth band is set by the research and checked against the built bird:
+The dowitcher feeds in 3.5–5.5 cm of water (`STYLES.dowitcher.water`, from
+the research). The band is checked against the built bird:
 
 - **Shallow end:** deep enough to reach the intertarsal joint, within 10 mm.
-  At the shallow end no bare tibia shows above the water.
-- **Deep end:** at least the belly's height and below the folded wing's
-  lowest point. At the deep end the water wets the belly but not the wing.
+  At the shallow end no bare tarsus shows above the water.
+- **Deep end:** at least the belly's height, and at least 5 mm below the
+  folded wing's lowest point. At the deep end the water wets the belly but not
+  the wing.
 
-On the rendered terrain, a band of about 3–7 cm runs from x ≈ 17 to 25 at
-z ≈ −10.1 to −10.7. It is 0.26–0.46 m wide and curves with the shore. The
-polygon traces that band with enough points to follow the curve.
+### The bench and the `bench` zone
 
-### `shallows`
-
-The outer edge now follows the strip's inner edge, so the two zones don't
-overlap. The yellowlegs keep the ankle-deep water nearer the bank. The
-existing ankle-deep test stays.
+- **The bench:** a flat shelf 4.5 cm under the water, blended into the
+  heightfield over x 18–26, z −14 to −12, easing back into the lake bed over
+  a metre.
+- **Grid alignment:** its edges sit on the terrain mesh's 2 m grid, so its
+  top covers whole cells and renders flat.
+- **What else changes:** the shelf can't be seen through the opaque water.
+  Every existing zone still passes its band.
+- **The zone:** `bench` is the rectangle x 18.5–25.5, z −11.8 to −13.9. It
+  lies wholly inside the 3.5–5.5 cm band on the rendered terrain, about
+  25 m from the vantage.
+- **The shallows** keep their shape.
 
 ### Cast
 
 Two entries are added. Everything else is unchanged.
 
 ```json
-{ "species": "lobdow", "behavior": "probe", "zone": "shallows-edge", "count": 6 },
+{ "species": "lobdow", "behavior": "probe", "zone": "bench", "count": 6 },
 { "species": "pecsan", "behavior": "probe", "zone": "mudflat", "count": 2 }
 ```
 
@@ -193,15 +243,15 @@ values come from the research; its field names are settled in the plan.
 
 States:
 
-- **`stitch`:** the feet stay still and the body is tipped forward. The bill
-  cycles between a high point in the water (`reach` about 0.7, a table
-  value) and the bottom of the probe (`reach` 1), several strokes a second,
-  along sin². A bout lasts a few seconds.
-- **`creep`:** a few centimetres to about 20 cm toward a spot near the flock
-  target, with the stitch cycle carrying on while the feet step. This is
-  most of a dowitcher's movement.
-- **`look`:** now and then the head comes up to rest height for 1–3 s, then
-  goes back down.
+- **`stitch`:** the feet stay still and the body is tipped forward 0.8 rad,
+  neck stretched. The bill cycles from the mud's surface (`reach` 0) to the
+  bottom of the probe (`reach` 1), three strokes a second, along sin². A
+  stitch lasts 2–5 s.
+- **`creep`:** 3–10 cm toward a spot near the flock target at 2.5 cm/s,
+  with the stitch cycle carrying on while the feet step. This is most of a
+  dowitcher's movement.
+- **`look`:** after 40% of stitches the head comes up to rest height for
+  1.5–3.5 s, then goes back down.
 - **`follow`:** when the bird is more than a set distance from the flock
   target, it walks there with its head up. It never runs; it's in water.
 
@@ -213,19 +263,25 @@ Motion rules:
 - The stitch phase carries over between `stitch` and `creep`, so the bill
   never snaps.
 - `look` and `follow` ease the bill out of the stitch band and back into it.
-- The flock target works as the sandpiper's does, with a smaller radius
-  (about 0.6 m) and slower retargeting. The six birds stay a tight knot, and
-  the narrow zone draws it into a loose line.
+- Every move turns on the spot first and then goes straight, so in a convex
+  zone the bird never needs the zone clamp.
+- The flock target drifts at most 1.2 m every 45 s. The flock radius is 1 m,
+  and a bird follows (head up, 0.12 m/s) once more than 1.5 m from the
+  target.
 - `PECK_BOTTOM.dowitcher` is the pose at the bottom of a stitch stroke.
 
 ### Ripples
 
-At the bottom of a stitch stroke, `ctx.onRipple` fires at a point ahead of
-the bird, where the bill meets the water. That point is set by a table value
-along the heading.
+At the bottom of a stitch stroke, `ctx.onRipple` fires at a point 12 cm
+ahead of the bird, where the bill meets the water, at most once a second per
+bird.
 
-Each bird rings the water at most once per table interval (about half a
-second). This uses the ripple buffer `swim` and `hover` already feed.
+Rings on the water gain a `size` (default 1):
+- `RippleBuffer.spawn(x, z, size)` keeps a ring `size` times as long, and
+  the water shader scales its speed, width, and brightness by `size`.
+- The dowitcher's rings are `size` 0.4: about 0.4 m across, gone in a
+  second.
+- Swimming and hovering birds keep full-size rings.
 
 ### Water hides what's under it
 
@@ -239,11 +295,13 @@ lengths, default 0: how far below the ground the bill tip goes at the bottom
 of a reach.
 
 - `reachDown` in `src/birds/detail/build.ts` aims at y = −`probeDepth`, in
-  group space, instead of y = 0. So do `neckSwing` and `headPitchToGround`
-  in `reach.ts`. That covers the target and the rule that pitches the head
-  back up when a lean would push the tip too deep.
-- The dowitcher's value comes from the research. It probes to most of its
-  bill length, so its head reaches the water or goes under at each stroke.
+  group space, instead of y = 0. It hands `neckSwing` and `headPitchToGround`
+  its points raised by `probeDepth`, so their "meet y = 0" aims that far
+  below the ground. That covers the target and the rule that pitches the
+  head back up when a lean would push the tip too deep. `reach.ts` does not
+  change.
+- The dowitcher's value is 0.027 m: its bill goes about 40% of its length
+  into the mud, and its face meets the water at each stroke.
 - Every other species keeps 0, so the Killdeer, Least, and yellowlegs are
   unchanged.
 - The README's authoring notes gain `probeDepth`.
@@ -261,8 +319,9 @@ of a reach.
   - plain grey-washed neck and breast
   - dark cap, pale eyebrow, and a dark line through the eye
   - dark-centred scapulars with narrow rufous-buff fringes
-  - tertials plain dark with thin pale edges and no internal markings (the
-    mark that separates a juvenile from a juvenile Short-billed)
+  - tertials plain dark with thin pale edges and duller to no internal
+    markings, painted plain (the mark that separates a juvenile from a
+    juvenile Short-billed, whose tertials are tiger-striped)
   - finely barred flanks
   - a barred tail
   - greenish-yellow legs
@@ -281,7 +340,7 @@ of a reach.
   - white "braces" along the mantle
   - dark-centred scapulars with rufous, buff, and white fringes
   - faint pale eyebrow
-  - yellow-ochre legs
+  - dull olive-yellow legs
   - bill dark at the tip and paler olive at the base
 - **Tracing:** the research's reference, scaled by the culmen.
 
@@ -297,7 +356,7 @@ species file cites it.
 - **Pairs to use:** a dowitcher beside a Greater Yellowlegs, and a Pectoral
   beside a Least.
 - **Field view:** the telescope at 22 m, which is about the distance to both
-  the mudflat (about 21 m) and the strip (about 23 m).
+  the mudflat (about 21 m) and the bench (about 25 m).
 
 ## Testing
 
@@ -325,10 +384,11 @@ numeric bounds; the shape is fixed here.
 | Assertion | Dowitcher | Pectoral |
 |---|---|---|
 | Culmen, total length, tarsus, wing chord, tail | within published ranges | within published ranges |
-| Culmen / head | about 2 | about 1 |
+| Culmen / head | about 2 (1.7–2.4, the traced feathered head) | about 1 (0.9–1.2) |
 | Bill shape | tip droops slightly below straight | tip droops slightly below straight |
-| Against the built Least | — | total length 1.3–1.6× the Least's |
-| Against `shallows-edge` | shallow end within 10 mm of the intertarsal joint; deep end at or above the belly and below the folded wing | — |
+| Against the built Least | — | total length 1.4–1.6× the Least's |
+| Standing heights | joint 33–43 mm, belly 42–56, folded wing 55–80 and at least 8 above the belly | — |
+| Against its water | shallow end within 10 mm of the intertarsal joint; deep end at or above the belly and at least 5 mm below the folded wing | — |
 
 On the painted atlas:
 
@@ -357,11 +417,15 @@ Peck reach:
   - `strideDistance` grows by exactly the distance moved
   - the feet are still during `stitch`
   - `reach` stays in the stitch band during `stitch` and `creep`
-  - the flock converges on the shared target
-  - ripples fire only at stroke bottoms, no more often than the table
+  - the flock converges on the shared target, and its target never jumps
+    further than its drift
+  - ripples fire only at stroke bottoms, small, no more often than the table
     interval
-  - the bird stays in the zone
+  - the bird stays in the zone, and in a strip 0.3 m wide no frame moves it
+    further than its pace (the clamp never fires)
   - the gust ruffle works when still
+- **Rings:** a small ring lives its share of a full ring's life, and a ring
+  packs its size for the shader.
 - The existing continuity test (`reach` never changes by more than 0.35 in a
   frame) loops over all three styles.
 - **Schema:** `dowitcher` is accepted, and an unknown style is still
@@ -382,14 +446,16 @@ Peck reach:
 - A `probe` entry's band depends on its species' style: plover and sandpiper
   keep damp, flat ground (−0.03 to 0.5), and dowitcher gets the research's
   belly-deep band.
-- `shallows` and `shallows-edge` don't overlap.
+- The `bench` zone is inside the band all over, and the bench renders flat
+  on the terrain mesh.
 
 ### What tests cannot check
 
 - The viewer's field view, in Playwright screenshots compared against the
   credited reference photos, during the work.
-- Performance: six atlases (about 33 MB with mipmaps) and 19 detailed birds.
-  The dev overlay reports each atlas's paint time.
+- Performance: six atlases (8.0 MB as the dev overlay counts them, against
+  5.3 MB before) and 19 detailed birds. The dev overlay reports each atlas's
+  paint time.
 - The user at the telescope:
   - 60 fps on their integrated GPU
   - whether the Pectoral reads as a bigger, bibbed Least
@@ -399,10 +465,13 @@ Peck reach:
 
 ## Known soft spots
 
-- **The strip is narrow**, so the flock moves almost in one dimension. If it
-  reads as a queue at the telescope, the fallback is an underwater bench:
-  a flat shelf blended into the heightfield at about −5 cm, the way the
-  mudflat shelf is blended at +8 cm.
+- **No spacing between birds:** two dowitchers can overlap now and then.
+- **The bill at rest points 22.5° down**, against 26–37° on the photos. A
+  steeper bill needs a tighter turn at the head, which creases the loft.
+- **The dowitcher's folded wing is as long as its body.** Its front third is
+  a sliver painted breast-grey, which shows as a faint line in close-ups.
+- **The water band is the shallower half of real use:** Davis & Smith's fall
+  birds fed at 6.4 cm on average, which would wet the model's wing.
 - **One size per species:** the two Pectorals are the same mean size,
   although males are much bigger than females.
 - **Scale rests on the culmen:** both birds are traced from photos, so their
@@ -414,21 +483,24 @@ Peck reach:
   so a gait fault may hide there. The viewer's depth slider at 0 is where
   it gets checked.
 
-## Build order (for the plan)
+## Build order (as planned)
 
-1. Research document, with tracing references and the depth band.
-2. Harvest (ask first), with the clips checked by ear.
-3. `dowitcher` on the spec and in `probe`: states, stride, gait, flock, and
-   ripples, test first.
-4. `probeDepth` in the detailed builder.
-5. `shallows-edge`, the shallows trim, and zone-terrain tests on the
-   rendered surface.
-6. Viewer water depth slider.
-7. Pectoral Sandpiper `detail`: measurements, traced profile, plumage.
-8. Long-billed Dowitcher `detail`: the same.
-9. `dowitcher-pectoral.test.ts`.
-10. Cast entries, main spec amendments, README, performance reading.
-11. The user's telescope check.
+The research document came first and is committed with the plan. The plan's
+tasks:
+
+1. Rings on the water come in sizes.
+2. `probeDepth` in the detailed builder, and the standing measures.
+3. `dowitcher` on the spec and in `probe`: states, stride, gait, drifting
+   flock, and rings, test first.
+4. Viewer water depth slider.
+5. The bench, the `bench` zone, and zone-terrain tests on the rendered
+   surface.
+6. Harvest (ask first), with the clips checked by ear.
+7. Pectoral Sandpiper `detail`, and the sandpiper's peck lean.
+8. Long-billed Dowitcher `detail`.
+9. `dowitcher-pectoral.test.ts` and the cast entries.
+10. Main spec amendments, README, performance reading, and the user's
+    telescope check.
 
 ## Future rounds (not in this spec)
 
