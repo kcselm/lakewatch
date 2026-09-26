@@ -180,13 +180,14 @@ describe('the feet stay planted as the probe drives the bird', () => {
       const down = m.layout.footY + 0.0005
       let slip = 0, ran = 0
       for (const seed of [1, 2, 3]) {
-        // a flock target that moves on every second, so even a slow creeper covers ground (a plover ignores it)
-        const group = { targetX: 3, targetZ: 1.25, retargetAt: 0 }
+        // the dowitcher creeps a few cm at a time, so give it alone a flock target that moves on every second, or it
+        // would never cover enough ground in this window; a plover or sandpiper keeps its own style's flock, as before
+        const group = spec.foraging === 'dowitcher' ? { targetX: 3, targetZ: 1.25, retargetAt: 0 } : undefined
         const c = createProbe({ zone: patch, rng: makeRng(seed), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0, foraging: spec.foraging, group }, 3, 1.25)
         const pose = defaultPose()
         let prev: THREE.Vector3[] | null = null, px = c.x, pz = c.z, ph = c.heading
         for (let i = 0; i < 60 * 30; i++) {
-          if (i % 30 === 0) group.retargetAt = 0
+          if (group && i % 30 === 0) group.retargetAt = 0
           c.update(1 / 30, pose)
           m.group.position.set(c.x, 0, c.z)
           m.group.rotation.y = c.heading
