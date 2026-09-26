@@ -44,7 +44,9 @@ describe('species specs', () => {
       const r = measure(buildDetailedBird(spec))
       const m = d.measurements
       expect(Math.abs(r.length - m.length) / m.length, `${spec.code} length`).toBeLessThan(0.05)
-      for (const k of ['culmen', 'billDepth', 'tarsus', 'wingChord', 'tail'] as const) {
+      // a bird with no tail (a grebe's is a hidden tuft) keeps measurements.tail on record, but nothing is built to it
+      const keys = d.tail.shape === 'none' ? (['culmen', 'billDepth', 'tarsus', 'wingChord'] as const) : (['culmen', 'billDepth', 'tarsus', 'wingChord', 'tail'] as const)
+      for (const k of keys) {
         expect(Math.abs(r[k] - m[k]) / m[k], `${spec.code} ${k}`).toBeLessThan(0.02)
       }
       expect(Math.abs(r.tibia - m.tibia) / m.tibia, `${spec.code} tibia`).toBeLessThan(0.15)
@@ -57,7 +59,7 @@ describe('species specs', () => {
   })
   it('every detailed species keeps its stance foot planted at its own step length (too long a step slides the foot)', () => {
     for (const spec of Object.values(SPECIES)) {
-      if (!spec.detail) continue
+      if (!spec.detail || spec.posture === 'swimming') continue             // a swimmer's legs paddle; they never walk
       const m = buildDetailedBird(spec)
       const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
       const stride = 2 * (spec.detail.stepLength ?? DEFAULT_STEP) * (m.layout.tibia + m.layout.tarsus)

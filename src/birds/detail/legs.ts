@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Profile } from './profile'
 import type { DetailSpec } from './spec'
-import { tube, type Mesher } from './mesher'
+import { tube, lens, type Mesher } from './mesher'
 import { solveLeg } from './gait'
 
 /** the hip joint sits this fraction of the belly depth below the spine */
@@ -67,15 +67,33 @@ export function legLayout(detail: DetailSpec, profile: Profile, swimming = false
 }
 
 /** Toe directions in the ground plane for the right foot (+z outward); the left mirrors z. */
-const TOES: { angle: number; length: number }[] = [
-  { angle: -0.45, length: 0.8 },   // inner
-  { angle: 0, length: 1 },         // middle
-  { angle: 0.45, length: 0.8 },    // outer
+const TOES: { angle: number; length: number; lobes: number }[] = [
+  // lobes, one per segment: the Coot's middle toe has three; inner two and outer four
+  // (docs/research/2026-09-25-american-coot.md, sections 5.5 and 9; the inner and outer counts are its estimate)
+  { angle: -0.45, length: 0.8, lobes: 2 },   // inner
+  { angle: 0, length: 1, lobes: 3 },         // middle
+  { angle: 0.45, length: 0.8, lobes: 4 },    // outer
 ]
+/** a web's or lobe's thickness at its middle, metres */
+const MEMBRANE = 0.0006
+/** how far a web's free edge dips back toward the foot between two toe tips, as a fraction of the toes' length */
+const WEB_DIP = 0.15
 
-/** Both legs in rest pose: tibia, a knob at the intertarsal joint, tarsus, three front toes and a hind toe. */
-export function buildLegs(m: Mesher, layout: LegLayout): void {
+export interface FeetOptions {
+  /** 'webbed' or 'lobed'; without it, plain toes */
+  kind?: 'webbed' | 'lobed'
+  /** lobed: the middle toe's width across its lobes, metres */
+  lobeWidth?: number
+}
+
+/**
+ * Both legs in rest pose: tibia, a knob at the intertarsal joint, tarsus, three front toes and a hind toe, and a web
+ * or lobes on the front toes. Returns the index range of each foot (its toes and their web or lobes, every piece
+ * closed) when it has a web or lobes.
+ */
+export function buildLegs(m: Mesher, layout: LegLayout, feet: FeetOptions = {}): { name: string; indexFirst: number; indexCount: number }[] {
   const r = layout.tarsusRadius
+  const out: { name: string; indexFirst: number; indexCount: number }[] = []
   for (const side of [1, -1] as const) {
     const B = side > 0
       ? { tibia: 'tibiaR', tarsus: 'tarsusR', toes: 'toesR' } as const
@@ -87,14 +105,45 @@ export function buildLegs(m: Mesher, layout: LegLayout): void {
     tube(m, knee, foot, r, r * 0.9, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
     // standing, the toes spread forward along the ground; a swimmer's trail back in line with the tarsus
     const along = layout.swimming ? new THREE.Vector3(Math.cos(SWIM_TARSUS), Math.sin(SWIM_TARSUS), 0) : new THREE.Vector3(1, 0, 0)
+    const footFirst = m.indexCount
+    const tips: THREE.Vector3[] = []
     for (const toe of TOES) {
       const a = toe.angle * side
       const tip = foot.clone().add(along.clone().multiplyScalar(Math.cos(a)).add(new THREE.Vector3(0, 0, Math.sin(a))).multiplyScalar(layout.toe * toe.length))
       tube(m, foot, tip, r * 0.7, r * 0.45, 'legs', 0.5, 0.5, [[B.toes, 1]], 5)
+      tips.push(tip)
     }
     const hind = layout.swimming
       ? foot.clone().addScaledVector(along, -layout.toe * 0.25).add(new THREE.Vector3(0, layout.footY, 0))
       : foot.clone().add(new THREE.Vector3(-layout.toe * 0.25, layout.footY, 0))
     tube(m, foot, hind, r * 0.6, r * 0.4, 'legs', 0.5, 0.5, [[B.toes, 1]], 5)
+    if (!feet.kind) continue
+    // the plane the front toes spread in, and its normal
+    const n = along.clone().cross(new THREE.Vector3(0, 0, 1)).normalize()
+    if (feet.kind === 'webbed') {
+      // a membrane between each pair of neighbouring toes, its free edge dipping back between their tips
+      for (let k = 0; k < 2; k++) {
+        const A = tips[k]!, C = tips[k + 1]!
+        const at = (t: number, u: number) => {
+          const reach = t * (1 - WEB_DIP * Math.sin(Math.PI * u))
+          return foot.clone().lerp(A, reach).lerp(foot.clone().lerp(C, reach), u)
+        }
+        lens(m, 5, 5, at, (t, u) => (MEMBRANE / 2) * Math.sin(Math.PI * u) * Math.sin(Math.PI * t) ** 0.5, n, 'legs', [[B.toes, 1]])
+      }
+    } else {
+      // a rounded flap either side of each toe segment, narrowing to nothing at the joints between them
+      const half = (feet.lobeWidth ?? 0.2 * layout.toe) / 2
+      TOES.forEach((toe, k) => {
+        const tip = tips[k]!, dir = tip.clone().sub(foot).normalize()
+        const across = n.clone().cross(dir).normalize()
+        for (let g = 0; g < toe.lobes; g++) {
+          const at = (a: number, b: number) => foot.clone().lerp(tip, (g + a) / toe.lobes)
+            .addScaledVector(across, (2 * b - 1) * half * Math.sin(Math.PI * a) ** 0.6)
+          lens(m, 5, 5, at, (a, b) => (MEMBRANE / 2) * Math.sqrt(Math.max(0, 1 - (2 * b - 1) ** 2)) * Math.sin(Math.PI * a) ** 0.6, n, 'legs', [[B.toes, 1]])
+        }
+      })
+    }
+    out.push({ name: side > 0 ? 'footR' : 'footL', indexFirst: footFirst, indexCount: m.indexCount - footFirst })
   }
+  return out
 }

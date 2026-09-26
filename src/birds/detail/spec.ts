@@ -5,7 +5,7 @@ const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -24,7 +24,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -99,7 +99,25 @@ export const detailSchema = z.object({
     /** [s, height as a fraction of the chord], s from wrist (0) to tip (1) */
     outline: z.array(z.tuple([unit, z.number().min(0)])).min(3),
   }),
-  tail: z.object({ shape: z.enum(['square', 'rounded', 'wedge', 'notched']), angle: z.number().optional() }),
+  /** 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone */
+  tail: z.object({ shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional() }),
+  /** 'webbed': a membrane between the three front toes (ducks); 'lobed': a flap along each toe segment (Coot, grebes) */
+  feet: z.enum(['webbed', 'lobed']).optional(),
+  /** lobed feet: how wide the middle toe is across its lobes at their widest, metres (default 0.2 × measurements.toe) */
+  lobeWidth: pos.optional(),
+  /**
+   * Parts some plumage versions have and others don't. Each is built on every bird of the species, on a bone of its
+   * own that is hidden on the versions it doesn't name. 'curl': the Mallard drake's two curled central tail coverts,
+   * loops `height` metres high rising from the back midline at the station `at`, `dx` metres forward along the spine.
+   * Painted as the part 'curl'. One part of each kind.
+   */
+  parts: z.array(z.object({
+    kind: z.literal('curl'),
+    at: z.string(),
+    dx: z.number().optional(),
+    height: pos,
+    versions: z.array(z.string().min(1)).min(1),
+  })).optional(),
   stepLength: pos.optional(),
   /** how far below the ground the bill tip goes at the bottom of a reach, metres; a prober pushes its bill into the mud */
   probeDepth: z.number().min(0).optional(),
@@ -122,6 +140,13 @@ export const detailSchema = z.object({
   }
   need('occiput', ['profile'])
   need('eye', ['profile'])
+  d.parts?.forEach((p, i) => {
+    need(p.at, ['parts', i, 'at'])
+    if (d.parts!.findIndex(q => q.kind === p.kind) !== i) ctx.addIssue({ code: 'custom', message: `more than one ${p.kind}`, path: ['parts', i] })
+    for (const v of p.versions) {
+      if (!(v in d.variants)) ctx.addIssue({ code: 'custom', message: `part version ${v} is not one of detail.variants`, path: ['parts', i, 'versions'] })
+    }
+  })
   for (const [k, v] of Object.entries(d.rig)) need(v, ['rig', k])
   const layers = (list: Layer[], path: (string | number)[]) => list.forEach((l, i) => {
     if ('where' in l && l.where.part === 'skin') { need(l.where.from, [...path, i, 'where', 'from']); need(l.where.to, [...path, i, 'where', 'to']) }

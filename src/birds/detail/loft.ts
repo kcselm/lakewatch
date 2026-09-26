@@ -5,7 +5,7 @@ import { Mesher, type Weights } from './mesher'
 export const RINGS = 64
 export const RADIAL = 24
 
-export interface LoftRig { neckBase: string; neckMid: string; head: string }
+export interface LoftRig { neckBase: string; neckMid: string; head: string; tailBase?: string }
 
 export interface LoftResult {
   /** first vertex and vertex count of the loft */
@@ -25,9 +25,16 @@ export function ringT(theta: number): number {
 
 /**
  * Skin weights along the spine: body until just before the neck base, then a linear hand-off
- * body -> neck -> neckMid -> head between the labelled stations. Always sums to 1.
+ * body -> neck -> neckMid -> head between the labelled stations. Always sums to 1. With `rearToTail` (a bird with no
+ * tail), the rear of the body hands off from the tail bone at the rear end to the body at the tail base, so cocking
+ * the tail cocks the stern.
  */
-export function loftWeights(u: number, profile: Profile, rig: LoftRig): Weights {
+export function loftWeights(u: number, profile: Profile, rig: LoftRig, rearToTail = false): Weights {
+  if (rearToTail && rig.tailBase) {
+    const kT = profile.uOf(rig.tailBase)
+    if (u <= 0) return [['tail', 1]]
+    if (u < kT) return [['tail', 1 - u / kT], ['body', u / kT]]
+  }
   const kNB = profile.uOf(rig.neckBase), kNM = profile.uOf(rig.neckMid), kH = profile.uOf(rig.head)
   const kB = Math.max(0, kNB - 0.08)
   const blend = (a: 'body' | 'neck' | 'neckMid', b: 'neck' | 'neckMid' | 'head', lo: number, hi: number): Weights => {
@@ -42,7 +49,7 @@ export function loftWeights(u: number, profile: Profile, rig: LoftRig): Weights 
 }
 
 /** The body-neck-head surface: RINGS cross-sections swept along the spine, closed at both ends. */
-export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult {
+export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail = false): LoftResult {
   const first = m.count
   const indexFirst = m.indexCount
   const ringU: number[] = []
@@ -52,7 +59,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult
     const u = i / (RINGS - 1)
     ringU.push(u)
     const s = profile.sampleAt(u)
-    const weights = loftWeights(u, profile, rig)
+    const weights = loftWeights(u, profile, rig, rearToTail)
     const row: number[] = []
     for (let j = 0; j < RADIAL; j++) {
       const theta = (j / RADIAL) * Math.PI * 2
@@ -73,7 +80,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult
   const s0 = profile.sampleAt(0), s1 = profile.sampleAt(1)
   const rear = m.vertex(new THREE.Vector3(
     s0.point.x - s0.tangent.x * Math.min(s0.up, s0.down) * 0.6,
-    s0.point.y - s0.tangent.y * Math.min(s0.up, s0.down) * 0.6, 0), 'skin', 0, 0.5, loftWeights(0, profile, rig))
+    s0.point.y - s0.tangent.y * Math.min(s0.up, s0.down) * 0.6, 0), 'skin', 0, 0.5, loftWeights(0, profile, rig, rearToTail))
   const front = m.vertex(new THREE.Vector3(
     s1.point.x + s1.tangent.x * Math.min(s1.up, s1.down) * 0.3,
     s1.point.y + s1.tangent.y * Math.min(s1.up, s1.down) * 0.3, 0), 'skin', 1, 0.5, loftWeights(1, profile, rig))

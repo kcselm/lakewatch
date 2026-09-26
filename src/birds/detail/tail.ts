@@ -36,6 +36,11 @@ export interface TailResult {
  */
 export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): TailResult {
   const base = profile.sampleAt(profile.uOf(detail.rig.tailBase))
+  // no tail: the tail bone sits at the tail base and moves the rear of the body instead (the builder finds the tip)
+  if (detail.tail.shape === 'none') {
+    const root = new THREE.Vector3(base.point.x, base.point.y, 0)
+    return { root, tip: root.clone(), width: 0 }
+  }
   const L = detail.measurements.tail
   const a = THREE.MathUtils.degToRad(detail.tail.angle ?? 0)
   const back = new THREE.Vector2(-base.tangent.x, -base.tangent.y)
