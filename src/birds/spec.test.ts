@@ -11,6 +11,7 @@ describe('parseSpeciesSpec', () => {
   })
   it('takes a foraging style, and rejects one it does not know', () => {
     expect(parseSpeciesSpec({ ...coot, foraging: 'plover' }).foraging).toBe('plover')
+    expect(parseSpeciesSpec({ ...coot, foraging: 'dowitcher' }).foraging).toBe('dowitcher')
     expect(parseSpeciesSpec(coot).foraging).toBeUndefined()
     expect(() => parseSpeciesSpec({ ...coot, foraging: 'heron' })).toThrow(/foraging/)
   })

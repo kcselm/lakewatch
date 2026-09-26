@@ -123,8 +123,13 @@ describe('Killdeer and Least Sandpiper: plumage', () => {
 })
 
 describe('the peck reaches the ground', () => {
-  // the Killdeer dabs at the surface; the Least may probe a little into it, never stop above it
-  const bounds = { plover: [-5, 5], sandpiper: [-8, 2] } as const
+  // The Killdeer dabs at the surface; a sandpiper may probe a little into it, never stop above it; a dowitcher pushes
+  // its bill in to its probeDepth. Millimetres, bill tip height above the ground.
+  const bounds = (spec: SpeciesSpec): [number, number] => {
+    if (spec.foraging === 'plover') return [-5, 5]
+    if (spec.foraging === 'dowitcher') { const d = (spec.detail?.probeDepth ?? 0) * 1000; return [-d - 5, -d + 5] }
+    return [-8, 2]
+  }
   for (const spec of Object.values(SPECIES)) {
     if (!spec.detail || !spec.foraging) continue
     const style = spec.foraging
@@ -133,7 +138,7 @@ describe('the peck reaches the ground', () => {
       const bottom = PECK_BOTTOM[style]
       const p = defaultPose(); p.lean.x = bottom.lean; p.neckExtend = bottom.neckExtend; p.reach = bottom.reach
       m.pose(p)
-      within(billTipNow(m).y * 1000, bounds[style][0], bounds[style][1])
+      within(billTipNow(m).y * 1000, ...bounds(spec))
     })
     it(`${spec.code} (${style}): at the bottom of its peck, the bill points steeply down, never back past vertical`, () => {
       const m = buildDetailedBird(spec)
@@ -175,10 +180,13 @@ describe('the feet stay planted as the probe drives the bird', () => {
       const down = m.layout.footY + 0.0005
       let slip = 0, ran = 0
       for (const seed of [1, 2, 3]) {
-        const c = createProbe({ zone: patch, rng: makeRng(seed), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0, foraging: spec.foraging }, 3, 1.25)
+        // a flock target that moves on every second, so even a slow creeper covers ground (a plover ignores it)
+        const group = { targetX: 3, targetZ: 1.25, retargetAt: 0 }
+        const c = createProbe({ zone: patch, rng: makeRng(seed), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0, foraging: spec.foraging, group }, 3, 1.25)
         const pose = defaultPose()
         let prev: THREE.Vector3[] | null = null, px = c.x, pz = c.z, ph = c.heading
         for (let i = 0; i < 60 * 30; i++) {
+          if (i % 30 === 0) group.retargetAt = 0
           c.update(1 / 30, pose)
           m.group.position.set(c.x, 0, c.z)
           m.group.rotation.y = c.heading

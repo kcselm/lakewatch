@@ -14,13 +14,13 @@ const ctx = (seed: number, more: Partial<BehaviorContext> = {}): BehaviorContext
 interface Frame { state: string; moved: number; leanX: number; leanZ: number; reach: number; gait: number }
 
 /** Run a controller for `seconds` at 30 fps, one record per frame, under the state it was in as the frame began. */
-function record(c: BehaviorController, seconds: number, pose: PoseState = defaultPose()): Frame[] {
+function record(c: BehaviorController, seconds: number, pose: PoseState = defaultPose(), area = zone.points): Frame[] {
   const frames: Frame[] = []
   let px = c.x, pz = c.z
   for (let i = 0; i < seconds * 30; i++) {
     const state = c.state
     c.update(1 / 30, pose)
-    expect(pointInPolygon(c.x, c.z, zone.points)).toBe(true)
+    expect(pointInPolygon(c.x, c.z, area)).toBe(true)
     frames.push({ state, moved: Math.hypot(c.x - px, c.z - pz), leanX: pose.lean.x, leanZ: pose.lean.z, reach: pose.reach, gait: pose.gait })
     px = c.x; pz = c.z
   }
@@ -37,8 +37,8 @@ function spells(frames: Frame[]): { state: string; frames: Frame[] }[] {
   return out
 }
 
-describe('probe, either style', () => {
-  for (const foraging of ['plover', 'sandpiper'] as const) {
+describe('probe, every style', () => {
+  for (const foraging of ['plover', 'sandpiper', 'dowitcher'] as const) {
     it(`${foraging}: walks its legs by exactly the ground it covers`, () => {
       const c = createProbe(ctx(1, { foraging }), 5, 5)
       const pose = defaultPose()
@@ -102,7 +102,7 @@ describe('probe, either style', () => {
   })
   it('moves the bill continuously: at 60 fps reach never changes by more than a smooth peck does in a frame', () => {
     // the fastest smooth peck is 3 a second along sin^2, at most 6 pi / 60 = 0.31 a frame
-    for (const foraging of ['plover', 'sandpiper'] as const) {
+    for (const foraging of ['plover', 'sandpiper', 'dowitcher'] as const) {
       const c = createProbe(ctx(15, { foraging }), 5, 5)
       const pose = defaultPose()
       let prev = pose.reach
@@ -205,8 +205,124 @@ describe('probe, sandpiper', () => {
   })
 })
 
+describe('probe, dowitcher', () => {
+  const S = STYLES.dowitcher
+  // a patch of water about the size of the lake's bench, with a flock of its own
+  const strip = { kind: 'polygon' as const, points: [[0, 0], [6, 0], [6, 1], [0, 1]] as [number, number][] }
+  const dctx = (seed: number, more: Partial<BehaviorContext> = {}): BehaviorContext =>
+    ctx(seed, { foraging: 'dowitcher', zone: strip, group: { targetX: 3, targetZ: 0.5, retargetAt: 0 }, ...more })
+  const frames = record(createProbe(dctx(16), 1, 0.5), 300, defaultPose(), strip.points)
+  const all = spells(frames)
+
+  it('stitches, creeps, looks up, and follows its flock', () => {
+    expect(new Set(frames.map(f => f.state))).toEqual(new Set(['stitch', 'creep', 'look', 'follow']))
+  })
+  it('keeps its feet still while it stitches', () => {
+    const bouts = all.filter(s => s.state === 'stitch')
+    expect(bouts.length).toBeGreaterThan(10)
+    for (const s of bouts) for (const f of s.frames) expect(f.moved).toBe(0)
+  })
+  it('stitches with its bill in the water: once its head is down, reach runs between the high point and the bottom', () => {
+    // the head takes S.dip.seconds to come down; after that, every frame of a bout stays in the stitch band
+    const settle = Math.ceil(S.dip.seconds * 30)
+    const bouts = all.filter(s => s.state === 'stitch' && s.frames.length > settle + 30)
+    expect(bouts.length).toBeGreaterThan(5)
+    for (const s of bouts) {
+      const settled = s.frames.slice(settle)
+      for (const f of settled) expect(f.reach).toBeGreaterThanOrEqual(S.stitch.high - 1e-6)
+      expect(Math.max(...settled.map(f => f.reach))).toBeGreaterThan(0.97)
+      expect(Math.min(...settled.map(f => f.reach))).toBeLessThan(S.stitch.high + 0.05)
+    }
+  })
+  it('stitches as it creeps: the bill keeps going while the feet step', () => {
+    const creeping = frames.filter(f => f.state === 'creep' && f.moved > 0)
+    expect(creeping.length).toBeGreaterThan(100)
+    expect(Math.max(...creeping.map(f => f.reach))).toBeGreaterThan(0.97)
+  })
+  it('creeps only a short way each time', () => {
+    const creeps = all.filter(s => s.state === 'creep').map(s => s.frames.reduce((d, f) => d + f.moved, 0))
+    expect(creeps.length).toBeGreaterThan(10)
+    for (const d of creeps) expect(d).toBeLessThanOrEqual(S.creep.distance[1] + 1e-6)
+  })
+  it('lifts its head clear of the water to look, then puts it back', () => {
+    const looks = all.filter(s => s.state === 'look' && s.frames.length > S.dip.seconds * 30 + 5)
+    expect(looks.length).toBeGreaterThan(2)
+    for (const s of looks) {
+      for (const f of s.frames) expect(f.moved).toBe(0)
+      expect(s.frames.at(-1)!.reach).toBeLessThan(0.02)
+    }
+  })
+  it('pecks with its body tipped forward to the peck-bottom lean', () => {
+    const deep = frames.filter(f => f.state === 'stitch' && f.reach > 0.97)
+    expect(deep.length).toBeGreaterThan(0)
+    for (const f of deep) expect(f.leanX).toBeCloseTo(PECK_BOTTOM.dowitcher.lean, 1)
+  })
+  it('rings the water ahead of it at the bottom of a stroke, no more often than its ripple interval', () => {
+    const rings: { t: number; x: number; z: number; size?: number }[] = []
+    let t = 0
+    const c = createProbe(dctx(17, { onRipple: (x, z, size) => rings.push({ t, x, z, size }) }), 3, 0.5)
+    const pose = defaultPose()
+    for (let i = 0; i < 120 * 60; i++) {
+      t = i / 60
+      c.update(1 / 60, pose)
+      if (rings.at(-1)?.t === t) {
+        const r = rings.at(-1)!
+        expect(pose.reach).toBeGreaterThan(0.95)
+        expect(r.size).toBe(S.ripple.size)          // a bill's small ring, not a duck's wake
+        expect(Math.hypot(r.x - c.x, r.z - c.z)).toBeCloseTo(S.ripple.ahead, 6)
+        // ahead is where the bird faces: +x at heading 0, counter-clockwise seen from above (-z)
+        expect(r.x - c.x).toBeCloseTo(Math.cos(c.heading) * S.ripple.ahead, 6)
+        expect(r.z - c.z).toBeCloseTo(-Math.sin(c.heading) * S.ripple.ahead, 6)
+      }
+    }
+    expect(rings.length).toBeGreaterThan(30)
+    for (let i = 1; i < rings.length; i++) expect(rings[i]!.t - rings[i - 1]!.t).toBeGreaterThanOrEqual(S.ripple.every - 1e-9)
+  })
+  it('never leans on the zone clamp in a strip 0.3 m wide: every frame moves it no further than its pace', () => {
+    // Flock spots near the edge get clamped to just inside it, so a bird that curved round while walking would clip
+    // the edge and the clamp would jump it several centimetres. Turning on the spot first, it never does.
+    const thin = { kind: 'polygon' as const, points: [[0, 0], [5, 0], [5, 0.3], [0, 0.3]] as [number, number][] }
+    const pace = Math.max(S.creep.speed, S.follow.speed) / 30
+    for (let seed = 1; seed <= 20; seed++) {
+      const c = createProbe(dctx(seed, { zone: thin, group: { targetX: 2.5, targetZ: 0.15, retargetAt: 0 } }), 0.3, 0.15)
+      const pose = defaultPose()
+      let px = c.x, pz = c.z
+      for (let i = 0; i < 300 * 30; i++) {
+        c.update(1 / 30, pose)
+        expect(pointInPolygon(c.x, c.z, thin.points)).toBe(true)
+        const moved = Math.hypot(c.x - px, c.z - pz)
+        if (moved > pace + 1e-9) expect.fail(`seed ${seed}, frame ${i}: moved ${moved.toFixed(4)} m`)
+        px = c.x; pz = c.z
+      }
+    }
+  })
+  it('works one patch, then drifts a short way on: the flock target never jumps further than its drift', () => {
+    const group = { targetX: 3, targetZ: 0.5, retargetAt: 0 }
+    const c = createProbe(dctx(21, { group }), 3, 0.5)
+    const pose = defaultPose()
+    let [gx, gz] = [group.targetX, group.targetZ], moves = 0
+    for (let i = 0; i < 600 * 30; i++) {
+      c.update(1 / 30, pose)
+      const jump = Math.hypot(group.targetX - gx, group.targetZ - gz)
+      if (jump > 0) { moves++; expect(jump).toBeLessThanOrEqual(S.flock.drift + 1e-9) }
+      ;[gx, gz] = [group.targetX, group.targetZ]
+    }
+    expect(moves).toBeGreaterThan(10)
+  })
+  it('keeps with the flock, closer than a sandpiper: members converge on the shared target', () => {
+    const group = { targetX: 10, targetZ: 5, retargetAt: 1e9 }
+    const a = createProbe(ctx(19, { foraging: 'dowitcher', group }), 1, 1)
+    const b = createProbe(ctx(20, { foraging: 'dowitcher', group }), 19, 9)
+    const pa = defaultPose(), pb = defaultPose()
+    // a first stitch bout of a few seconds, then about 10 m at a wading walk
+    for (let t = 0; t < 150; t += 1 / 30) { a.update(1 / 30, pa); b.update(1 / 30, pb) }
+    expect(Math.hypot(a.x - group.targetX, a.z - group.targetZ)).toBeLessThan(S.follow.whenFarther + S.flock.radius)
+    expect(Math.hypot(b.x - group.targetX, b.z - group.targetZ)).toBeLessThan(S.follow.whenFarther + S.flock.radius)
+  })
+})
+
 describe('PECK_BOTTOM', () => {
   it('has a style for every foraging kind, each reaching all the way', () => {
-    for (const k of ['plover', 'sandpiper'] as Foraging[]) expect(PECK_BOTTOM[k].reach).toBe(1)
+    for (const k of ['plover', 'sandpiper', 'dowitcher'] as Foraging[]) expect(PECK_BOTTOM[k].reach).toBe(1)
   })
 })
