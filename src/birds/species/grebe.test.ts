@@ -4,7 +4,7 @@ import { parseSpeciesSpec } from '../spec'
 import { billWidthAt, billDepthAt } from '../detail/measure'
 import { eyePlacement } from '../detail/bill'
 import { defaultPose } from '../model'
-import { AWASH } from '../../behavior/grebe'
+import { AWASH, NECK } from '../../behavior/grebe'
 import { built, atlas, within, draftShare } from './swimmer.testkit'
 
 // Bounds from docs/research/2026-09-25-pied-billed-grebe.md, section 10 (Cramp & Simmons in Johnsgard 1987; Baird,
@@ -43,11 +43,11 @@ describe('Pied-billed Grebe: structure', () => {
     within(draftShare(B.M), 0.55, 0.7)
   })
   // Added in review, beyond the brief's file: the grebe style sinks the bird by AWASH to watch (and to start a sink
-  // dive), with its neck at the sink state's extension (NECK.sink, 1, in src/behavior/grebe.ts)
+  // dive), with its neck at the sink state's extension (NECK.sink, in src/behavior/grebe.ts)
   it('at the periscope, the head and upper neck show: the eye and the chin above the water, the back below it', () => {
     const { model: m } = built(GREBE, 'basic')
     const p = defaultPose()
-    p.neckExtend = 1
+    p.neckExtend = NECK.sink
     m.pose(p)
     // the game lowers the whole bird: the style's y is minus its depth
     m.group.position.y = -AWASH
