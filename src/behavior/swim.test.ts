@@ -3,9 +3,17 @@ import { MALLARD } from './dabbler'
 import { AVOID, DRIFT, startSpot, createSwimmer } from './swimmer'
 import { defaultPose } from '../birds/model'
 import { makeRng } from '../catalog/rng'
-import { pointInPolygon } from '../location/zones'
+import { pointInPolygon, randomPointInPolygon } from '../location/zones'
 import type { BehaviorContext, BehaviorController, FlockGroup } from './types'
 import type { Foraging } from '../birds/spec'
+
+// Every swimmer body made, in order, so a test can watch the steps a style hands its body and what the body makes of
+// them. The bodies are the real ones.
+const made = vi.hoisted(() => [] as ReturnType<typeof import('./swimmer').createSwimmer>[])
+vi.mock('./swimmer', async importOriginal => {
+  const real = await importOriginal<typeof import('./swimmer')>()
+  return { ...real, createSwimmer: (...a: Parameters<typeof real.createSwimmer>) => { const b = real.createSwimmer(...a); made.push(b); return b } }
+})
 
 type Pt = [number, number]
 const zone = { kind: 'polygon' as const, points: [[-10, -10], [10, -10], [10, 10], [-10, 10]] as Pt[] }
@@ -114,23 +122,98 @@ describe('swim', () => {
     run(birds, 90)
     for (const b of birds) expect(Math.hypot(b.x - group.targetX, b.z - group.targetZ)).toBeLessThan(MALLARD.flock.whenFarther)
   })
-  it('never jumps when it starts at the zone edge in a crowd: it paddles clear inside the zone, never clamped back in', () => {
+  it('never jumps when it starts at the zone edge in a crowd: it paddles clear along the bank, never clamped back in, never frozen', () => {
     // A strip 0.8 m wide with birds started a few centimetres apart against its edge: a push straight out of the zone
-    // would have to be clamped back, jumping the bird; instead a step that would leave is shortened.
+    // would have to be clamped back, jumping the bird; instead the part of a step that would leave is taken out, and
+    // the bird slides along the bank.
+    // Every pair started inside its spacing is clear of it within 10 s. The slowest to part is the pair 0.1 m apart
+    // that must be 0.8 m apart; with only one of them able to paddle (the other wedged into the corner), AVOID takes it
+    // to 0.6 m in 4.2 s, and the paddle, easing off as the gap closes (e^-0.6t), to within 1 cm in 5 s more: 9.2 s.
+    // And no crowded bird stands still for more than 2 s unless the neighbour it is too close to is moving: one wedged
+    // into a corner, or held against that neighbour by the wind, has no way to go that doesn't close on it, and waits
+    // for the other to paddle clear, but a pair that both stand still is frozen.
     const strip: Pt[] = [[0, 0], [6, 0], [6, 0.8], [0, 0.8]]
+    const pairs: [number, number][] = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]   // pairGaps' order
     for (let seed = 1; seed <= 20; seed++) {
       const group = { targetX: 3, targetZ: 0.4, retargetAt: 0 }
       const birds = crowd([
         { seed, x: 0.05, z: 0.05, group }, { seed: seed + 50, x: 0.15, z: 0.05, group },
         { seed: seed + 100, x: 0.05, z: 0.15 }, { seed: seed + 150, x: 5.95, z: 0.75 },
       ], strip)
+      const start = pairGaps(birds), clearAt = start.map(() => Infinity), still = start.map(() => 0)
       let last = birds.map(b => [b.x, b.z])
       run(birds, 60, i => {
+        const moved = birds.map((b, k) => Math.hypot(b.x - last[k]![0]!, b.z - last[k]![1]!))
         birds.forEach((b, k) => {
           if (!pointInPolygon(b.x, b.z, strip)) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: left the strip at ${b.x}, ${b.z}`)
-          const moved = Math.hypot(b.x - last[k]![0]!, b.z - last[k]![1]!)
-          if (moved > PACE) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: moved ${moved.toFixed(4)} m`)
+          if (moved[k]! > PACE) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: moved ${moved[k]!.toFixed(4)} m`)
         })
+        pairGaps(birds).forEach((g, p) => {
+          const [a, c] = pairs[p]!
+          if (start[p]! < -0.01 && g >= -0.01) clearAt[p] = Math.min(clearAt[p]!, (i + 1) / 30)
+          still[p] = g < -0.01 && moved[a]! < 1e-9 && moved[c]! < 1e-9 ? still[p]! + 1 : 0
+          if (still[p]! > 2 * 30) expect.fail(`seed ${seed}, frame ${i}: birds ${a} and ${c}, ${(-g).toFixed(3)} m inside their spacing, both still for 2 s`)
+        })
+        last = birds.map(b => [b.x, b.z])
+      })
+      start.forEach((g, p) => { if (g < -0.01) expect(clearAt[p], `seed ${seed}, birds ${pairs[p]}: clear of their spacing at`).toBeLessThanOrEqual(10) })
+    }
+  })
+  it('slides along the bank: a step out across it keeps the part along it, and one into a corner goes nowhere', () => {
+    const b = createSwimmer(ctx(1), 0, -9.99, MALLARD)
+    b.moveBy(0.01, -0.02)
+    expect([b.x, b.z]).toEqual([0.01, -9.99])
+    const c = createSwimmer(ctx(1), -9.99, -9.99, MALLARD)
+    c.moveBy(-0.02, -0.005)
+    expect(c.x).toBe(-9.99)
+    expect(c.z).toBeCloseTo(-9.995, 12)
+    const z = c.z
+    c.moveBy(-0.02, -0.02)
+    expect([c.x, c.z]).toEqual([-9.99, z])
+  })
+  it('loses way when the bank holds it up: swimming straight into it, it never gathers the speed of a wake', () => {
+    const b = createSwimmer(ctx(1), 0, -9.995, MALLARD)
+    b.heading = Math.PI / 2                       // facing -z, the near bank
+    let fastest = 0
+    for (let i = 0; i < 60; i++) {
+      b.swim(1 / 30, MALLARD.cruise.speed, Math.PI / 2)
+      fastest = Math.max(fastest, b.speed)
+      expect(pointInPolygon(b.x, b.z, zone.points)).toBe(true)
+    }
+    expect(fastest).toBeLessThan(MALLARD.wake.above)
+  })
+  it('slides a crowded swimmer along the bank rather than freezing it: started as the spawner starts them in a small pond, no cruising bird is refused its whole step for more than 1 s, and only a bird that moves makes a wake', () => {
+    // Flocks of four and six in a pond 6 m by 4 m, as the spawner starts them, so they keep meeting each other and the
+    // bank. A step refused is one of at least 1 cm/s (a fiftieth of the cruise) that the body moves none of; anything
+    // less is only what is left of a step that all closes on neighbours the bird is hemmed in by, and a hemmed-in bird
+    // waits. A wake is made only in a frame the bird moved faster than the wake's `above`.
+    const pond: Pt[] = [[0, 0], [6, 0], [6, 4], [0, 4]], area = { kind: 'polygon' as const, points: pond }
+    for (let seed = 1; seed <= 15; seed++) {
+      made.length = 0
+      const rng = makeRng(seed), birds: BehaviorController[] = [], wakes: number[] = []
+      for (const count of [4, 6]) {
+        const [gx, gz] = randomPointInPolygon(pond, rng)
+        const group = { targetX: gx, targetZ: gz, retargetAt: MALLARD.flock.retargetSeconds }
+        for (let n = 0; n < count; n++) {
+          const k = birds.length, [x, z] = startSpot(area, rng, group, companyOf(), birds)
+          const onRipple = (_x: number, _z: number, size?: number) => { if (size === MALLARD.wake.size) wakes.push(k) }
+          birds.push(createSwim(ctx(seed * 100 + k, { zone: area, group, neighbours: () => birds, onRipple }), x, z))
+        }
+      }
+      // what each bird's style asks its body to move this frame
+      const asked = birds.map(() => 0)
+      made.forEach((b, k) => { const moveBy = b.moveBy; b.moveBy = (dx, dz) => { asked[k] = Math.hypot(dx, dz); moveBy(dx, dz) } })
+      const refused = birds.map(() => 0)
+      let last = birds.map(b => [b.x, b.z])
+      run(birds, 120, i => {
+        const moved = birds.map((b, k) => Math.hypot(b.x - last[k]![0]!, b.z - last[k]![1]!))
+        birds.forEach((b, k) => {
+          refused[k] = b.state === 'cruise' && asked[k]! >= 0.01 / 30 && moved[k]! < 1e-9 ? refused[k]! + 1 : 0
+          if (refused[k]! > 30) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: refused its whole step for 1 s at ${b.x.toFixed(3)}, ${b.z.toFixed(3)}`)
+        })
+        for (const k of wakes) if (moved[k]! <= MALLARD.wake.above / 30) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: a wake from a bird that moved ${moved[k]!.toFixed(4)} m`)
+        wakes.length = 0
+        asked.fill(0)
         last = birds.map(b => [b.x, b.z])
       })
     }
