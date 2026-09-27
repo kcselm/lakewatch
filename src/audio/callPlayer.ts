@@ -50,7 +50,7 @@ function worldPos(inst: CallBird): THREE.Vector3 {
  * Binds the pure scheduler to the registry and the engine: asks it who calls,
  * picks a clip, loads it, plays it at the bird, and keeps the voice on the
  * bird while it moves. Flock members are left out; a flock has one source
- * of its own (Task 10).
+ * of its own (Task 10). So is a bird out of sight, as a diver under the water.
  */
 export function createCallPlayer(deps: CallPlayerDeps): CallPlayer {
   const scheduler = deps.scheduler ?? createCallScheduler(deps.rng)
@@ -71,7 +71,8 @@ export function createCallPlayer(deps: CallPlayerDeps): CallPlayer {
       if (!deps.engine.unlocked) return
       const listener = deps.listenerPosition()
       const cands = deps.registry.all()
-        .filter(b => b.behavior !== 'flyover')
+        // a bird out of sight (a diver all the way under the water) doesn't call
+        .filter(b => b.behavior !== 'flyover' && b.model.group.visible)
         .map(b => ({ id: b.id, species: b.species, distance: worldPos(b).distanceTo(listener) }))
       for (const req of scheduler.tick(now, cands, live.length + pending)) {
         const clip = pickClip(deps.birdOf(req.species), req.prefer, deps.rng)

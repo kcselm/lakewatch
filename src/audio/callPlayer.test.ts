@@ -20,10 +20,11 @@ function fakeEngine(unlocked: boolean) {
   return engine
 }
 
-function fakeRegistry(birds: { id: number; species: string; at: [number, number, number]; behavior?: string }[]) {
+function fakeRegistry(birds: { id: number; species: string; at: [number, number, number]; behavior?: string; hidden?: boolean }[]) {
   const map = new Map<number, CallBird>(birds.map(b => {
     const group = new THREE.Group()
     group.position.set(...b.at)
+    group.visible = !b.hidden
     group.updateMatrixWorld()
     return [b.id, { id: b.id, species: b.species, behavior: b.behavior ?? 'swim', model: { group, center: new THREE.Vector3() } }]
   }))
@@ -88,6 +89,15 @@ describe('createCallPlayer', () => {
     const engine = fakeEngine(true)
     const scheduler = fakeScheduler([])
     const registry = fakeRegistry([{ id: 1, species: 'y00475', at: [0, 0, -10] }, { id: 2, species: 'cangoo', at: [0, 50, 0], behavior: 'flyover' }])
+    const p = createCallPlayer({ engine, registry, birdOf: () => coot, listenerPosition: () => new THREE.Vector3(0, 0, 0), rng: makeRng(1), scheduler })
+    p.update(1)
+    expect(scheduler.offered[0]).toEqual([{ id: 1, species: 'y00475', distance: 10 }])
+  })
+
+  it('offers only the birds in sight: a diver all the way under the water does not call', () => {
+    const engine = fakeEngine(true)
+    const scheduler = fakeScheduler([])
+    const registry = fakeRegistry([{ id: 1, species: 'y00475', at: [0, 0, -10] }, { id: 2, species: 'pibgre', at: [0, -0.4, -20], hidden: true }])
     const p = createCallPlayer({ engine, registry, birdOf: () => coot, listenerPosition: () => new THREE.Vector3(0, 0, 0), rng: makeRng(1), scheduler })
     p.update(1)
     expect(scheduler.offered[0]).toEqual([{ id: 1, species: 'y00475', distance: 10 }])
