@@ -229,9 +229,11 @@ notch stays a known soft spot.
 ### Everything else
 
 The eyes, painter, and atlas layout are unchanged. The six shorebirds must
-build exactly as before: a geometry fingerprint of each is a test. Two
-changes were made knowingly: the dowitcher's chin (above), and the folded
-wing, refitted to clear the skin (see "Changed during implementation").
+build exactly as before: a geometry fingerprint of each is a test. Three
+changes were made knowingly: the dowitcher's chin, retraced (above; Task 5);
+the head pump's arc, as `headBob` now lifts the head half as far as it
+thrusts it forward (Task 10); and the folded wing, refitted to clear the skin
+(Task 19b; see "Changed during implementation").
 
 ## The `swim` styles
 
@@ -467,9 +469,12 @@ measurements within 5%, no crease in the loft, and no bone turning more than
 - A tilted station removes a crease that the untilted section has, on a test
   fixture.
 - The six shorebirds' geometry fingerprints are unchanged, except where
-  changed knowingly. Task 5 retraced the dowitcher. Task 19b refitted the
-  folded wing, which changed every detailed species' geometry print and most
-  pose prints. Every atlas print stayed as it was.
+  changed knowingly. Task 5 retraced the dowitcher. Task 10 gave the head
+  pump its arc, which changed seven pose prints (the six shorebirds' and the
+  Mallard's) and no geometry print; in the game only the Coot sets `headBob`,
+  so no other bird moves differently. Task 19b refitted the folded wing, which
+  changed every detailed species' geometry print and most pose prints. Every
+  atlas print stayed as it was.
 
 ### Species
 
