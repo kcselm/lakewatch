@@ -34,9 +34,12 @@ const MALE: Layer[] = [
   // the long scapulars in front of the folded wing, grey with cinnamon margins
   { kind: 'streaks', where: { part: 'skin', from: 'hip', to: 'mantle', band: [0.08, 0.36] }, color: '#b98556', length: 9, width: 1.3, spacing: 2.6, blur: 0.3, soft: 3, opacity: 0.7 },
   // the breast greyish black, each feather with a thin greyish-white crescent: finely scaled, and darker than the
-  // flank (breast / flank luminance 0.65 in the atlas; 0.75 and 0.61 on the two local drakes' photos)
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, color: '#3e3936', soft: 4 },
-  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, length: 5, width: 5, center: '#3c3634', edge: '#aaa29a', edgeWidth: 0.5, soft: 3 },
+  // flank. Breast / flank luminance is 0.42 in the atlas, so that it renders at about 0.7-0.8 at 15 m, as on the two
+  // local drakes' photos (0.75 and 0.61): the light falls on the forward-facing breast and leaves the lower flank in
+  // the hull's shade, and at a distance the texture's mipmaps mix the pale crescents in linear light, which brightens
+  // them. The crescents cover about a fifth of the breast
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, color: '#221e1c', soft: 4 },
+  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, length: 5, width: 5, center: '#201c1a', edge: '#948d86', edgeWidth: 0.4, soft: 3 },
   // the stern: black above and below, from the tail back to where the grey flank stops square
   { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'tailBase' }, color: '#161617', soft: 2 },
   // the head: pale grey-brown, speckled dusky, the crown darker; the colour runs down the back of the neck
@@ -167,23 +170,26 @@ export const SPEC: SpeciesSpec = {
     // outline is a keel 55 mm down, from where the water meets the stern to where it meets the breast.
     // The back is lowered from the trace. The January drake's back is peaked by his long alternate tertials and
     // scapulars; the drakes on the game's dates, still in their shorter basic tertials, and the females sit lower and
-    // flatter (back 51-57 mm above the water on the two local drakes, 48.5 on the traced female; the research's mean
-    // 62). So the outline's back was lowered 8 mm from the mantle back to the tertials, easing to nothing at the rump,
-    // and run level from the mantle to the nape notch; the stations were refitted to it (the neck base's upper side,
-    // which fans back over the mantle, came down with the back), the head, the neck, the breast and the stern as
-    // traced. The back now stands 61 mm above the water, 7.5 mm under the photo's. The loft lies within 0.5 mm of the
-    // (lowered) outline on average along the back, the back of the head, and the breast, 0.6 mm at the chin, the
-    // crown and the nape notch, 0.9 mm at the forehead, and 1.1 mm under the stern; the rump under the tertials is
-    // drawn by hand from the black uppertail coverts to the back
+    // flatter (back 51-57 mm above the water on the two local drakes, 48.5 on the female the model was checked
+    // against; the research's mean 62). So the outline's back was lowered 8 mm from the mantle back to the tertials,
+    // easing to nothing at the rump, and run level from the mantle to the nape notch; the stations were refitted to
+    // it (the neck base's upper side, which fans back over the mantle, came down with the back), the head, the neck,
+    // the breast's front and the stern as traced, and the back's midline held to advance ring by ring, with no step
+    // back where the sections fan up into the neck. The back now stands 61 mm above the water, 8 mm under the
+    // photo's. The loft lies within 0.5 mm of the (lowered) outline on average along the back, the back of the head,
+    // and the breast, 0.6 mm at the chin and the crown, 0.8 mm at the nape notch, 0.9 mm at the forehead, and 1.1 mm
+    // under the stern; the rump under the tertials is drawn by hand from the black uppertail coverts to the back.
+    // The tail base is 41 mm wide each side, a few mm narrower than the flat-sided folded wings need to cover the
+    // rounded black rump where they cross it (wider, the black showed through them from above and in a tip-up)
     profile: [
       { label: 'rear',     x: -0.1101, y: 0.0046, up: 0.0070, down: 0.0055, halfWidth: 0.0070 },
       { label: 'rump',     x: -0.0856, y: 0.0024, up: 0.0151, down: 0.0111, halfWidth: 0.0270 },
-      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0313, down: 0.0331, halfWidth: 0.0470 },
+      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0313, down: 0.0331, halfWidth: 0.0410 },
       { label: 'hip',      x: 0.0000,  y: 0.0000, up: 0.0423, down: 0.0597, halfWidth: 0.0610 },
       { label: 'flank',    x: 0.0450,  y: 0.0003, up: 0.0462, down: 0.0706, halfWidth: 0.0610, tilt: 5.3 },
       { label: 'mantle',   x: 0.0720,  y: 0.0046, up: 0.0459, down: 0.0693, halfWidth: 0.0570, tilt: 12.8 },
-      { label: 'breast',   x: 0.0911,  y: 0.0139, up: 0.0522, down: 0.0666, halfWidth: 0.0500, tilt: 15.7 },
-      { label: 'neckBase', x: 0.1030,  y: 0.0265, up: 0.0366, down: 0.0580, halfWidth: 0.0310, tilt: 2.2 },
+      { label: 'breast',   x: 0.0911,  y: 0.0139, up: 0.0482, down: 0.0666, halfWidth: 0.0500, tilt: 15.7 },
+      { label: 'neckBase', x: 0.1030,  y: 0.0265, up: 0.0371, down: 0.0580, halfWidth: 0.0310, tilt: 2.2 },
       { label: 'neckMid',  x: 0.1072,  y: 0.0358, up: 0.0323, down: 0.0249, halfWidth: 0.0245, tilt: -1.9 },
       { label: 'nape',     x: 0.1097,  y: 0.0433, up: 0.0346, down: 0.0288, halfWidth: 0.0200, tilt: -7.1 },
       { label: 'occiput',  x: 0.1123,  y: 0.0477, up: 0.0370, down: 0.0318, halfWidth: 0.0185, tilt: 6.1 },
@@ -194,7 +200,8 @@ export const SPEC: SpeciesSpec = {
     ],
     rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },
     bill: {
-      // the culmen gently concave in the middle, straight before and behind; the small nail hooks down at the tip
+      // the bill built straight: BBR's culmen is only "gently concave in the middle, straight before and behind", and
+      // curve would bend the whole distal half; the small nail hooks down at the tip
       curve: 0,
       hook: 0.0012,
       // width from the NHMO skin's top view (parallel-sided within 1-2% from the base to 13 mm behind the tip, widest
