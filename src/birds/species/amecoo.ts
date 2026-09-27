@@ -125,8 +125,8 @@ export const SPEC: SpeciesSpec = {
     size: 'chicken-sized and plump, smaller than a Mallard: a round head on an upright neck, and a low, level back',
     bill: 'adults: a short, pointed white bill with a dark band near the tip, running up the forehead into a small white shield capped with a dark red-brown spot; young birds: a dull grey bill and a small, flat, pale shield',
     head: 'adults: a jet-black head and neck and a red eye; young birds: a grey-brown head with a whitish throat and a brown eye. The head pumps back and forth as it swims',
-    body: 'slate grey, with white wedges either side under a short tail; young birds paler and browner. Often dives with a little leap, then bobs back up with weed in its bill',
-    legs: 'yellow-green legs and lobed, not webbed, toes, seen as it leaps into a dive',
+    body: 'slate grey, with white wedges either side under a short tail; young birds paler and browner. Sometimes dives with a little leap, then bobs back up with weed in its bill',
+    legs: 'lobed, not webbed, toes, seen as it leaps into a dive: yellow-green legs on adults, grey-green on young birds',
   },
   wingbeatHz: 5,
   foraging: 'coot',
@@ -149,28 +149,34 @@ export const SPEC: SpeciesSpec = {
     // under the 0.64 kg bird, as the Mallard's is. Each station's up, down and tilt, the body's half-widths, and the
     // neck's and head's places were fitted by coordinate descent: the least area between outline and loft, no fold (with
     // 0.08 mm to spare), the eye on the photo's eye, and over the forehead the profile's smooth top (which the shield
-    // follows) within 0.4 mm of the loft's chords, so the shield lies on the head. The loft lies within 0.5 mm of the
-    // photo along the back, 0.4 mm over the crown and the back of the head, 0.4 mm down the foreneck and breast, and
-    // 0.7 mm along the near-side waterline; the chin falls up to 4.5 mm short under the bill, whose lower half the
-    // symmetric builder's bill cannot carry back toward the gape. The bill's axis runs from half the base depth below
-    // the culmen's junction with the shield to the photo's tip (lifted by the curve's 1.3 mm droop), 32.5 degrees down;
-    // lores sits on it, 2.1 mm behind the base, and the base's up is half the bill's depth, so the shield runs straight
-    // on from the culmen
+    // follows) within 0.4 mm of the loft's chords, so the shield lies on the head.
+    // The chin: R1's chin reaches forward under the bill, where the real lower mandible's base runs back toward the
+    // gape; the builder's bill is symmetric and has no such base, so a chin traced to R1 jutted out as a lip under the
+    // bill with water showing between them. So in the level side view the chin only recedes from the bill base's
+    // bottom (nothing in front of it, no notch, no forward bump within 30 mm below it, no see-through gap), and it
+    // falls short of R1's chin corner (7 mm at the two points under the bill, 0 by the throat). The head's sections are
+    // seeded so their lower ends step in order along the throat to the chin, and no ring bends the surface more than
+    // 60 degrees on to the next (an earlier trace folded the throat back on itself under the crown: a visible crease).
+    // The loft lies within 0.5 mm of the photo along the back, 0.5 mm over the crown and the back of the head, 1.1 mm
+    // down the foreneck and breast (3.6 mm at worst, the throat a little slim), and 0.6 mm along the near-side
+    // waterline. The bill's axis runs from half the base depth below the culmen's junction with the shield to the
+    // photo's tip (lifted by the curve's 1.3 mm droop), 32.5 degrees down; lores sits on it, 2 mm behind the base, and
+    // the base's up is half the bill's depth, so the shield runs straight on from the culmen
     profile: [
-      { label: 'rear',       x: -0.1092, y: 0.0039, up: 0.001, down: 0.0032, halfWidth: 0.001 },
-      { label: 'rump',       x: -0.0946, y: 0.0065, up: 0.0097, down: 0.011, halfWidth: 0.0255 },
-      { label: 'tailBase',   x: -0.0619, y: 0.0013, up: 0.0203, down: 0.0293, halfWidth: 0.0445 },
-      { label: 'hip',        x: 0, y: 0, up: 0.0245, down: 0.0423, halfWidth: 0.0563 },
-      { label: 'flank',      x: 0.0607, y: 0, up: 0.022, down: 0.041, halfWidth: 0.0545 },
-      { label: 'breast',     x: 0.1164, y: 0.0111, up: 0.0222, down: 0.0333, halfWidth: 0.0248, tilt: 15.5 },
-      { label: 'neckBase',   x: 0.1249, y: 0.023, up: 0.0257, down: 0.0165, halfWidth: 0.026, tilt: 4 },
-      { label: 'neckMid',    x: 0.124, y: 0.0503, up: 0.0253, down: 0.0155, halfWidth: 0.019, tilt: 5 },
-      { label: 'nape',       x: 0.1194, y: 0.0741, up: 0.017, down: 0.0302, halfWidth: 0.017, tilt: -6.5 },
-      { label: 'occiput',    x: 0.1225, y: 0.0865, up: 0.0165, down: 0.0262, halfWidth: 0.016, tilt: 9 },
-      { label: 'crown',      x: 0.1305, y: 0.0929, up: 0.018, down: 0.0035, halfWidth: 0.015, tilt: 13 },
-      { label: 'eye',        x: 0.14, y: 0.0917, up: 0.0173, down: 0.016, halfWidth: 0.014, tilt: 16.5 },
-      { label: 'lores',      x: 0.1506, y: 0.088, up: 0.009, down: 0.019, halfWidth: 0.01, tilt: -4.5 },
-      { label: 'billBase',   x: 0.1524, y: 0.0868, up: 0.00775, down: 0.0085, halfWidth: 0.006 },
+      { label: 'rear',       x: -0.10917, y: 0.00387, up: 0.001, down: 0.00325, halfWidth: 0.001 },
+      { label: 'rump',       x: -0.09461, y: 0.00645, up: 0.00975, down: 0.011, halfWidth: 0.0255 },
+      { label: 'tailBase',   x: -0.06186, y: 0.00129, up: 0.02025, down: 0.02925, halfWidth: 0.0445 },
+      { label: 'hip',        x: 0, y: 0, up: 0.0245, down: 0.04225, halfWidth: 0.05625 },
+      { label: 'flank',      x: 0.06065, y: 0, up: 0.022, down: 0.041, halfWidth: 0.0545 },
+      { label: 'breast',     x: 0.11645, y: 0.0111, up: 0.02225, down: 0.03325, halfWidth: 0.02475, tilt: 15.5 },
+      { label: 'neckBase',   x: 0.12688, y: 0.02608, up: 0.021, down: 0.01525, halfWidth: 0.026, tilt: -5.5 },
+      { label: 'neckMid',    x: 0.123, y: 0.04673, up: 0.023, down: 0.01275, halfWidth: 0.019, tilt: -18 },
+      { label: 'nape',       x: 0.11936, y: 0.07384, up: 0.01847, down: 0.02148, halfWidth: 0.017, tilt: -37.6 },
+      { label: 'occiput',    x: 0.12251, y: 0.08649, up: 0.01829, down: 0.02853, halfWidth: 0.016, tilt: -28.6 },
+      { label: 'crown',      x: 0.13052, y: 0.09294, up: 0.01741, down: 0.02872, halfWidth: 0.015, tilt: 15.6 },
+      { label: 'eye',        x: 0.13998, y: 0.09165, up: 0.0173, down: 0.02351, halfWidth: 0.014, tilt: 29 },
+      { label: 'lores',      x: 0.15074, y: 0.08792, up: 0.00925, down: 0.01385, halfWidth: 0.01, tilt: 6 },
+      { label: 'billBase',   x: 0.15243, y: 0.08685, up: 0.00775, down: 0.0075, halfWidth: 0.006, tilt: -5 },
     ],
     // the neck joints sit low (at the breast and neck base stations), so the head pump's 5.8 cm thrust and 2.9 cm rise
     // bend the whole upright neck instead of crumpling its top 4 cm
@@ -184,7 +190,7 @@ export const SPEC: SpeciesSpec = {
       shield: { length: 0.009, width: 0.007, thickness: 0.0022 },
     },
     // 5.2 mm across; the adult's red (the juvenile repaints its own); t puts it on R1's eye, as the camera saw it
-    eye: { radius: 0.0026, t: 0.395, iris: '#d0161f' },
+    eye: { radius: 0.0026, t: 0.4, iris: '#d0161f' },
     // the folded wing mostly hidden under the scapulars and flank feathers: its tip under the rear tertials 22 mm above
     // the water, a strip 12 mm deep along the upper flank, its lower edge 11 mm above the water; nothing in front of 30%
     // of the chord, where the breast and flank feathers cover it (the builder's wing follows only the body's rear 60%)
@@ -193,7 +199,7 @@ export const SPEC: SpeciesSpec = {
       outline: [[0, 0], [0.3, 0], [0.36, 0.05], [0.5, 0.065], [0.7, 0.065], [0.85, 0.05], [0.95, 0.02], [1, 0.005]],
     },
     // rooted at the tail base's spine point, 52 mm from the photo's tip, which the spine's own direction there reaches
-    tail: { shape: 'rounded', angle: 0 },
+    tail: { shape: 'rounded', angle: 0.1 },
     feet: 'lobed',
     lobeWidth: 0.01,
     // R1's midline water level (y = 825): the hip's spine point sits 2.6 mm above it
@@ -210,6 +216,7 @@ export const SPEC: SpeciesSpec = {
       'the juvenile from iNaturalist 319709142 (c) Roderick Williams, CC BY-NC, https://www.inaturalist.org/observations/319709142, and iNaturalist 184053560 (c) Sean Haight, CC0, https://www.inaturalist.org/observations/184053560',
       'adult and near-adult side by side from iNaturalist 187927896 (c) John Rakestraw, CC BY-NC, https://www.inaturalist.org/observations/187927896',
       'the height afloat checked on iNaturalist 62162915 (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/observations/62162915',
+      'the adult afloat, its colours checked, on iNaturalist 336069789 (c) notfresco, CC BY-NC, https://www.inaturalist.org/observations/336069789',
       'the lobed feet from "ACF0418-crop.jpg" (c) Pat Hansen, CC0, https://commons.wikimedia.org/wiki/File:ACF0418-crop.jpg',
       'numbers and marks: docs/research/2026-09-25-american-coot.md',
     ],

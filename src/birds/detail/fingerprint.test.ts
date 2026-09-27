@@ -91,7 +91,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   pecsan: { geometry: 'fc0011fe', poses: '086a1105' },          // were bac5bab5
   lobdow: { geometry: 'bedf44dc', poses: 'f52423c1' },          // the throat retraced (Task 5); poses were 449d38d8
   mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
-  y00475: { geometry: '2367f45f', poses: 'e73d8890' },          // new: the American Coot, detailed (Task 18)
+  y00475: { geometry: '5c786913', poses: '6e241e2f' },          // new: the American Coot, detailed (Task 18); the chin refitted (review)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -123,7 +123,7 @@ const EXPECTED_ATLAS: Record<string, string> = {
   // new: the Mallard's three versions (Task 14); with no version it paints the drake's
   mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
   // new: the Coot's two versions (Task 18); with no version it paints the adult's
-  y00475: '1cd11b9b', 'y00475:adult': '1cd11b9b', 'y00475:juvenile': '4f0407e7',
+  y00475: '6ea851ec', 'y00475:adult': '6ea851ec', 'y00475:juvenile': '0afe9995',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
