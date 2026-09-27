@@ -154,7 +154,8 @@ export const SPEC: SpeciesSpec = {
     // gape; the builder's bill is symmetric and has no such base, so a chin traced to R1 jutted out as a lip under the
     // bill with water showing between them. So in the level side view the chin only recedes from the bill base's
     // bottom (nothing in front of it, no notch, no forward bump within 30 mm below it, no see-through gap), and it
-    // falls short of R1's chin corner (7 mm at the two points under the bill, 0 by the throat). The head's sections are
+    // falls short of R1's chin corner (7.4 and 4.6 mm at the two points under the bill, 0.7 mm by the throat, and 1.6-3.6
+    // mm down the foreneck). The head's sections are
     // seeded so their lower ends step in order along the throat to the chin, and no ring bends the surface more than
     // 60 degrees on to the next (an earlier trace folded the throat back on itself under the crown: a visible crease).
     // The loft lies within 0.5 mm of the photo along the back, 0.5 mm over the crown and the back of the head, 1.1 mm
@@ -217,6 +218,8 @@ export const SPEC: SpeciesSpec = {
       'adult and near-adult side by side from iNaturalist 187927896 (c) John Rakestraw, CC BY-NC, https://www.inaturalist.org/observations/187927896',
       'the height afloat checked on iNaturalist 62162915 (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/observations/62162915',
       'the adult afloat, its colours checked, on iNaturalist 336069789 (c) notfresco, CC BY-NC, https://www.inaturalist.org/observations/336069789',
+      'a second floating adult from the same session as the traced one, looked at alongside it: "American Coot (37712325421).jpg" (c) Andy Reago & Chrissy McClarren, CC BY 2.0, https://commons.wikimedia.org/wiki/File:American_Coot_(37712325421).jpg',
+      'the head, bill and float line seen from near the water, looked at before tracing: iNaturalist 65727964 (c) philkahler, CC BY-NC, https://www.inaturalist.org/observations/65727964',
       'the lobed feet from "ACF0418-crop.jpg" (c) Pat Hansen, CC0, https://commons.wikimedia.org/wiki/File:ACF0418-crop.jpg',
       'numbers and marks: docs/research/2026-09-25-american-coot.md',
     ],
