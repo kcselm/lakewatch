@@ -19,6 +19,7 @@ import { Optics, nextMode, type OpticMode } from './player/optics'
 import { createMask } from './hud/mask'
 import { game, isPaused } from './store/game'
 import { pickTarget } from './player/target'
+import { targetCandidates } from './player/candidates'
 import { createPrompt } from './hud/prompt'
 import { loadCatalog, findBird } from './catalog'
 import { App } from './ui/App'
@@ -245,8 +246,9 @@ world.start(dt => {
     if (game.get().target !== null) game.set({ target: null })
     prompt.set(null)
   } else {
-    const cands = registry.all().map(b => ({ id: b.id, species: b.species, position: b.model.group.localToWorld(b.model.center.clone()), radius: b.model.radius }))
-    const t = pickTarget(cands, world.camera, { width: innerWidth, height: innerHeight })
+    // A bird that dives drops out of the candidates, so the target goes (to null, or another bird) as if it had left
+    // the reticle: E does nothing until it is back, and an identification begun on it carries on only when it is.
+    const t = pickTarget(targetCandidates(registry.all()), world.camera, { width: innerWidth, height: innerHeight })
     const prevTarget = game.get().target
     if (!t) {
       if (prevTarget !== null) game.set({ target: null })

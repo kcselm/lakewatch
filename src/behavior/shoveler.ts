@@ -49,8 +49,8 @@ export const SHOVELER: ShovelerSettings = {
   flock: { radius: 1.5, retargetSeconds: 60, drift: 3, whenFarther: 3 },
   // feeding 0.2-0.35 m centre to centre, the spinning pair 0.25; birds of other flocks as the dabbler's
   spacing: { flock: 0.25, other: 0.8 },
-  // the full wake only above a travelling skim's 0.32 m/s: skimming leaves its own smaller ring
-  wake: { every: 0.9, size: 1, above: 0.35 },
+  // the dabbler's wake, but only above a travelling skim's 0.32 m/s: skimming leaves its own smaller ring
+  wake: { every: 1.5, size: 1, above: 0.35 },
   // skim 38%, circle 5%, cruise 22%, loaf 34%; the loaf split between resting and preening as Webb & Brotherson's
   // 21.9% and 16.9%, and a little of it alert (scans of 1-2 s, Guillemain et al. 2001, in mallard section 11)
   cruising: { share: 0.22 },

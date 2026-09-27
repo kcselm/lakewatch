@@ -1,6 +1,6 @@
 import { createSwim, companyOf } from './swim'
 import { MALLARD } from './dabbler'
-import { AVOID, DRIFT, startSpot } from './swimmer'
+import { AVOID, DRIFT, startSpot, createSwimmer } from './swimmer'
 import { defaultPose } from '../birds/model'
 import { makeRng } from '../catalog/rng'
 import { pointInPolygon } from '../location/zones'
@@ -155,6 +155,25 @@ describe('swim', () => {
     const wake = rings.filter(r => r.size === MALLARD.wake.size)
     expect(wake.length).toBeGreaterThan(10)
     for (let i = 1; i < wake.length; i++) expect(wake[i]!.t - wake[i - 1]!.t).toBeGreaterThanOrEqual(MALLARD.wake.every - 1e-9)
+  })
+  it('takes no notice of a bird under the water: it swims straight over a diving coot, and round one afloat', () => {
+    const closest = (submerged: boolean) => {
+      const coot = { x: 2, z: 0, heading: 0, state: 'dive', spacing: 0.8, group: undefined, submerged }
+      const b = createSwimmer(ctx(1, { neighbours: () => [coot] }), 0, 0, MALLARD)
+      b.heading = 0
+      let near = Infinity
+      for (let i = 0; i < 20 * 30; i++) { b.swimTo(4, 0, MALLARD.cruise.speed, 1 / 30); near = Math.min(near, Math.hypot(b.x - 2, b.z)) }
+      return near
+    }
+    expect(closest(true)).toBeLessThan(0.01)
+    expect(closest(false)).toBeGreaterThanOrEqual(MALLARD.spacing.other - 1e-9)
+  })
+  it('counts a bird under the water only when a diver chooses where to come up', () => {
+    const coot = { x: 1, z: 0, heading: 0, state: 'dive', spacing: 0.8, group: undefined, submerged: true }
+    const b = createSwimmer(ctx(1, { neighbours: () => [coot] }), 0, 0, MALLARD)
+    expect(b.clearAt(1, 0)).toBe(true)
+    expect(b.clearAt(1, 0, 0, true)).toBe(false)
+    expect(b.clearAt(2, 0, 0, true)).toBe(true)
   })
   it('is deterministic per seed', () => {
     const a = createSwim(ctx(9), 1, 1), b = createSwim(ctx(9), 1, 1)

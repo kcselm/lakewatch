@@ -6,6 +6,7 @@ import { RippleBuffer } from '../world/ripples'
 import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
 import { MALLARD } from '../behavior/dabbler'
+import { BEHAVIORS, type BehaviorController } from '../behavior'
 
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
@@ -197,6 +198,30 @@ describe('spawnCast swimmers', () => {
     let gap = Infinity
     for (let i = 0; i < 60 * 30; i++) { world.update(1 / 30, d.wind); gap = Math.min(gap, shortestGap(d.registry.all())) }
     expect(gap).toBeGreaterThan(-0.01)
+  })
+})
+
+describe('spawnCast divers', () => {
+  it('hides a bird while it is all the way under the water, and shows it again when it comes up', () => {
+    // a stand-in swimmer that dives when told to
+    const real = BEHAVIORS.swim
+    let under = false
+    BEHAVIORS.swim = (_ctx, x, z): BehaviorController => ({ name: 'swim', state: 'x', x, y: 0, z, heading: 0, get submerged() { return under }, update() {} })
+    try {
+      const deps = { registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed: 1 }
+      const world = spawnCast(loc([{ species: 'pibgre', behavior: 'swim', zone: 'w', count: 1 }]), deps)
+      const bird = deps.registry.all()[0]!
+      world.update(1 / 30, deps.wind)
+      expect(bird.model.group.visible).toBe(true)
+      under = true
+      world.update(1 / 30, deps.wind)
+      expect(bird.model.group.visible).toBe(false)
+      under = false
+      world.update(1 / 30, deps.wind)
+      expect(bird.model.group.visible).toBe(true)
+    } finally {
+      BEHAVIORS.swim = real
+    }
   })
 })
 

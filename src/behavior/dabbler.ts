@@ -51,8 +51,9 @@ export const MALLARD: DabblerSettings = {
   // nearest neighbour 0.3-2 m while feeding: 0.4, just over the 0.36 m traced length, so two never overlap; 0.8 from
   // birds of other flocks, as the Gadwall's unpaired birds keep 0.3-1.2 m (gadwall section 7.6)
   spacing: { flock: 0.4, other: 0.8 },
-  // the old swim's wake: a full-size ring every 0.9 s while under way
-  wake: { every: 0.9, size: 1, above: 0.3 },
+  // a full-size ring while under way, as the old swim made, but every 1.5 s rather than 0.9: the grebe's measured wake
+  // rhythm (pied-billed-grebe section 11), and what the ring buffer holds for 24 swimmers (Task 12)
+  wake: { every: 1.5, size: 1, above: 0.3 },
   cruising: { share: 0.311 },
   loaf: { share: 0.068, seconds: [5, 20] },
   preen: { share: 0.065, seconds: [5, 15] },
@@ -69,8 +70,8 @@ export const MALLARD: DabblerSettings = {
   // mean 4 s (1.5-6): 2-6 here; 2-4 in a bout with 1-5 s level between; 80-90 degrees (85 here, 1.48 rad); 0.2-0.5 s
   // over and 0.2-0.3 s back (0.35 and 0.25 here); the tail's cock at full tilt is an estimate
   tipUp: { count: [2, 4], seconds: [2, 6], gap: [1, 5], lean: 1.48, tail: 0.4, strokes: 2.4, down: 0.35, up: 0.25 },
-  // ring sizes are estimates: a tip-up's swirl larger than a head-dip's, a working bill's the dowitcher's bill ring
-  rings: { tipUp: 0.7, headDip: 0.5, dabble: 0.4, dabbleEvery: [1, 2], ahead: 0.18 },
+  // ring sizes are estimates: a tip-up's swirl larger than a head-dip's, a dabbling bill's smaller than a dowitcher's
+  rings: { tipUp: 0.7, headDip: 0.5, dabble: 0.3, dabbleEvery: [1, 2], ahead: 0.18 },
 }
 
 /**

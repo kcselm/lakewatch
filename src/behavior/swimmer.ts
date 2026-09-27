@@ -59,13 +59,17 @@ export function createSwimmer(ctx: BehaviorContext, x: number, z: number, S: Swi
     spacingTo(n: Neighbour): number {
       return n.group !== undefined && n.group === flock.group ? S.spacing.flock : Math.max(S.spacing.other, n.spacing ?? 0)
     },
-    /** the other swimmers in the zone, but for a partner */
+    /** the other swimmers in the zone, but for a partner, and any under the water */
     others(): Neighbour[] {
-      return (ctx.neighbours?.() ?? []).filter(n => n !== body.self && n !== body.partner)
+      return (ctx.neighbours?.() ?? []).filter(n => n !== body.self && n !== body.partner && !n.submerged)
     },
-    /** true when no other swimmer is closer to (px, pz) than this bird keeps, with `extra` metres to spare */
-    clearAt(px: number, pz: number, extra = 0): boolean {
-      return body.others().every(n => Math.hypot(n.x - px, n.z - pz) >= body.spacingTo(n) + extra)
+    /**
+     * true when no other swimmer is closer to (px, pz) than this bird keeps, with `extra` metres to spare; with
+     * `under`, the birds under the water count too, where they are now (a diver choosing where to come up)
+     */
+    clearAt(px: number, pz: number, extra = 0, under = false): boolean {
+      const all = under ? (ctx.neighbours?.() ?? []).filter(n => n !== body.self && n !== body.partner) : body.others()
+      return all.every(n => Math.hypot(n.x - px, n.z - pz) >= body.spacingTo(n) + extra)
     },
     /** a spot near the flock's target, clear of the other swimmers if one of a few tries is */
     spot(clock: number): [number, number] {

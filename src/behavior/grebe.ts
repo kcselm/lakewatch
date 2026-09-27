@@ -214,16 +214,19 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
     timer = Math.max(gamma(ctx.rng, S.under.mean, S.under.sd, S.under.range), Math.hypot(ux - b.x, uz - b.z) / S.under.speed)
   }
   let [wentX, wentZ] = [0, 0]
-  /** A spot clear of the others within `extra` seconds' swim of (ux, uz), the nearest there is, if (ux, uz) isn't clear. */
+  /**
+   * A spot clear of the others within `extra` seconds' swim of (ux, uz), the nearest there is, if (ux, uz) isn't
+   * clear. The birds still under water count, where they are: they are about to come up too.
+   */
   function clearOfOthers(): void {
-    if (b.clearAt(ux, uz)) return
+    if (b.clearAt(ux, uz, 0, true)) return
     let best: [number, number] | null = null
     const reach = S.under.speed * S.under.extra
     for (let r = reach / 12; r <= reach + 1e-9; r += reach / 12) {
       for (let k = 0; k < 16; k++) {
         const [px, pz] = [ux + Math.cos((k * Math.PI) / 8) * r, uz - Math.sin((k * Math.PI) / 8) * r]
         const within = Math.hypot(px - wentX, pz - wentZ) <= S.under.distance.range[1]
-        if (within && pointInPolygon(px, pz, b.zone.points) && b.clearAt(px, pz, 0.05) && (!best || Math.hypot(px - ux, pz - uz) < Math.hypot(best[0] - ux, best[1] - uz))) best = [px, pz]
+        if (within && pointInPolygon(px, pz, b.zone.points) && b.clearAt(px, pz, 0.05, true) && (!best || Math.hypot(px - ux, pz - uz) < Math.hypot(best[0] - ux, best[1] - uz))) best = [px, pz]
       }
       if (best) break
     }
@@ -249,7 +252,7 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
       if (len < d && i < 2 * third) continue
       const [px, pz] = [b.x + Math.cos(a) * len, b.z - Math.sin(a) * len]
       // a metre to spare, as the others move on while it is down
-      if (b.clearAt(px, pz, 1)) return [px, pz]
+      if (b.clearAt(px, pz, 1, true)) return [px, pz]
       // none clear yet: keep the one with the most room
       const room = Math.min(...b.others().map(n => Math.hypot(n.x - px, n.z - pz) - b.spacingTo(n)))
       if (room > bestRoom) { bestRoom = room; best = [px, pz] }
@@ -270,6 +273,8 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
     get state() { return state },
     get x() { return b.x }, get z() { return b.z }, get heading() { return b.heading },
     get y() { return -depth },
+    // all the way down, from the end of the dive's entry until it starts up
+    get submerged() { return depth >= S.entry.depth },
     spacing: S.spacing.other,
     group: b.flock.group,
     update(dt: number, pose: PoseState) {
@@ -313,7 +318,7 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
         const by = Math.min(left, (left / Math.max(timer, dt)) * dt, S.under.speed * dt)
         if (left > 1e-9) { b.x += ((ux - b.x) / left) * by; b.z += ((uz - b.z) / left) * by }
         b.speed = 0
-        if (timer <= 0 && left - by < 1e-9 && (b.clearAt(ux, uz) || !late)) resurface()
+        if (timer <= 0 && left - by < 1e-9 && (b.clearAt(ux, uz, 0, true) || !late)) resurface()
       } else if (state === 'resurface') {
         b.float(dt)
         if (timer <= 0) { if (dives > 0) beforeDive(); else next() }

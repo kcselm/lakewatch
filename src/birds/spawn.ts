@@ -204,6 +204,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     update(dt) {
       for (const b of birds) {
         b.controller.update(dt, b.pose)
+        // a bird all the way under the water is out of sight, and so out of the targeting candidates
+        b.model.group.visible = !b.controller.submerged
         b.model.group.position.set(b.controller.x, b.controller.y, b.controller.z)
         b.model.group.rotation.y = b.controller.heading
         b.model.pose(b.pose)

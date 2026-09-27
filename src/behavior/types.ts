@@ -33,8 +33,11 @@ export interface Spin {
   spinning: boolean
 }
 
-/** Another swimmer, as a swimmer sees it: where it is and faces, what it is doing, how close it lets others come, its flock. */
-export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'heading' | 'state' | 'spacing' | 'group'>
+/**
+ * Another swimmer, as a swimmer sees it: where it is and faces, what it is doing, how close it lets others come, its
+ * flock, and whether it is under the water (where it is no one's neighbour).
+ */
+export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'heading' | 'state' | 'spacing' | 'group' | 'submerged'>
 
 export interface BehaviorContext {
   zone: Zone
@@ -72,6 +75,8 @@ export interface BehaviorController {
   readonly spacing?: number
   /** swimmers: its flock's shared record, the same object as its flockmates' */
   readonly group?: FlockGroup
+  /** divers: true while the whole bird is under the water; the spawner hides it then, and it can't be targeted */
+  readonly submerged?: boolean
   update(dt: number, pose: PoseState): void
 }
 

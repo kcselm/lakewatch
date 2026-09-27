@@ -57,7 +57,8 @@ export const COOT: CootSettings = {
   // six birds, nearest neighbours 0.4-0.9 m: a radius of 2 m gives about 0.7 m; spacing 0.4 m, over its 0.30-0.33 m length
   flock: { radius: 2, retargetSeconds: 60, drift: 3, whenFarther: 4 },
   spacing: { flock: 0.4, other: 0.8 },
-  wake: { every: 0.9, size: 1, above: 0.3 },
+  // the dabbler's wake, when it travels
+  wake: { every: 1.5, size: 1, above: 0.3 },
   // feeding 0.65 (pecks 0.40, swimming to feed 0.15, head-dips and dives and tip-ups the rest), travel 0.15, loaf
   // 0.10, preen 0.10; travelling at 0.4-0.5 m/s (0.45 here) for the dabbler's cruise bouts
   travel: { share: 0.15, speed: 0.45, seconds: [4, 14] },
@@ -179,15 +180,18 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
     if (len <= 0.01) len = 0
     ;[ux, uz] = [b.x + Math.cos(a) * len, b.z - Math.sin(a) * len]
   }
-  /** A surfacing spot clear of the other swimmers: the nearest to the planned one within `move` of the dive, if needed. */
+  /**
+   * A surfacing spot clear of the other swimmers, those under water too (they may come up there): the nearest to the
+   * planned one within `move` of the dive, if needed.
+   */
   function clearSpot(): void {
-    if (b.clearAt(ux, uz)) return
+    if (b.clearAt(ux, uz, 0, true)) return
     let best: [number, number] | null = null
     for (let r = 0.25; r <= 1; r += 0.25) {
       for (let k = 0; k < 16; k++) {
         const a = (k * Math.PI) / 8
         const [px, pz] = [dx0 + Math.cos(a) * r * S.dive.move, dz0 - Math.sin(a) * r * S.dive.move]
-        if (!pointInPolygon(px, pz, b.zone.points) || !b.clearAt(px, pz)) continue
+        if (!pointInPolygon(px, pz, b.zone.points) || !b.clearAt(px, pz, 0, true)) continue
         if (!best || Math.hypot(px - ux, pz - uz) < Math.hypot(best[0] - ux, best[1] - uz)) best = [px, pz]
       }
     }
@@ -201,6 +205,8 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
     get x() { return b.x }, get z() { return b.z }, get heading() { return b.heading },
     // afloat at the waterline; under water, the dive's depth
     get y() { return -S.dive.depth * ease(sink) },
+    // all the way down, from the end of the lunge until it starts up
+    get submerged() { return sink >= 1 },
     spacing: S.spacing.other,
     group: b.flock.group,
     update(dt: number, pose: PoseState) {
@@ -267,7 +273,8 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       }
       sinceWake += dt
       if (b.speed > S.wake.above && sinceWake >= S.wake.every) { sinceWake = 0; ring(S.wake.size) }
-      if (b.speed > S.cruise.speed / 2 && sink === 0 && sinceRing >= S.pump.ring.every) { sinceRing = 0; ring(S.pump.ring.size, 0.1) }
+      // the faint ring of the pump while it swims to feed (travelling, it leaves a wake instead)
+      if (state === 'cruise' && b.speed > S.cruise.speed / 2 && sinceRing >= S.pump.ring.every) { sinceRing = 0; ring(S.pump.ring.size, 0.1) }
 
       // the head pump, only while it swims: its reach grows with the speed, up to the feeding swim's
       pumpPhase = (pumpPhase + S.pump.perSecond * dt) % 1
