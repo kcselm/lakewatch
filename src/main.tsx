@@ -14,6 +14,9 @@ import { createReeds, createGrass } from './world/vegetation'
 import { createTree, createSnag, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
+import { castAtlases, prepaint } from './birds/paint/prepaint'
+import { createStore } from './store/store'
+import type { PaintProgress } from './ui/Title'
 import { LookControls } from './player/look'
 import { Optics, nextMode, type OpticMode } from './player/optics'
 import { createMask } from './hud/mask'
@@ -70,6 +73,7 @@ let audio: AudioEngine | null = null
 let effects: Effects | null = null
 
 const credits = creditsFor(guide, loadAmbience())
+const painting = createStore<PaintProgress>({ done: 0, total: 0, ready: false })
 
 function renderApp(unsupported: string | null) {
   render(
@@ -89,7 +93,12 @@ function renderApp(unsupported: string | null) {
       persistent={() => lifeStorage.persistent}
       onCloseLifeList={() => game.set({ lifeListOpen: false })}
       unsupported={unsupported}
-      onBegin={() => { void audio?.unlock(); game.set({ titleOpen: false }) }}
+      painting={painting}
+      onBegin={() => {
+        if (!painting.get().ready) return
+        void audio?.unlock()
+        game.set({ titleOpen: false })
+      }}
       onOpenSettings={() => game.set({ settingsOpen: true })}
       onOpenCredits={() => game.set({ creditsOpen: true })}
       settings={() => settings}
@@ -216,7 +225,18 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
 }
-world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
+// Every atlas the cast needs paints in a worker behind the title card. Only then are the birds built and Begin
+// enabled, so no detailed bird is ever built before its atlas is ready.
+prepaint(castAtlases(loc), {
+  worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
+  onProgress: (done, total) => painting.set({ done, total }),
+}).then(() => {
+  world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
+  painting.set({ ready: true })
+}).catch(err => {
+  console.error(err)
+  renderApp('The birds could not be set up, so the lake cannot start. The credits still work.')
+})
 
 const calls = createCallPlayer({
   engine, registry, birdOf: findBird,

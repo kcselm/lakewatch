@@ -1,6 +1,6 @@
 import { useStore } from './useStore'
 import { game } from '../store/game'
-import { Title } from './Title'
+import { Title, type PaintProgress } from './Title'
 import { FieldGuide, type SeenState } from './FieldGuide'
 import { ResultCard } from './ResultCard'
 import { LifeList } from './LifeList'
@@ -11,6 +11,7 @@ import type { SpeciesSpec } from '../birds/spec'
 import type { LifeListData } from '../game/lifeList'
 import type { Settings } from '../game/settings'
 import type { Credits } from '../game/credits'
+import type { Store } from '../store/store'
 
 export interface AppDeps {
   guide: Bird[]
@@ -28,6 +29,8 @@ export interface AppDeps {
   persistent: () => boolean
   onCloseLifeList: () => void
   unsupported: string | null
+  /** the birds' atlases painting behind the title card */
+  painting: Store<PaintProgress>
   onBegin: () => void
   onOpenSettings: () => void
   onOpenCredits: () => void
@@ -43,9 +46,10 @@ export interface AppDeps {
 
 export function App(d: AppDeps) {
   const s = useStore(game)
+  const painting = useStore(d.painting)
   return (
     <>
-      {s.titleOpen && <Title unsupported={d.unsupported} onBegin={d.onBegin} onSettings={d.onOpenSettings} onCredits={d.onOpenCredits} />}
+      {s.titleOpen && <Title unsupported={d.unsupported} painting={painting} onBegin={d.onBegin} onSettings={d.onOpenSettings} onCredits={d.onOpenCredits} />}
       {s.guideOpen && (
         <FieldGuide species={d.guide} specs={d.specs} seen={d.seen()} onConfirm={s.guideOpen && s.guideMode === 'identify' ? d.onGuess : null} onClose={d.onCloseGuide} onSelect={d.onGuideSelect} clipVolume={d.clipVolume()} />
       )}

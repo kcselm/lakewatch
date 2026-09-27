@@ -34,7 +34,10 @@
 .title-card h1 { margin: 0; font-size: 40px; letter-spacing: .04em; }
 .title-card .tag { color: #6b6150; margin-top: 4px; }
 .title-card .begin { margin: 18px 0 8px; padding: 12px 36px; font: inherit; font-size: 18px; font-weight: bold; background: #4c6b3a; color: #fff; border: 0; border-radius: 8px; cursor: pointer; }
-.title-card .begin:hover { background: #5a7e45; }
+.title-card .begin:hover:not(:disabled) { background: #5a7e45; }
+.title-card .begin:disabled { background: #9aa58f; cursor: default; }
+.title-card .painting { margin: 0 0 8px; font-size: 13px; color: #6b6150; }
+.title-card .painting.ready { visibility: hidden; }
 .title-links { display: flex; gap: 12px; justify-content: center; }
 .title-links button { font: inherit; background: none; border: 0; color: #4c6b3a; text-decoration: underline; cursor: pointer; }
 .title-card .keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; text-align: left; font-size: 13px; color: #6b6150; margin: 18px auto 0; max-width: 380px; }
