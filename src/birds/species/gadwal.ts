@@ -33,9 +33,10 @@ const MALE: Layer[] = [
   { kind: 'bars', where: { part: 'skin', from: 'flank', to: 'neckBase', band: [0, 0.32] }, color: '#5a524b', width: 0.35, spacing: 1, angle: 0, blur: 0.3, opacity: 0.4 },
   // the long scapulars in front of the folded wing, grey with cinnamon margins
   { kind: 'streaks', where: { part: 'skin', from: 'hip', to: 'mantle', band: [0.08, 0.36] }, color: '#b98556', length: 9, width: 1.3, spacing: 2.6, blur: 0.3, soft: 3, opacity: 0.7 },
-  // the breast greyish black, each feather with a whitish crescent: scaled
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, color: '#4a4441', soft: 4 },
-  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, length: 5, width: 5, center: '#433d3a', edge: '#d8d0c8', edgeWidth: 0.7, soft: 3 },
+  // the breast greyish black, each feather with a thin greyish-white crescent: finely scaled, and darker than the
+  // flank (breast / flank luminance 0.65 in the atlas; 0.75 and 0.61 on the two local drakes' photos)
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, color: '#3e3936', soft: 4 },
+  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.28, 1] }, length: 5, width: 5, center: '#3c3634', edge: '#aaa29a', edgeWidth: 0.5, soft: 3 },
   // the stern: black above and below, from the tail back to where the grey flank stops square
   { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'tailBase' }, color: '#161617', soft: 2 },
   // the head: pale grey-brown, speckled dusky, the crown darker; the colour runs down the back of the neck
@@ -59,10 +60,10 @@ const MALE: Layer[] = [
   { kind: 'fill', where: { part: 'tail', t: [0, 0.14] }, color: '#d8d3cb', soft: 1 },
   { kind: 'fill', where: { part: 'tail', t: [0.86, 1] }, color: '#d8d3cb', soft: 1 },
   { kind: 'fill', where: { part: 'tailUnder' }, color: '#7d7770' },
-  // bluish black, with a trace of dull orange along the edge at the base; the nail black
+  // bluish black, with a trace of dull orange along the edge at the base; the nail black, 6.5 mm long
   { kind: 'fill', where: { part: 'bill' }, color: '#3a3e44' },
   { kind: 'fill', where: { part: 'bill', s: [0, 0.45], t: [0.72, 1] }, color: '#9a6a3a', soft: 1, opacity: 0.35 },
-  { kind: 'fill', where: { part: 'bill', s: [0.9, 1] }, color: '#1e1e20', soft: 0.5 },
+  { kind: 'fill', where: { part: 'bill', s: [0.84, 1] }, color: '#1e1e20', soft: 0.5 },
   { kind: 'fill', where: { part: 'legs' }, color: '#e6962f' },
 ]
 
@@ -145,7 +146,7 @@ export const SPEC: SpeciesSpec = {
     size: 'a medium dabbling duck, a tenth smaller than a Mallard, sitting low and flat on the water',
     bill: 'a narrow, parallel-sided bill, shorter than a Mallard\'s: slate on drakes; on females a dark grey ridge unbroken to the tip over a neat orange side panel',
     head: 'a square head with a steep forehead: plain grey-brown and finely speckled on drakes; buffy, streaked, with a darker crown on females',
-    body: 'drakes: a finely scaled dark breast, plain grey sides, and a crisp black stern; females scalloped brown and buff. A small white patch in the wing often shows at the rear of the flank. Feeds mostly with the head under water, tipping up less than a Mallard',
+    body: 'drakes: a finely scaled dark breast, plain grey sides, and a crisp black stern; females scalloped brown and buff. A small white patch in the wing often shows at the rear of the flank. Feeds at the surface or with the head and neck under, tipping up less often than a Mallard',
     legs: 'orange-yellow feet, seen when it tips up',
   },
   wingbeatHz: 5,
@@ -163,22 +164,29 @@ export const SPEC: SpeciesSpec = {
     // with the least area between them, the loft never folds, the eye lands on the photo's eye, the breast's front on
     // the photo's, and the head's top on the photo's crown. An extra station at the mantle spreads the turn up into
     // the neck, so the back runs on to the nape without a dip. Under the water, where no photo shows the hull, the
-    // outline is a keel 55 mm down, from where the water meets the stern to where it meets the breast. The loft lies
-    // within 0.5 mm of the photo on average along the back, the back of the head, the chin, and the breast, 0.6 mm at
-    // the crown, 0.9 mm at the forehead, and 1.1 mm under the stern; at worst it fills the nape notch 4 mm high, and
-    // the rump under the tertials is drawn by hand from the black uppertail coverts to the back
+    // outline is a keel 55 mm down, from where the water meets the stern to where it meets the breast.
+    // The back is lowered from the trace. The January drake's back is peaked by his long alternate tertials and
+    // scapulars; the drakes on the game's dates, still in their shorter basic tertials, and the females sit lower and
+    // flatter (back 51-57 mm above the water on the two local drakes, 48.5 on the traced female; the research's mean
+    // 62). So the outline's back was lowered 8 mm from the mantle back to the tertials, easing to nothing at the rump,
+    // and run level from the mantle to the nape notch; the stations were refitted to it (the neck base's upper side,
+    // which fans back over the mantle, came down with the back), the head, the neck, the breast and the stern as
+    // traced. The back now stands 61 mm above the water, 7.5 mm under the photo's. The loft lies within 0.5 mm of the
+    // (lowered) outline on average along the back, the back of the head, and the breast, 0.6 mm at the chin, the
+    // crown and the nape notch, 0.9 mm at the forehead, and 1.1 mm under the stern; the rump under the tertials is
+    // drawn by hand from the black uppertail coverts to the back
     profile: [
-      { label: 'rear',     x: -0.1101, y: 0.0046, up: 0.0067, down: 0.0055, halfWidth: 0.0070 },
-      { label: 'rump',     x: -0.0856, y: 0.0024, up: 0.0163, down: 0.0111, halfWidth: 0.0270 },
-      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0368, down: 0.0331, halfWidth: 0.0470 },
-      { label: 'hip',      x: 0.0000,  y: 0.0000, up: 0.0506, down: 0.0597, halfWidth: 0.0610 },
-      { label: 'flank',    x: 0.0450,  y: 0.0003, up: 0.0540, down: 0.0706, halfWidth: 0.0610, tilt: 4.8 },
-      { label: 'mantle',   x: 0.0720,  y: 0.0046, up: 0.0531, down: 0.0693, halfWidth: 0.0570, tilt: 8.8 },
-      { label: 'breast',   x: 0.0911,  y: 0.0139, up: 0.0512, down: 0.0666, halfWidth: 0.0500, tilt: 11.7 },
-      { label: 'neckBase', x: 0.1030,  y: 0.0265, up: 0.0493, down: 0.0583, halfWidth: 0.0310, tilt: 2.7 },
-      { label: 'neckMid',  x: 0.1072,  y: 0.0358, up: 0.0328, down: 0.0247, halfWidth: 0.0245, tilt: -2.9 },
-      { label: 'nape',     x: 0.1097,  y: 0.0433, up: 0.0348, down: 0.0285, halfWidth: 0.0200, tilt: -7.6 },
-      { label: 'occiput',  x: 0.1123,  y: 0.0477, up: 0.0370, down: 0.0315, halfWidth: 0.0185, tilt: 6.1 },
+      { label: 'rear',     x: -0.1101, y: 0.0046, up: 0.0070, down: 0.0055, halfWidth: 0.0070 },
+      { label: 'rump',     x: -0.0856, y: 0.0024, up: 0.0151, down: 0.0111, halfWidth: 0.0270 },
+      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0313, down: 0.0331, halfWidth: 0.0470 },
+      { label: 'hip',      x: 0.0000,  y: 0.0000, up: 0.0423, down: 0.0597, halfWidth: 0.0610 },
+      { label: 'flank',    x: 0.0450,  y: 0.0003, up: 0.0462, down: 0.0706, halfWidth: 0.0610, tilt: 5.3 },
+      { label: 'mantle',   x: 0.0720,  y: 0.0046, up: 0.0459, down: 0.0693, halfWidth: 0.0570, tilt: 12.8 },
+      { label: 'breast',   x: 0.0911,  y: 0.0139, up: 0.0522, down: 0.0666, halfWidth: 0.0500, tilt: 15.7 },
+      { label: 'neckBase', x: 0.1030,  y: 0.0265, up: 0.0366, down: 0.0580, halfWidth: 0.0310, tilt: 2.2 },
+      { label: 'neckMid',  x: 0.1072,  y: 0.0358, up: 0.0323, down: 0.0249, halfWidth: 0.0245, tilt: -1.9 },
+      { label: 'nape',     x: 0.1097,  y: 0.0433, up: 0.0346, down: 0.0288, halfWidth: 0.0200, tilt: -7.1 },
+      { label: 'occiput',  x: 0.1123,  y: 0.0477, up: 0.0370, down: 0.0318, halfWidth: 0.0185, tilt: 6.1 },
       { label: 'crown',    x: 0.1199,  y: 0.0528, up: 0.0370, down: 0.0206, halfWidth: 0.0175, tilt: 29.4 },
       { label: 'eye',      x: 0.1309,  y: 0.0519, up: 0.0378, down: 0.0162, halfWidth: 0.0170, tilt: 38.8 },
       { label: 'lores',    x: 0.1439,  y: 0.0455, up: 0.0178, down: 0.0154, halfWidth: 0.0130, tilt: 16.3 },
@@ -190,24 +198,24 @@ export const SPEC: SpeciesSpec = {
       curve: 0,
       hook: 0.0012,
       // width from the NHMO skin's top view (parallel-sided within 1-2% from the base to 13 mm behind the tip, widest
-      // 55-60% out, then a round tip: 0.66 of full width 7% of the culmen behind it); depth from the traced drake,
-      // falling fast over the concave base, then slowly to about half the base's behind the nail
+      // 55-60% out, then a round tip: 0.66 of full width 7% of the culmen behind it); depth falling roughly linearly
+      // from 15 mm at the base to 5.7 mm just behind the nail, 84% out (section 5.1), and thinner over the nail
       profile: [
-        [0, 1, 1], [0.1, 1, 0.93], [0.2, 1, 0.84], [0.3, 1.005, 0.76], [0.4, 1.01, 0.71], [0.57, 1.015, 0.64],
-        [0.66, 1.005, 0.62], [0.72, 0.985, 0.6], [0.76, 0.955, 0.58], [0.8, 0.925, 0.56], [0.84, 0.875, 0.52],
-        [0.88, 0.79, 0.46], [0.93, 0.66, 0.38], [0.97, 0.45, 0.3], [1, 0.2, 0.15],
+        [0, 1, 1], [0.1, 1, 0.93], [0.2, 1, 0.85], [0.3, 1.005, 0.78], [0.4, 1.01, 0.71], [0.57, 1.015, 0.58],
+        [0.66, 1.005, 0.51], [0.72, 0.985, 0.47], [0.76, 0.955, 0.44], [0.8, 0.925, 0.41], [0.84, 0.875, 0.38],
+        [0.88, 0.79, 0.35], [0.93, 0.66, 0.31], [0.97, 0.45, 0.26], [1, 0.2, 0.15],
       ],
     },
     // the photo's eye: 7 mm across with its rim, 26.5 mm from the culmen's base; the iris dark brown
     eye: { radius: 0.0033, t: 0.46, iris: '#3b2415' },
     wing: {
-      // the tip on the photo's primary tips, 43 mm above the water; the chord runs forward along the top of the
-      // tertials and scapulars to a wrist hidden in the head's feathers. The January drake's long alternate tertials
-      // stand up to 10 mm above the chord over the stern; a late-September drake still carries the shorter basic ones,
-      // so the wing is not built to them. In front of 36% of the chord the wing is a line with no height: there the
+      // the tip on the photo's primary tips, 43 mm above the water; the chord runs forward 5.5 degrees up along the
+      // lowered back (see the profile) to a wrist hidden in the head's feathers. The January drake's long alternate
+      // tertials stand well above it over the stern; a late-September drake still carries the shorter basic ones, so
+      // the wing is not built to them. In front of 36% of the chord the wing is a line with no height: there the
       // chord runs above the back, the scapulars (painted on the skin) and the breast and flank feathers cover the
       // wing, and the builder's wing follows the body only over the first 60% of the spine
-      wrist: [0.1255, 0.0684], droop: 9,
+      wrist: [0.1275, 0.0529], droop: 5.5,
       outline: [[0, 0], [0.36, 0], [0.4, 0.09], [0.46, 0.11], [0.55, 0.11], [0.67, 0.08], [0.8, 0.058], [0.9, 0.03], [0.96, 0.01], [1, 0.003]],
     },
     // a pointed, wedge-shaped tail, raised 3.1 degrees above the spine at the tail base so the tip lands on the photo's,
@@ -224,12 +232,14 @@ export const SPEC: SpeciesSpec = {
       'Tobias et al. 2022, AVONET (bill width and depth at the nostril, tail)',
       'Kortright 1942 pp. 175-177 and p. 383 (plumages, soft parts, masses for the draft by buoyancy); Oring 1968, The Auk 85: 355-380 (moults, bill and feet)',
       'Kaufman 2020, Identifying Gadwall, BirdWatching (the female\'s bill, the speculum, the forehead)',
-      'bill top view from NHMO-BI-64976/1-P, Natural History Museum, University of Oslo, CC BY',
+      'bill top view from NHMO-BI-64976/1-P, Natural History Museum, University of Oslo, images 13914870 (dorsal) and 13914869 (ventral), CC BY',
       'profile traced from iNaturalist 260052279 (photo 466938296) (c) kitsun3 (Jake Szapiro), CC BY-NC, https://www.inaturalist.org/observations/260052279',
       'female checked against iNaturalist 293519344 (photo 528298088) (c) Andrea Carpio, CC BY-NC, https://www.inaturalist.org/observations/293519344',
       'female plumage, bill and speculum from iNaturalist 327644138 (photo 593618582) (c) Alexis Lours, CC BY, https://www.inaturalist.org/observations/327644138',
       'the late-September drake from iNaturalist 402482832 (photo 738866996) (c) John Sullivan, CC BY-NC, https://www.inaturalist.org/observations/402482832',
-      'the October drake and female from iNaturalist 62161070 and 62160988 (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/observations/62161070',
+      'the October drake from iNaturalist 62161070 (photo 99559800) (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/observations/62161070',
+      'the October female\'s bill from iNaturalist 62160988 (photo 99559542) (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/observations/62160988',
+      'the drake\'s speculum and coverts from iNaturalist 104724295 (photo 175540266) (c) Craig Chaddock, CC BY-NC, https://www.inaturalist.org/observations/104724295',
       'numbers and marks: docs/research/2026-09-25-gadwall.md',
     ],
   },
