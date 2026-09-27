@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Profile, ProfileSample } from './profile'
+import { createProfile, type Profile, type ProfileSample } from './profile'
 import type { DetailSpec } from './spec'
 import { Mesher } from './mesher'
 import { buildLoft, type LoftRig } from './loft'
@@ -30,6 +30,8 @@ const LOOK = 0.005
 const PAD = 0.003
 /** the furthest a folded-wing point moves in one round of clearing the skin, metres */
 const STEP = 0.001
+/** the most rounds of clearing the skin: every species' wing clears it in far fewer, and one that doesn't is a fault */
+const PASSES = 200
 /** a folded-wing column no taller than this, metres, moves out as one piece (its points lie too close to move apart) */
 const THIN = 0.004
 /** the spread wing reaches this multiple of the wing chord out from the shoulder */
@@ -274,13 +276,13 @@ export interface FoldResult {
  * a little at a time until none does: over the body along the skin's normal (never along the body), off it straight
  * out. A column with no height, or under THIN, moves as one, so it can't fold over itself.
  */
-function placeFold(detail: DetailSpec, profile: Profile): THREE.Vector3[] {
+function placeFold(detail: DetailSpec): THREE.Vector3[] {
   const chord = detail.measurements.wingChord
   const droop = THREE.MathUtils.degToRad(detail.wing.droop)
   const dir = new THREE.Vector2(-Math.cos(droop), -Math.sin(droop))
   const down = new THREE.Vector2(-dir.y, dir.x)
   const [wx, wy] = detail.wing.wrist
-  const skin = rightSkin(profile, detail.rig)
+  const skin = rightSkin(createProfile(detail.profile), detail.rig)
   // grid point (i, j), at s = i / (FOLD_S - 1) and t = j / (FOLD_T - 1), is number k(i, j): `at` is where it is, `out`
   // the way it moves out, and each column's height sets how it moves
   const k = (i: number, j: number) => i * FOLD_T + j
@@ -310,24 +312,37 @@ function placeFold(detail: DetailSpec, profile: Profile): THREE.Vector3[] {
     for (let d = 1; d < FOLD_S && near < 0; d++) near = [i + d, i - d].find(c => c >= 0 && c < FOLD_S && height(c) > 0) ?? -1
     if (near >= 0) for (let j = 0; j < FOLD_T; j++) at[k(i, j)]!.z = Math.max(at[k(i, j)]!.z, at[k(near, 0)]!.z)
   }
-  // the triangles m.quad makes of each quad (see buildFoldedWings), and the skin each could come near
-  const tris: { c: [number, number, number]; near: Near }[] = []
+  // the triangles m.quad makes of each quad (see buildFoldedWings), and the skin each could come near: in the side
+  // view, the skin that counts (from GAP behind the triangle's plane to LOOK in front) lies within LOOK of the
+  // triangle; it is gathered PAD further, and gathered again once the triangle has moved further
+  const box = (c: readonly number[]): [number, number, number, number] => {
+    const xs = c.map(q => at[q]!.x), ys = c.map(q => at[q]!.y)
+    return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+  }
+  const gather = (c: readonly number[]) => {
+    const b = box(c)
+    return { box: b, near: skinNear(skin, b[0], b[1], b[2], b[3], LOOK + PAD) }
+  }
+  const tris: { c: [number, number, number]; box: [number, number, number, number]; near: Near }[] = []
   for (let i = 0; i < FOLD_S - 1; i++) {
     for (let j = 0; j < FOLD_T - 1; j++) {
       for (const c of [[k(i, j), k(i + 1, j), k(i + 1, j + 1)], [k(i, j), k(i + 1, j + 1), k(i, j + 1)]] as [number, number, number][]) {
-        const xs = c.map(q => at[q]!.x), ys = c.map(q => at[q]!.y)
-        tris.push({ c, near: skinNear(skin, Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys), LOOK + PAD) })
+        tris.push({ c, ...gather(c) })
       }
     }
   }
   const normal = new THREE.Vector3(), ad = new THREE.Vector3()
   // only a triangle with a corner that moved can have come nearer the skin since it was last looked at
   let moved = at.map(() => true)
-  for (let pass = 0; pass < 200; pass++) {
+  for (let pass = 0; ; pass++) {
     const move = at.map(() => 0)
     let short = 0
-    for (const { c, near } of tris) {
+    for (const tri of tris) {
+      const { c } = tri
       if (!moved[c[0]] && !moved[c[1]] && !moved[c[2]]) continue
+      const now = box(c)
+      if (now[0] < tri.box[0] - PAD || now[1] > tri.box[1] + PAD || now[2] < tri.box[2] - PAD || now[3] > tri.box[3] + PAD) Object.assign(tri, gather(c))
+      const { near } = tri
       const a = at[c[0]]!, b = at[c[1]]!, d = at[c[2]]!
       normal.subVectors(b, a).cross(ad.subVectors(d, a))
       // a triangle with no area (a wing with no height) has no surface to clear
@@ -347,6 +362,7 @@ function placeFold(detail: DetailSpec, profile: Profile): THREE.Vector3[] {
       short = Math.max(short, need)
     }
     if (short < 1e-6) break
+    if (pass === PASSES) throw new Error(`the folded wing is still ${(short * 1000).toFixed(2)} mm short of clearing the skin after ${PASSES} rounds`)
     for (let i = 0; i < FOLD_S; i++) {
       if (height(i) > THIN) continue
       const most = Math.max(...Array.from({ length: FOLD_T }, (_, j) => move[k(i, j)]!))
@@ -359,18 +375,15 @@ function placeFold(detail: DetailSpec, profile: Profile): THREE.Vector3[] {
 }
 
 /**
- * The right folded wing's points, (i, j) at i * FOLD_T + j, for a detail block (and its own profile): every bird of a
- * species shares them, and they take a while to place
+ * The right folded wing's points, (i, j) at i * FOLD_T + j, for a detail block: every bird of a species shares them,
+ * and they take a while to place
  */
 const placed = new WeakMap<DetailSpec, readonly THREE.Vector3[]>()
 
-/**
- * Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. `profile`
- * is the detail's own, createProfile(detail.profile).
- */
-export function buildFoldedWings(m: Mesher, detail: DetailSpec, profile: Profile): FoldResult {
+/** Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. */
+export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
   let at = placed.get(detail)
-  if (!at) placed.set(detail, (at = placeFold(detail, profile)))
+  if (!at) placed.set(detail, (at = placeFold(detail)))
   const k = (i: number, j: number) => i * FOLD_T + j
   let low = Infinity
   for (const side of [1, -1] as const) {

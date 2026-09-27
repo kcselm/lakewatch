@@ -62,12 +62,12 @@ describe('eyes', () => {
 
 describe('folded wings', () => {
   it('reach wingChord from the wrist to the tip', () => {
-    const f = buildFoldedWings(new Mesher(), TEST_DETAIL, profile)
+    const f = buildFoldedWings(new Mesher(), TEST_DETAIL)
     expect(f.tip.clone().setZ(0).distanceTo(f.wrist.clone().setZ(0))).toBeCloseTo(TEST_DETAIL.measurements.wingChord, 4)
   })
   it('lie outside the flank, GAP clear of the skin as the loft meshes it, and face away from the body', () => {
     const m = new Mesher()
-    buildFoldedWings(m, TEST_DETAIL, profile)
+    buildFoldedWings(m, TEST_DETAIL)
     const skin = skinHeight(profile, TEST_DETAIL.rig)
     m.parts.forEach((p, i) => {
       if (p !== 'wingFold') return
