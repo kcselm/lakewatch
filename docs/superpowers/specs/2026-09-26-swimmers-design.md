@@ -250,7 +250,9 @@ research's section 11; the field names are settled in the plan.
 
 ### What every style shares
 
-- **Cruise** toward a spot near the flock target, with wake rings as today.
+- **Cruise** toward a spot near the flock target, leaving a wake ring every
+  1.5 s while under way (0.9 s before this round; see "Changed during
+  implementation").
 - **Loaf:** drift with the wind, neck drawn in, sometimes asleep or preening.
 - **Alert:** neck up for 1–4 s.
 - **The flock:** birds of one cast entry share a group, as probers do today.
@@ -529,6 +531,13 @@ The birds' work and its reviews changed these:
   - A roll-under now tips the stern up before the bird goes under: the lean
     leads and the depth eases in.
   - `src/behavior/grebe.ts`.
+- **Wakes every 1.5 s, not 0.9 s,** the plan's ring budget (Task 12).
+  - At the old rate the whole cast peaked at 38 live rings and pushed about
+    290 out of the 32-ring buffer in 20 minutes, half of them wakes.
+  - 1.5 s is the grebe research's measured rhythm. With it, the whole cast
+    stays inside the buffer: at 60 fps over ten minutes (seeds 42, 7, and
+    11), 15–16 live rings on average, peaks of 28–30, and nothing pushed out.
+  - `MAX_RIPPLES` stays 32. `src/birds/cast.test.ts` holds the budget.
 - **Folded-wing clearance.** The wing now clears the body's skin by 1.5 mm
   (`GAP`) along its normal everywhere at rest.
   - It is placed against the loft as meshed, on 27 fold columns, with its rows
