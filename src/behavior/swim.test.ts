@@ -217,7 +217,7 @@ describe('swim', () => {
         last = birds.map(b => [b.x, b.z])
       })
     }
-  })
+  }, 60_000)   // 15 seeds x 120 s of a crowded pond: about 6.5 s alone, far longer beside a busy full run
   it('drifts downwind while it loafs', () => {
     const c = createSwim(ctx(4), 0, 0)
     const pose = defaultPose()
