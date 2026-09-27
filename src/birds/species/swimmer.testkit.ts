@@ -60,9 +60,13 @@ export function hsl([r, g, b]: [number, number, number]): { hue: number; sat: nu
  * Every reading fails, naming the part and the window, when the window holds no pixels (a reversed label pair, a t
  * outside 0..1) or when no layer of this version paints the part: over an empty window a mean is 0 and a share 0, and
  * over an unpainted part the painter's base grey, so "dark" and "absent" would pass without looking at anything.
+ *
+ * A version the species doesn't have fails too, as `built` does. It is checked against the species' own versions,
+ * not the detail block's: a version with no layers of its own (the Gadwall's female) wears the base plumage.
  */
 export function atlas(spec: SpeciesSpec, variant?: string) {
   const { parsed, detail } = detailed(spec)
+  if (variant !== undefined && !(variant in parsed.variants)) throw new Error(`${parsed.code}: unknown variant ${variant}`)
   const profile = createProfile(detail.profile)
   const layers = layersFor(detail, variant)
   const px = paintAtlas({ code: parsed.code, detail, layers, profile })
