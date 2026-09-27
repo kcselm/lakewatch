@@ -507,8 +507,11 @@ Peck reach:
 
 Found while building and in the final review, and accepted for this round:
 
-- **A notch under the dowitcher's chin**, 6.5–8.3 mm deep against the
-  photo's throat, 24–34 mm above the ground.
+- **A notch under the dowitcher's chin** (resolved), 6.5–8.3 mm deep against
+  the photo's throat, 24–34 mm above the ground.
+  - Resolved: Task 5 of the swimmers round retraced the chin with section
+    tilt, and the front outline is within 1.8 mm of the photo from the breast
+    to the chin.
   - Cause: the loft's sections are perpendicular to the spine. Where the
     spine turns sharply, as it does with the head resting on the breast, the
     underside can't reach forward without creasing.

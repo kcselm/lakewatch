@@ -228,9 +228,10 @@ notch stays a known soft spot.
 
 ### Everything else
 
-The eyes, folded wing, painter, and atlas layout are unchanged. The six
-shorebirds must build exactly as before: a geometry fingerprint of each is a
-test.
+The eyes, painter, and atlas layout are unchanged. The six shorebirds must
+build exactly as before: a geometry fingerprint of each is a test. Two
+changes were made knowingly: the dowitcher's chin (above), and the folded
+wing, refitted to clear the skin (see "Changed during implementation").
 
 ## The `swim` styles
 
@@ -323,10 +324,10 @@ research's section 11; the field names are settled in the plan.
   - never a duck-style forward leap
 - **Under:** 7.6 s on average (2–15), travelling 3.7 m (0–12) about the current
   heading, then up with a ring, look about for 1–3 s, and pause 2–10 s. Bouts
-  are 3–12 dives. About half the grebe's time is spent in bouts, so about 35%
-  of it under water.
+  are 3–12 dives. Nearly 60% of the grebe's time is spent in bouts, so about
+  35% of it under water.
 - **Sink-and-watch:** settle over 1–3 s until only the head and upper neck show
-  (the back 45 mm under), hold 5–30 s, then rise or slide into a dive. About
+  (the back 15–20 mm under), hold 5–30 s, then rise or slide into a dive. About
   once every 3–6 minutes.
 - **Spacing:** at least 10 m from other grebes.
 
@@ -463,7 +464,10 @@ measurements within 5%, no crease in the loft, and no bone turning more than
 - A version-only part is visible on its versions and hidden on the rest.
 - A tilted station removes a crease that the untilted section has, on a test
   fixture.
-- The six shorebirds' geometry fingerprints are unchanged.
+- The six shorebirds' geometry fingerprints are unchanged, except where
+  changed knowingly. Task 5 retraced the dowitcher. Task 19b refitted the
+  folded wing, which changed every detailed species' geometry print and most
+  pose prints. Every atlas print stayed as it was.
 
 ### Species
 
@@ -508,6 +512,40 @@ For each style, over seeded simulations:
     Gadwalls, spinning Shovelers, pumping Coots, vanishing grebes
   - whether any birds overlap or snap
 
+## Changed during implementation
+
+The birds' work and its reviews changed these:
+
+- **The grebe's sink.** `AWASH` is 0.045 m, not 0.073.
+  - The traced grebe can't raise its neck as a live one does, so the sink
+    stops where its head and upper neck show.
+  - A roll-under now tips the stern up before the bird goes under: the lean
+    leads and the depth eases in.
+  - `src/behavior/grebe.ts`.
+- **Folded-wing clearance.** The wing now clears the body's skin by 1.5 mm
+  (`GAP`) along its normal everywhere at rest.
+  - It is placed against the loft as meshed, on 27 fold columns, with its rows
+    spaced along the skin and a relaxation pass.
+  - Where the skin moves with the neck, it stands further off: 1.6% of the
+    chord at full neck weight.
+  - Each bird gains 208 triangles.
+  - `src/birds/detail/wing.ts`; `wing.test.ts` checks it in every game pose.
+- **The optics' near plane.** Raising the binoculars or the telescope moves
+  the camera's near plane to 1 m (the eye's is 0.1 m), eased with the fov, so
+  painted marks on the folded wing don't flicker through the skin at 65 m. The
+  viewer's near plane follows its camera's distance (`src/player/optics.ts`,
+  `src/viewer/main.ts`).
+- **Startup.** After the atlases paint, each detailed species' first build runs
+  one species at a time behind the title card, so the card keeps answering
+  (`src/birds/prewarm.ts`).
+- **The Gadwall's back** is lowered 6–10 mm from the traced January drake,
+  whose alternate-plumage tertials peak it, to the late-September birds'
+  height: 61 mm above the water.
+- **The Coot's culmen/head bound** is 0.7–0.9, not 0.85–1.2. The research's
+  1.01 is a caliper skull length. The builder's head is the feathered head
+  along the bill axis, which the traced photo gives as 0.76.
+- **The whole-cast tests** have a 120 s timeout, not 30 s.
+
 ## Known soft spots
 
 - **Drafts are computed, not seen.** No reference photo shows a hull under the
@@ -524,6 +562,38 @@ For each style, over seeded simulations:
 - **One size per species,** at the mean of the sexes; drakes are larger.
 - **Coots and grebes spend time under water,** so a player may find a grebe
   hard to identify; that is true to life.
+
+Found while building and in the reviews, and accepted for this round:
+
+- **The folded wing's front lets the skin through** by up to 2.4 mm over the
+  neck's base in neck poses (the Wigeon's surface dabble). Giving the wing's
+  front the neck's skin weights was tried four ways; each bent some species'
+  wrist with its neck. The test holds it to 2.9 mm.
+- **A 1-px hairline** shows beside a duck's flanks, seen head-on through the
+  telescope, where the wing sits `GAP` outside the widest section.
+- **The folded wing's corners stand off the body.** The lower front corner
+  stands about 5 mm off on the Mallard and the Gadwall. The lower rear corner
+  stands 6 mm off on the Shoveler, where the flank narrows.
+- **The Coot's chin** falls 4.6–7.4 mm short of its photo. That is the price of
+  no lip under the bill. A facet line shows across its throat in close
+  three-quarter views, and the throat folds back 1–2 mm in its drawn-back pump,
+  loaf, and preen.
+- **The Shoveler's face dip** stops 26 mm under, not the research's 35. The
+  builder's neck swing limit is one constant for every species. Its pair-spin
+  heads stay shallow for the same reason.
+- **`breastFrontAbove`** reads from rings up to the rig's neck base, not the
+  `neckBase` station. A species whose rig puts the neck joint lower, like the
+  Coot, reads low (−16 mm).
+- **The loft's fold check** (`worstFold`) misses a ring that doubles back or
+  steps backwards along the spine. The Coot's and Gadwall's tests caught both
+  kinds by other measures.
+- **Lobes and claws can't take their own colour:** every leg tube samples one
+  texel.
+- **The tail spreads to the stern's width,** so from three-quarter and higher
+  views it reads as a broad plate.
+- **Each species' first build** still takes a few hundred milliseconds. Placing
+  the fold in the paint worker, or precomputing it, would shorten the wait
+  behind the title card.
 
 ## Build order
 
