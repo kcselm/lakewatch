@@ -1,11 +1,12 @@
 import { expandCast, flockEntries, spawnCast, speciesTraits, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
 import { makeRng } from '../catalog/rng'
-import { BirdRegistry } from './registry'
+import { BirdRegistry, type BirdInstance } from './registry'
 import { Wind } from '../world/wind'
 import { RippleBuffer } from '../world/ripples'
 import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
 import { MALLARD } from '../behavior/dabbler'
+import { companyOf } from '../behavior/swim'
 import { BEHAVIORS, type BehaviorController } from '../behavior'
 
 const loc = (cast: Location['cast']): Location => ({
@@ -168,13 +169,23 @@ describe('spawnCast flocks', () => {
 describe('spawnCast swimmers', () => {
   const pond = (cast: Location['cast'], w = 20, d = 12): Location => ({ ...loc(cast), zones: { w: { kind: 'polygon', points: [[0, 0], [w, 0], [w, d], [0, d]] } } })
   const deps = (seed: number) => ({ registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed })
-  /** the closest any two birds come, less the spacing they keep: a flock's own between flockmates, else the other */
-  function shortestGap(birds: readonly { species: string; position: { x: number; z: number } }[]): number {
+  /** metres a swimmer of this species keeps from any bird not of its flock: its style's `other` spacing */
+  const otherOf = (code: string) => companyOf(speciesTraits(code).foraging, code).spacing.other
+  /**
+   * The closest any two birds on the water come, less the spacing they keep: a flock's own between flockmates, else
+   * the other (a Mallard's, which the Coot shares). With `zoneOf` (each species' zone), only birds of different zones
+   * are measured, each pair against the larger of the two birds' own `other` spacings. A bird all the way under the
+   * water (hidden) is left out: it is no one's neighbour until it comes up.
+   */
+  function shortestGap(birds: readonly BirdInstance[], zoneOf?: Readonly<Record<string, string>>): number {
+    const up = birds.filter(b => b.model.group.visible)
     let gap = Infinity
-    for (let a = 0; a < birds.length; a++) {
-      for (let c = a + 1; c < birds.length; c++) {
-        const A = birds[a]!, C = birds[c]!
-        const keep = A.species === C.species ? MALLARD.spacing.flock : MALLARD.spacing.other
+    for (let a = 0; a < up.length; a++) {
+      for (let c = a + 1; c < up.length; c++) {
+        const A = up[a]!, C = up[c]!
+        if (zoneOf && zoneOf[A.species] === zoneOf[C.species]) continue
+        const keep = zoneOf ? Math.max(otherOf(A.species), otherOf(C.species))
+          : A.species === C.species ? MALLARD.spacing.flock : MALLARD.spacing.other
         gap = Math.min(gap, Math.hypot(A.position.x - C.position.x, A.position.z - C.position.z) - keep)
       }
     }
