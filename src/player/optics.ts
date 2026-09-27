@@ -5,6 +5,14 @@ export type OpticMode = 'eye' | 'binoculars' | 'telescope'
 
 export interface OpticSpec {
   fov: number
+  /**
+   * The camera's near plane, metres. Raised with the optics, where nothing so near is ever in the narrow view, the
+   * depth buffer tells surfaces apart far more finely: a 24-bit buffer's steps grow as distance squared over near,
+   * about 2.5 mm at 65 m for the eye's 0.1 m, and a bird's folded wing (1.5 mm off its skin) flickered through it
+   * there. From 0.5 m it no longer does (Task 19b); 1 m leaves room, and never cuts the ground at the observer's feet
+   * (the eye stands 1.6 m up, and looks at most 75 degrees down).
+   */
+  near: number
   /** fraction of the shorter viewport side */
   maskRadius: number
   /** edge softness in the same units */
@@ -16,9 +24,9 @@ export interface OpticSpec {
 }
 
 export const OPTICS: Record<OpticMode, OpticSpec> = {
-  eye:        { fov: 60,  maskRadius: 1,    maskSoftness: 0,    sway: 0,      panScale: 1,    raiseSeconds: 0.25 },
-  binoculars: { fov: 7.5, maskRadius: 0.46, maskSoftness: 0.05, sway: 0.0016, panScale: 1,    raiseSeconds: 0.35 },
-  telescope:  { fov: 2,   maskRadius: 0.40, maskSoftness: 0.012, sway: 0,     panScale: 0.55, raiseSeconds: 0.45 },
+  eye:        { fov: 60,  near: 0.1, maskRadius: 1,    maskSoftness: 0,    sway: 0,      panScale: 1,    raiseSeconds: 0.25 },
+  binoculars: { fov: 7.5, near: 1,   maskRadius: 0.46, maskSoftness: 0.05, sway: 0.0016, panScale: 1,    raiseSeconds: 0.35 },
+  telescope:  { fov: 2,   near: 1,   maskRadius: 0.40, maskSoftness: 0.012, sway: 0,     panScale: 0.55, raiseSeconds: 0.45 },
 }
 
 export const MODE_ORDER: OpticMode[] = ['eye', 'binoculars', 'telescope']
@@ -44,10 +52,14 @@ export class Optics {
   private blur = 0
 
   get transition(): number { return this.t }
-  get currentFov(): number {
-    const a = OPTICS[this.from].fov, b = OPTICS[this.mode].fov
+  get currentFov(): number { return this.eased('fov') }
+  /** the near plane, eased with the fov as the optics come up or down */
+  get currentNear(): number { return this.eased('near') }
+  /** a spec value between the last mode's and this one's, along the raise; in log space, so the zoom feels even */
+  private eased(key: 'fov' | 'near'): number {
+    const a = OPTICS[this.from][key], b = OPTICS[this.mode][key]
+    if (this.t >= 1) return b
     const e = this.t * this.t * (3 - 2 * this.t)
-    // interpolate in log space so the zoom feels even
     return Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * e)
   }
   /** 0..1 focus-pull blur amount, for the mask overlay */
@@ -66,8 +78,12 @@ export class Optics {
     const spec = OPTICS[this.mode]
     if (this.t < 1) this.t = Math.min(1, this.t + dt / spec.raiseSeconds)
     this.blur = Math.max(0, this.blur - dt / 0.4)
-    const fov = this.currentFov
-    if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix() }
+    const fov = this.currentFov, near = this.currentNear
+    if (camera.fov !== fov || camera.near !== near) {
+      camera.fov = fov
+      camera.near = near
+      camera.updateProjectionMatrix()
+    }
     look.fovScale = (fov / 60) * spec.panScale
     const sway = swayOffset(this.clock, spec.sway * this.t)
     look.applyTo(camera, sway.x, sway.y)

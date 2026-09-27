@@ -4,7 +4,8 @@ import { createBirdModel } from '../factory'
 import { buildDetailedBird } from '../detail/build'
 import { measure } from '../detail/measure'
 import { createProfile } from '../detail/profile'
-import { worstFold } from '../detail/loft'
+import { worstFold, buildLoft } from '../detail/loft'
+import { Mesher } from '../detail/mesher'
 import { DEFAULT_STEP } from '../detail/legs'
 import { defaultPose } from '../model'
 import { loadCatalog } from '../../catalog'
@@ -44,7 +45,9 @@ describe('species specs', () => {
       const r = measure(buildDetailedBird(spec))
       const m = d.measurements
       expect(Math.abs(r.length - m.length) / m.length, `${spec.code} length`).toBeLessThan(0.05)
-      for (const k of ['culmen', 'billDepth', 'tarsus', 'wingChord', 'tail'] as const) {
+      // a bird with no tail (a grebe's is a hidden tuft) keeps measurements.tail on record, but nothing is built to it
+      const keys = d.tail.shape === 'none' ? (['culmen', 'billDepth', 'tarsus', 'wingChord'] as const) : (['culmen', 'billDepth', 'tarsus', 'wingChord', 'tail'] as const)
+      for (const k of keys) {
         expect(Math.abs(r[k] - m[k]) / m[k], `${spec.code} ${k}`).toBeLessThan(0.02)
       }
       expect(Math.abs(r.tibia - m.tibia) / m.tibia, `${spec.code} tibia`).toBeLessThan(0.15)
@@ -57,7 +60,7 @@ describe('species specs', () => {
   })
   it('every detailed species keeps its stance foot planted at its own step length (too long a step slides the foot)', () => {
     for (const spec of Object.values(SPECIES)) {
-      if (!spec.detail) continue
+      if (!spec.detail || spec.posture === 'swimming') continue             // a swimmer's legs paddle; they never walk
       const m = buildDetailedBird(spec)
       const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
       const stride = 2 * (spec.detail.stepLength ?? DEFAULT_STEP) * (m.layout.tibia + m.layout.tarsus)
@@ -79,12 +82,35 @@ describe('species specs', () => {
       expect(() => getSpec(code), code).toThrow(/No species spec/)
     }
   })
-  it('mallard has male and female variants', () => {
-    expect(Object.keys(getSpec('mallar3').variants).sort()).toEqual(['female', 'male'])
+  it('mallard has its three late-September versions: the drake, the drake still moulting, and the female', () => {
+    expect(Object.keys(getSpec('mallar3').variants).sort()).toEqual(['female', 'male', 'maleMoult'])
   })
   it('heron stands taller than it is long', () => {
     const h = getSpec('grbher3')
     expect(h.legs.length + h.neck.length).toBeGreaterThan(h.body.length)
+  })
+})
+
+describe('Long-billed Dowitcher: the throat under its resting head', () => {
+  // The front of the bird in its tracing photo (iNaturalist 199669733; see lobdow.ts), read off the photo's silhouette
+  // at 0.145 mm per pixel with the hip at (760, 720): mm forward of the hip, at every mm of height from 10 mm below the
+  // hip (the breast) to 41 mm above it (the chin, under the bill)
+  const PHOTO_FRONT = [
+    63.50, 64.05, 64.80, 65.25, 65.95, 66.10, 66.40, 66.80, 67.10, 67.85, 68.40, 68.85, 69.30,
+    69.85, 70.30, 70.60, 70.85, 71.60, 71.90, 72.20, 72.30, 72.45, 72.60, 72.75, 73.05, 73.05,
+    73.20, 73.20, 73.05, 73.05, 73.20, 72.90, 72.75, 72.60, 72.45, 72.05, 71.75, 71.30, 70.75,
+    70.15, 69.55, 68.85, 68.25, 67.55, 66.80, 66.10, 65.35, 64.50, 63.65, 63.35, 63.95, 65.65,
+  ]
+  it('follows the photo from the breast to the chin within 2 mm, without creasing', () => {
+    const d = getSpec('lobdow').detail!
+    const profile = createProfile(d.profile)
+    const m = new Mesher()
+    const loft = buildLoft(m, profile, d.rig)
+    PHOTO_FRONT.forEach((x, k) => {
+      const span = m.spanAtHeight((k - 10) / 1000, loft.indexFirst, loft.indexCount)!
+      expect(Math.abs(span[1] * 1000 - x), `${k - 10} mm above the hip`).toBeLessThan(2)
+    })
+    expect(worstFold(profile, d.rig)).toBe(0)
   })
 })
 

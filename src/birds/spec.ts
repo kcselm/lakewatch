@@ -9,8 +9,15 @@ export const plumageSchema = z.object({
 })
 
 /** how a species feeds when the cast puts it on `probe` */
-export const FORAGING = ['plover', 'sandpiper', 'dowitcher'] as const
+export const PROBE_STYLES = ['plover', 'sandpiper', 'dowitcher'] as const
+/** how a species feeds when the cast puts it on `swim` */
+export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe'] as const
+export const FORAGING = [...PROBE_STYLES, ...SWIM_STYLES] as const
+export type ProbeStyle = (typeof PROBE_STYLES)[number]
+export type SwimStyle = (typeof SWIM_STYLES)[number]
 export type Foraging = (typeof FORAGING)[number]
+export const isProbeStyle = (f: Foraging | undefined): f is ProbeStyle => (PROBE_STYLES as readonly (string | undefined)[]).includes(f)
+export const isSwimStyle = (f: Foraging | undefined): f is SwimStyle => (SWIM_STYLES as readonly (string | undefined)[]).includes(f)
 
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const
 export type MarkKey = (typeof MARK_KEYS)[number]
@@ -38,6 +45,9 @@ export const speciesSpecSchema = z.object({
   /** present when the species uses the detailed builder */
   detail: detailSchema.optional(),
 }).superRefine((s, ctx) => {
+  // what the detailed builder refuses, refused at load
+  if (s.detail && s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: a detail block builds standing and swimming birds only, not perched`, path: ['posture'] })
+  if (s.detail && s.posture === 'swimming' && !s.detail.float) ctx.addIssue({ code: 'custom', message: `${s.code}: a swimming bird's detail block needs detail.float, its waterline`, path: ['detail', 'float'] })
   for (const k of Object.keys(s.detail?.variants ?? {})) {
     if (!(k in s.variants)) ctx.addIssue({ code: 'custom', message: `detail variant ${k} is not one of the species' variants`, path: ['detail', 'variants', k] })
   }

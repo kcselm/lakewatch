@@ -60,3 +60,52 @@ export const TEST_SPEC: SpeciesSpec = parseSpeciesSpec({
   wingbeatHz: 5,
   detail: TEST_DETAIL,
 })
+
+/**
+ * A test duck for the swimming builder: a dabbler of about a Mallard's size (docs/research/2026-09-25-mallard.md,
+ * sections 6 and 9: back 80 mm above the water, draft 55 mm, crown about 100 mm), floating with its waterline 22 mm
+ * below the traced spine. Frozen here, like TEST_DETAIL, so the Mallard's own tracing never breaks the builder's tests.
+ */
+export const TEST_SWIM_DETAIL: DetailSpec = {
+  measurements: {
+    length: 0.39, culmen: 0.053, billDepth: 0.018, billWidth: 0.021,
+    tarsus: 0.043, tibia: 0.01, toe: 0.051, wingChord: 0.24, tail: 0.087,
+  },
+  profile: [
+    { label: 'rear',     x: -0.130, y: 0.004, up: 0.010, down: 0.010, halfWidth: 0.012 },
+    { label: 'rump',     x: -0.110, y: 0.004, up: 0.024, down: 0.030, halfWidth: 0.032 },
+    { label: 'tailBase', x: -0.088, y: 0.002, up: 0.040, down: 0.050, halfWidth: 0.048 },
+    { label: 'hip',      x: -0.030, y: 0,     up: 0.056, down: 0.070, halfWidth: 0.064 },
+    { label: 'flank',    x: 0.025,  y: 0,     up: 0.056, down: 0.072, halfWidth: 0.064 },
+    { label: 'breast',   x: 0.070,  y: 0.006, up: 0.044, down: 0.060, halfWidth: 0.054 },
+    { label: 'neckBase', x: 0.094,  y: 0.022, up: 0.026, down: 0.036, halfWidth: 0.032 },
+    { label: 'neckMid',  x: 0.104,  y: 0.040, up: 0.019, down: 0.021, halfWidth: 0.021 },
+    { label: 'nape',     x: 0.110,  y: 0.054, up: 0.017, down: 0.016, halfWidth: 0.019 },
+    { label: 'occiput',  x: 0.120,  y: 0.064, up: 0.018, down: 0.013, halfWidth: 0.019 },
+    { label: 'crown',    x: 0.132,  y: 0.069, up: 0.019, down: 0.015, halfWidth: 0.020 },
+    { label: 'eye',      x: 0.145,  y: 0.070, up: 0.017, down: 0.015, halfWidth: 0.019 },
+    { label: 'lores',    x: 0.158,  y: 0.067, up: 0.012, down: 0.011, halfWidth: 0.014 },
+    { label: 'billBase', x: 0.166,  y: 0.064, up: 0.009, down: 0.009, halfWidth: 0.010 },
+  ],
+  rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },
+  bill: { taper: 0.9, curve: 0 },
+  eye: { radius: 0.003, t: 0.4, iris: '#3a2616' },
+  wing: {
+    wrist: [0.07, 0.03], droop: 2,
+    outline: [[0, 0.05], [0.2, 0.16], [0.5, 0.15], [0.8, 0.08], [1, 0.02]],
+  },
+  tail: { shape: 'rounded', angle: 5 },
+  float: { waterline: -0.022 },
+  plumage: [
+    { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5b4a39', side: '#8a735a', bottom: '#b9a58a' },
+    { kind: 'fill', where: { part: 'wingFold' }, color: '#5a4a3a' },
+    { kind: 'fill', where: { part: 'bill' }, color: '#d98a2b' },
+    { kind: 'fill', where: { part: 'legs' }, color: '#e8742a' },
+  ],
+  variants: {},
+  sources: ['test fixture'],
+}
+
+export const TEST_SWIM_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, code: 'testduck', commonName: 'Test Duck', posture: 'swimming', draft: 0.4, detail: TEST_SWIM_DETAIL,
+})

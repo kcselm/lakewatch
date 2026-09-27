@@ -5,7 +5,7 @@ import { Mesher, type Weights } from './mesher'
 export const RINGS = 64
 export const RADIAL = 24
 
-export interface LoftRig { neckBase: string; neckMid: string; head: string }
+export interface LoftRig { neckBase: string; neckMid: string; head: string; tailBase?: string }
 
 export interface LoftResult {
   /** first vertex and vertex count of the loft */
@@ -25,9 +25,16 @@ export function ringT(theta: number): number {
 
 /**
  * Skin weights along the spine: body until just before the neck base, then a linear hand-off
- * body -> neck -> neckMid -> head between the labelled stations. Always sums to 1.
+ * body -> neck -> neckMid -> head between the labelled stations. Always sums to 1. With `rearToTail` (a bird with no
+ * tail), the rear of the body hands off from the tail bone at the rear end to the body at the tail base, so cocking
+ * the tail cocks the stern.
  */
-export function loftWeights(u: number, profile: Profile, rig: LoftRig): Weights {
+export function loftWeights(u: number, profile: Profile, rig: LoftRig, rearToTail = false): Weights {
+  if (rearToTail && rig.tailBase) {
+    const kT = profile.uOf(rig.tailBase)
+    if (u <= 0) return [['tail', 1]]
+    if (u < kT) return [['tail', 1 - u / kT], ['body', u / kT]]
+  }
   const kNB = profile.uOf(rig.neckBase), kNM = profile.uOf(rig.neckMid), kH = profile.uOf(rig.head)
   const kB = Math.max(0, kNB - 0.08)
   const blend = (a: 'body' | 'neck' | 'neckMid', b: 'neck' | 'neckMid' | 'head', lo: number, hi: number): Weights => {
@@ -42,7 +49,7 @@ export function loftWeights(u: number, profile: Profile, rig: LoftRig): Weights 
 }
 
 /** The body-neck-head surface: RINGS cross-sections swept along the spine, closed at both ends. */
-export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult {
+export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail = false): LoftResult {
   const first = m.count
   const indexFirst = m.indexCount
   const ringU: number[] = []
@@ -52,12 +59,12 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult
     const u = i / (RINGS - 1)
     ringU.push(u)
     const s = profile.sampleAt(u)
-    const weights = loftWeights(u, profile, rig)
+    const weights = loftWeights(u, profile, rig, rearToTail)
     const row: number[] = []
     for (let j = 0; j < RADIAL; j++) {
       const theta = (j / RADIAL) * Math.PI * 2
       const o = sectionOffset(theta, s.up, s.down, s.halfWidth)
-      p.set(s.point.x + s.normal.x * o.n, s.point.y + s.normal.y * o.n, o.z)
+      p.set(s.point.x + s.axis.x * o.n, s.point.y + s.axis.y * o.n, o.z)
       row.push(m.vertex(p, 'skin', u, ringT(theta), weights))
     }
     ring.push(row)
@@ -73,7 +80,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult
   const s0 = profile.sampleAt(0), s1 = profile.sampleAt(1)
   const rear = m.vertex(new THREE.Vector3(
     s0.point.x - s0.tangent.x * Math.min(s0.up, s0.down) * 0.6,
-    s0.point.y - s0.tangent.y * Math.min(s0.up, s0.down) * 0.6, 0), 'skin', 0, 0.5, loftWeights(0, profile, rig))
+    s0.point.y - s0.tangent.y * Math.min(s0.up, s0.down) * 0.6, 0), 'skin', 0, 0.5, loftWeights(0, profile, rig, rearToTail))
   const front = m.vertex(new THREE.Vector3(
     s1.point.x + s1.tangent.x * Math.min(s1.up, s1.down) * 0.3,
     s1.point.y + s1.tangent.y * Math.min(s1.up, s1.down) * 0.3, 0), 'skin', 1, 0.5, loftWeights(1, profile, rig))
@@ -86,8 +93,9 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig): LoftResult
 }
 
 /**
- * The furthest any ring of the loft folds back over the ring before it, metres (0 when none do). A spine that
- * turns tighter than the section is deep on its inside creases the surface; species tests hold this at 0.
+ * The furthest any ring of the loft folds back over the ring before it, metres (0 when none do): how far behind the
+ * earlier ring's plane (square to the spine, or turned by its tilt) the next ring reaches. A spine that turns tighter
+ * than the section is deep on its inside creases the surface; species tests hold this at 0.
  */
 export function worstFold(profile: Profile, rig: LoftRig): number {
   const m = new Mesher()
@@ -96,7 +104,8 @@ export function worstFold(profile: Profile, rig: LoftRig): number {
   let worst = 0
   for (let i = 0; i < RINGS - 1; i++) {
     const s = profile.sampleAt(r.ringU[i]!)
-    t.set(s.tangent.x, s.tangent.y, 0)
+    // the ring's plane faces along the spine, turned with the section's axis
+    t.set(s.axis.y, -s.axis.x, 0)
     for (let j = 0; j < RADIAL; j++) {
       const step = m.position(r.first + (i + 1) * RADIAL + j).sub(m.position(r.first + i * RADIAL + j)).dot(t)
       worst = Math.max(worst, -step)

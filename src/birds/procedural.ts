@@ -179,7 +179,8 @@ export function buildBird(spec: SpeciesSpec, variant?: string): BirdModel {
     const zScale = 0.45 + 0.55 * spread     // folded wings are shorter along their own axis
     wingL.scale.set(1, 1, zScale)
     wingR.scale.copy(wingL.scale)
-    tail.rotation.z = THREE.MathUtils.degToRad(spec.tail.angle) + st.tailTilt
+    // the tail runs back along -x, so a positive turn about z lowers its tip: a positive tailTilt turns it the other way
+    tail.rotation.z = THREE.MathUtils.degToRad(spec.tail.angle) - st.tailTilt
     body.rotation.set(st.lean.x, 0, st.lean.z)
   }
   pose(defaultPose())

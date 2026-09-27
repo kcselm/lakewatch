@@ -61,6 +61,19 @@ describe('buildBird', () => {
     const wingBox2 = new THREE.Box3().setFromObject(m.parts.wingL)
     expect(wingBox2.max.y).toBeGreaterThan(bodyBox2.max.y)
   })
+  it('lifts the tail for a positive tailTilt, as PoseState says, and lowers it for a negative one', () => {
+    const m = buildBird(coot)
+    const geo = (m.parts.tail as THREE.Mesh).geometry
+    geo.computeBoundingBox()
+    /** the tail's tip, where its box ends behind the hinge, in the world */
+    const tip = (tailTilt: number) => {
+      m.pose({ ...defaultPose(), tailTilt })
+      m.group.updateMatrixWorld(true)
+      return new THREE.Vector3(geo.boundingBox!.min.x, 0, 0).applyMatrix4(m.parts.tail.matrixWorld).y
+    }
+    expect(tip(0.3)).toBeGreaterThan(tip(0) + 0.005)
+    expect(tip(-0.3)).toBeLessThan(tip(0) - 0.005)
+  })
   it("a standing bird's body centre sits well above its feet", () => {
     const heron = getSpec('grbher3')
     const m = buildBird(heron)

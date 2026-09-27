@@ -3,12 +3,14 @@ import { OPTICS } from '../player/optics'
 export const VIEWS = ['side', 'front', 'top', 'three'] as const
 export type View = (typeof VIEWS)[number]
 
-/** Field views: how the player sees the pair from the bank. */
+/** Field views: how the player sees the pair from the bank, through the game's optics (their fov and near plane). */
 export const FIELD_VIEWS = {
-  scope22: { label: 'telescope, 22 m (shallows)', distance: 22, fov: OPTICS.telescope.fov },
-  scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov },
-  bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov },
-  bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov },
+  scope22: { label: 'telescope, 22 m (shallows)', distance: 22, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  scope35: { label: 'telescope, 35 m (open water)', distance: 35, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  bino15: { label: 'binoculars, 15 m (near water)', distance: 15, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
 } as const
 export type FieldView = keyof typeof FIELD_VIEWS | ''
 
@@ -18,21 +20,33 @@ export interface ViewerState {
   b: string; bv: string
   view: View
   field: FieldView
+  /** lean is the body's pitch, radians: a peck's 0.8, a dabbler's tip-up about 1.5 */
   neck: number; lean: number; spread: number; phase: number; reach: number
+  /** a reach's aim below the ground or water, metres, and the steepest its bill may point, radians below level */
+  depth: number; angle: number
+  /** 0 legs hidden .. 1 shown and paddling (a swimmer's) */
+  paddle: number
+  /** how far the birds sink below the surface, metres (a grebe's periscope) */
+  sink: number
+  /** the head pump, body lengths fore and aft, and the tail cocked up, radians */
+  bob: number; tail: number
   walk: boolean
   /** walking speed, m/s */
   speed: number
   /** depth of the water over the ground, metres; 0 hides it */
   water: number
+  /** the lake, as in the game: opaque water at y = 0 (a swimmer's waterline) and no ground; `see` makes it see-through */
+  float: boolean; see: boolean
   wire: boolean; skel: boolean; uv: boolean; atlas: boolean; stations: boolean
 }
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
-  neck: [0, 1], lean: [0, 1], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.1],
+  neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.1],
+  depth: [0, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
-const FLAGS = ['walk', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
+const FLAGS = ['walk', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
 const STRINGS = ['a', 'av', 'b', 'bv'] as const
 
 /** What the viewer can show: species codes it knows, and each one's plumages. */

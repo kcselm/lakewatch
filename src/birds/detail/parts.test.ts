@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { createProfile } from './profile'
 import { Mesher, signedVolume } from './mesher'
 import { buildBill, billCenter, buildEyes, eyePlacement } from './bill'
-import { buildFoldedWings, buildSpreadWings, shoulderAt, bodySurfaceZ, outlineAt } from './wing'
+import { buildFoldedWings, buildSpreadWings, shoulderAt, skinHeight, outlineAt, GAP } from './wing'
 import { buildTail, tipShape } from './tail'
 import { TEST_DETAIL } from './fixture'
 import type { Part } from './spec'
@@ -62,16 +62,17 @@ describe('eyes', () => {
 
 describe('folded wings', () => {
   it('reach wingChord from the wrist to the tip', () => {
-    const f = buildFoldedWings(new Mesher(), TEST_DETAIL, profile)
+    const f = buildFoldedWings(new Mesher(), TEST_DETAIL)
     expect(f.tip.clone().setZ(0).distanceTo(f.wrist.clone().setZ(0))).toBeCloseTo(TEST_DETAIL.measurements.wingChord, 4)
   })
-  it('lie outside the flank and face away from the body', () => {
+  it('lie outside the flank, GAP clear of the skin as the loft meshes it, and face away from the body', () => {
     const m = new Mesher()
-    buildFoldedWings(m, TEST_DETAIL, profile)
+    buildFoldedWings(m, TEST_DETAIL)
+    const skin = skinHeight(profile, TEST_DETAIL.rig)
     m.parts.forEach((p, i) => {
       if (p !== 'wingFold') return
       const v = m.position(i)
-      expect(Math.abs(v.z)).toBeGreaterThanOrEqual(bodySurfaceZ(profile, v.x, v.y))
+      expect(Math.abs(v.z)).toBeGreaterThanOrEqual(skin(v.x, v.y) + GAP - 1e-9)
     })
     const g = m.geometry()
     expect(meanNormal(m, g, 'wingFold', p => p.z > 0).z).toBeGreaterThan(0.5)

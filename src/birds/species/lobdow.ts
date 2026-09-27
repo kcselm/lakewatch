@@ -36,9 +36,12 @@ export const SPEC: SpeciesSpec = {
     // traced from Les Leighton's photo (see sources; 2048 px, facing right) at 0.145 mm per pixel (the 66 mm culmen
     // spans 456 px), hip at (760, 720); up and down measured along the spine normal to a hand-read silhouette, and the
     // fluffed back trimmed 10% for a bird in September. The foreneck and breast (the downs of neckMid, neckBase, and
-    // breast) were retraced to the photo's silhouette, and the occiput's down deepened as far as the head's turn allows
-    // without creasing. The under-chin still falls 6-8 mm short of the photo's throat: the head rests on the breast, and
-    // the loft cannot follow that without creasing (a builder limit, to be fixed in a later round)
+    // breast) were retraced to the photo's silhouette. The throat under the resting head, from the chin to the breast,
+    // is retraced with tilted sections (neckBase to lores): the front outline lies within 0.8 mm of the photo's from
+    // 10 mm below the hip up the throat, and within 1.8 mm under the chin, the chin rising steadily to the bill; the
+    // back of the neck and head stays within 1 mm of the earlier trace (measured 0.59 mm), and the eye within 0.4 mm
+    // of the photo's; the nape moves 0.95 mm and the crown 1.3 mm. It fell 6.5-8.3 mm short before the sections could
+    // tilt
     profile: [
       { label: 'rear',     x: -0.0638, y: -0.0254, up: 0.0066, down: 0.0058, halfWidth: 0.0055 },
       { label: 'rump',     x: -0.0479, y: -0.0217, up: 0.0099, down: 0.0129, halfWidth: 0.0098 },
@@ -46,13 +49,13 @@ export const SPEC: SpeciesSpec = {
       { label: 'hip',      x: 0.0000, y: 0.0000, up: 0.0288, down: 0.0423, halfWidth: 0.0235 },
       { label: 'flank',    x: 0.0116, y: 0.0099, up: 0.0288, down: 0.0530, halfWidth: 0.0270 },
       { label: 'breast',   x: 0.0232, y: 0.0196, up: 0.0264, down: 0.0508, halfWidth: 0.0284 },
-      { label: 'neckBase', x: 0.0326, y: 0.0276, up: 0.0230, down: 0.0484, halfWidth: 0.0278 },
-      { label: 'neckMid',  x: 0.0393, y: 0.0334, up: 0.0247, down: 0.0440, halfWidth: 0.0288 },
-      { label: 'nape',     x: 0.0447, y: 0.0383, up: 0.0216, down: 0.0411, halfWidth: 0.0263 },
-      { label: 'occiput',  x: 0.0494, y: 0.0428, up: 0.0193, down: 0.0240, halfWidth: 0.0131 },
-      { label: 'crown',    x: 0.0544, y: 0.0461, up: 0.0211, down: 0.0126, halfWidth: 0.0138 },
-      { label: 'eye',      x: 0.0596, y: 0.0479, up: 0.0227, down: 0.0124, halfWidth: 0.0144 },
-      { label: 'lores',    x: 0.0670, y: 0.0484, up: 0.0135, down: 0.0095, halfWidth: 0.0092 },
+      { label: 'neckBase', x: 0.0326, y: 0.0276, up: 0.0232, down: 0.0506, halfWidth: 0.0278, tilt: -3.8 },
+      { label: 'neckMid',  x: 0.0393, y: 0.0334, up: 0.0248, down: 0.0443, halfWidth: 0.0288, tilt: -2.3 },
+      { label: 'nape',     x: 0.0438, y: 0.0380, up: 0.0233, down: 0.0382, halfWidth: 0.0263, tilt: 4.2 },
+      { label: 'occiput',  x: 0.0494, y: 0.0428, up: 0.0193, down: 0.0313, halfWidth: 0.0131, tilt: 12.6 },
+      { label: 'crown',    x: 0.0555, y: 0.0468, up: 0.0211, down: 0.0121, halfWidth: 0.0138, tilt: 12.7 },
+      { label: 'eye',      x: 0.0596, y: 0.0479, up: 0.0228, down: 0.0084, halfWidth: 0.0144, tilt: 1.9 },
+      { label: 'lores',    x: 0.0670, y: 0.0484, up: 0.0112, down: 0.0084, halfWidth: 0.0092, tilt: -12.6 },
       { label: 'billBase', x: 0.0711, y: 0.0467, up: 0.0034, down: 0.0034, halfWidth: 0.0022 },
     ],
     rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },

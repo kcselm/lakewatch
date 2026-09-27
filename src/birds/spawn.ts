@@ -1,9 +1,11 @@
 import * as THREE from 'three'
-import type { Location, Behavior, LaneZone, Vec3 } from '../location/schema'
+import type { Location, Behavior, LaneZone, Vec3, CastEntry } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
 import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
+import { companyOf } from '../behavior/swim'
+import { startSpot } from '../behavior/swimmer'
 import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
@@ -39,11 +41,28 @@ export interface FlockEntry { species: string; variant?: string; zone: string; c
 
 export const DEFAULT_FLOCK_EVERY: [number, number] = [120, 300]
 
-function pickVariant(species: string, plumage: string | undefined, rng: Rng): string | undefined {
+/** One version for a bird: the one named, a random pick for `mixed`, or none (counts per version are for versionsFor). */
+function pickVariant(species: string, plumage: CastEntry['plumage'], rng: Rng): string | undefined {
+  if (typeof plumage === 'object') return undefined
   const variants = hasSpec(species) ? Object.keys(getSpec(species).variants) : []
   if (plumage === 'mixed' && variants.length > 0) return variants[Math.floor(rng() * variants.length)]
   if (plumage && plumage !== 'mixed' && variants.includes(plumage)) return plumage
   return undefined
+}
+
+/**
+ * A version for each bird of an entry. Counts per version are dealt out exactly, in a shuffled order, so no version
+ * always lands on the same bird of the flock; a version the species doesn't have (validateCast names it) is none.
+ */
+function versionsFor(entry: CastEntry, rng: Rng): (string | undefined)[] {
+  if (typeof entry.plumage !== 'object') return Array.from({ length: entry.count }, () => pickVariant(entry.species, entry.plumage, rng))
+  const known = hasSpec(entry.species) ? Object.keys(getSpec(entry.species).variants) : []
+  const deck = Object.entries(entry.plumage).flatMap(([v, n]) => Array.from({ length: n }, () => (known.includes(v) ? v : undefined)))
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[deck[i], deck[j]] = [deck[j], deck[i]]
+  }
+  return Array.from({ length: entry.count }, (_, n) => deck[n])
 }
 
 /** Per-bird behaviors, one record per individual. Flyovers are flocks: see flockEntries. */
@@ -55,8 +74,8 @@ export function expandCast(loc: Location, rng: Rng): Individual[] {
       console.warn(`cast[${i}] ${entry.species}: behavior ${entry.behavior} is not implemented yet; skipped`)
       return
     }
-    for (let n = 0; n < entry.count; n++) {
-      out.push({ species: entry.species, variant: pickVariant(entry.species, entry.plumage, rng), behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}` })
+    for (const variant of versionsFor(entry, rng)) {
+      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}` })
     }
   })
   return out
@@ -77,11 +96,14 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
 
 const STANDING: Behavior[] = ['wade', 'probe']
 
-/** What a species brings to its behavior: its wingbeat, and how it feeds. A species with no spec flaps at 5 Hz. */
-export function speciesTraits(code: string): Pick<BehaviorContext, 'wingbeatHz' | 'foraging'> {
-  if (!hasSpec(code)) return { wingbeatHz: 5 }
+/**
+ * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, and
+ * how it feeds. A species with no spec flaps at 5 Hz.
+ */
+export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging'> {
+  if (!hasSpec(code)) return { species: code, wingbeatHz: 5 }
   const spec = getSpec(code)
-  return { wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
+  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
 }
 
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }
@@ -96,6 +118,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const object = new THREE.Group()
   const rng = makeRng(deps.seed)
   const groups = new Map<string, NonNullable<BehaviorContext['group']>>()
+  /**
+   * every swimmer on the water, which each keeps its distance from whatever their zones: zones overlap (the lake's near
+   * and open water do), and each bird still swims only in its own
+   */
+  const swimmers: BehaviorController[] = []
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
 
@@ -106,20 +133,33 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const model = hasSpec(ind.species)
       ? createBirdModel(getSpec(ind.species), ind.variant)
       : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
-    if (!groups.has(ind.groupKey)) groups.set(ind.groupKey, { targetX: 0, targetZ: 0, retargetAt: 0 })
+    const swim = ind.behavior === 'swim' && zone.kind === 'polygon'
+    const traits = speciesTraits(ind.species)
+    const company = swim ? companyOf(traits.foraging, ind.species) : undefined
+    if (!groups.has(ind.groupKey)) {
+      // A probing flock's target starts at the vantage and goes straight to its patch. A swimming flock starts formed,
+      // round a point in its zone, and works that patch before it drifts on: otherwise every duck would spend the first
+      // minute swimming to its flock, all of them making wakes.
+      const [gx, gz] = swim && zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [0, 0]
+      groups.set(ind.groupKey, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
+    }
+    const group = groups.get(ind.groupKey)!
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
-      group: ind.behavior === 'probe' ? groups.get(ind.groupKey) : undefined,
+      group: ind.behavior === 'probe' || swim ? group : undefined,
       perch,
-      ...speciesTraits(ind.species),
+      neighbours: swim ? () => swimmers : undefined,
+      ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
-    const [sx, sz] = zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
+    const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, swimmers)
+      : zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
+    if (swim) swimmers.push(controller)
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
     object.add(model.group)
     birds.push({ controller, pose: defaultPose(), model })
@@ -165,6 +205,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     update(dt) {
       for (const b of birds) {
         b.controller.update(dt, b.pose)
+        // a bird all the way under the water is out of sight, and so out of the targeting candidates
+        b.model.group.visible = !b.controller.submerged
         b.model.group.position.set(b.controller.x, b.controller.y, b.controller.z)
         b.model.group.rotation.y = b.controller.heading
         b.model.pose(b.pose)

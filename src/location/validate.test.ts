@@ -1,5 +1,5 @@
 import { validateCast, validateAmbience } from './validate'
-import { parseLocation, type Location } from './schema'
+import { parseLocation, type Location, type CastEntry } from './schema'
 import type { Bird } from '../catalog/types'
 import { loadAmbience } from '../audio/ambienceManifest'
 import lakeRaw from '../../data/locations/lake.json'
@@ -41,6 +41,49 @@ describe('validateCast', () => {
   it('rejects a concave polygon zone', () => {
     const bad = { ...loc, zones: { water: { kind: 'polygon' as const, points: [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]] as [number, number][] } } }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['zone water: polygon must be convex'])
+  })
+  it('rejects a probing style on a swimmer and a swimming style on a prober', () => {
+    const specs = { killde: { variants: {}, foraging: 'plover' as const }, pibgre: { variants: {}, foraging: 'grebe' as const } }
+    const catalog = [bird('killde', ['wetland']), bird('pibgre', ['wetland'])]
+    const one = (species: string, behavior: 'swim' | 'probe'): Location => ({ ...loc, cast: [{ species, behavior, zone: 'water', count: 1 }] })
+    expect(validateCast(one('killde', 'swim'), catalog, specs)).toEqual(['cast[0]: killde feeds as a plover, a probing style, so it cannot swim'])
+    expect(validateCast(one('pibgre', 'probe'), catalog, specs)).toEqual(['cast[0]: pibgre feeds as a grebe, a swimming style, so it cannot probe'])
+    expect(validateCast(one('killde', 'probe'), catalog, specs)).toEqual([])
+    expect(validateCast(one('pibgre', 'swim'), catalog, specs)).toEqual([])
+  })
+  describe('plumage counts', () => {
+    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('amwpel', ['wetland'])]
+    const one = (entry: Partial<CastEntry>): Location => ({
+      ...loc,
+      zones: { ...loc.zones, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
+      cast: [{ species: 'mallar3', behavior: 'swim', zone: 'water', count: 3, ...entry }],
+    })
+    it("passes counts that name the species' versions and add up to the entry's count", () => {
+      expect(validateCast(one({ plumage: { male: 1, female: 2 } }), catalog)).toEqual([])
+    })
+    it('names a version the species does not have', () => {
+      expect(validateCast(one({ plumage: { male: 1, eclipse: 2 } }), catalog)).toEqual(['cast[0]: mallar3 has no plumage version eclipse'])
+    })
+    it('names counts that do not add up to the count', () => {
+      expect(validateCast(one({ plumage: { male: 1, female: 1 } }), catalog)).toEqual(['cast[0]: plumage counts add up to 2, not the count of 3'])
+    })
+    it('rejects counts on a flyover: a flock is one version', () => {
+      expect(validateCast(one({ behavior: 'flyover', zone: 'sky', plumage: { male: 1, female: 2 } }), catalog)).toEqual([
+        'cast[0]: a flyover flock is one version; give plumage as a single version, not counts',
+      ])
+    })
+    it('reports a malformed record without throwing: no versions, a species with none, a count that is not a number', () => {
+      expect(validateCast(one({ plumage: {} }), catalog)).toEqual(['cast[0]: plumage counts add up to 0, not the count of 3'])
+      expect(validateCast(one({ species: 'amwpel', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: amwpel has no plumage version adult'])
+      expect(validateCast(one({ species: 'nosuchbird', plumage: { male: 3 } }), catalog)).toEqual([
+        'cast[0]: species nosuchbird is not in the catalog',
+        'cast[0]: nosuchbird has no plumage version male',
+      ])
+      // a hand-built location skips the schema, so the counts themselves are checked too
+      const bad = one({ plumage: { male: Number.NaN, female: 3 } as unknown as Record<string, number> })
+      expect(() => validateCast(bad, catalog)).not.toThrow()
+      expect(validateCast(bad, catalog)).toEqual(['cast[0]: plumage count for male must be a whole number of birds, not NaN'])
+    })
   })
 })
 

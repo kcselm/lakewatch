@@ -14,11 +14,15 @@ import { createReeds, createGrass } from './world/vegetation'
 import { createTree, createSnag, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
+import { prepareBirds } from './birds/prewarm'
+import { createStore } from './store/store'
+import type { PaintProgress } from './ui/Title'
 import { LookControls } from './player/look'
 import { Optics, nextMode, type OpticMode } from './player/optics'
 import { createMask } from './hud/mask'
 import { game, isPaused } from './store/game'
 import { pickTarget } from './player/target'
+import { targetCandidates } from './player/candidates'
 import { createPrompt } from './hud/prompt'
 import { loadCatalog, findBird } from './catalog'
 import { App } from './ui/App'
@@ -69,6 +73,7 @@ let audio: AudioEngine | null = null
 let effects: Effects | null = null
 
 const credits = creditsFor(guide, loadAmbience())
+const painting = createStore<PaintProgress>({ done: 0, total: 0, ready: false })
 
 function renderApp(unsupported: string | null) {
   render(
@@ -88,7 +93,12 @@ function renderApp(unsupported: string | null) {
       persistent={() => lifeStorage.persistent}
       onCloseLifeList={() => game.set({ lifeListOpen: false })}
       unsupported={unsupported}
-      onBegin={() => { void audio?.unlock(); game.set({ titleOpen: false }) }}
+      painting={painting}
+      onBegin={() => {
+        if (!painting.get().ready) return
+        void audio?.unlock()
+        game.set({ titleOpen: false })
+      }}
       onOpenSettings={() => game.set({ settingsOpen: true })}
       onOpenCredits={() => game.set({ creditsOpen: true })}
       settings={() => settings}
@@ -215,7 +225,19 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
 }
-world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
+// Behind the title card, every atlas the cast needs paints in a worker while the main thread places each detailed
+// species' folded wing, the costly part of its first build, a species at a time. Then the cast is built, and Begin
+// enabled. The card counts all three: atlases, species, and the build.
+prepareBirds(loc, {
+  worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
+  onProgress: (done, total) => painting.set({ done, total }),
+  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches })),
+}).then(() => {
+  painting.set({ ready: true })
+}).catch(err => {
+  console.error(err)
+  renderApp('The birds could not be set up, so the lake cannot start. The credits still work.')
+})
 
 const calls = createCallPlayer({
   engine, registry, birdOf: findBird,
@@ -245,8 +267,9 @@ world.start(dt => {
     if (game.get().target !== null) game.set({ target: null })
     prompt.set(null)
   } else {
-    const cands = registry.all().map(b => ({ id: b.id, species: b.species, position: b.model.group.localToWorld(b.model.center.clone()), radius: b.model.radius }))
-    const t = pickTarget(cands, world.camera, { width: innerWidth, height: innerHeight })
+    // A bird that dives drops out of the candidates, so the target goes (to null, or another bird) as if it had left
+    // the reticle: E does nothing until it is back, and an identification begun on it carries on only when it is.
+    const t = pickTarget(targetCandidates(registry.all()), world.camera, { width: innerWidth, height: innerHeight })
     const prevTarget = game.get().target
     if (!t) {
       if (prevTarget !== null) game.set({ target: null })

@@ -21,12 +21,12 @@
     "sky":        { "kind": "lane",    "from": [-160, 0, -90], "to": [160, 0, -60], "altitude": [40, 80] }
   },
   "cast": [
-    { "species": "y00475",  "behavior": "swim",  "zone": "near-water", "count": 6 },
-    { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": "mixed" },
-    { "species": "gadwal",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
-    { "species": "amewig",  "behavior": "swim",  "zone": "open-water", "count": 5, "plumage": "mixed" },
-    { "species": "norsho",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
-    { "species": "pibgre",  "behavior": "swim",  "zone": "open-water", "count": 2 },
+    { "species": "y00475",  "behavior": "swim",  "zone": "near-water", "count": 6, "plumage": { "adult": 4, "juvenile": 2 } },
+    { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": { "male": 1, "maleMoult": 1, "female": 2 } },
+    { "species": "gadwal",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": { "male": 1, "female": 2 } },
+    { "species": "amewig",  "behavior": "swim",  "zone": "open-water", "count": 5, "plumage": { "female": 3, "eclipse": 1, "male": 1 } },
+    { "species": "norsho",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": { "eclipse": 2, "female": 1 } },
+    { "species": "pibgre",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": { "basic": 2, "juvenile": 1 } },
     { "species": "grbher3", "behavior": "wade",  "zone": "far-shore",  "count": 1 },
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shore",  "count": 1 },
     { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 },

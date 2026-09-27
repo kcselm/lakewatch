@@ -44,6 +44,25 @@ export class Mesher {
     return target.set(this.pos[i * 3]!, this.pos[i * 3 + 1]!, this.pos[i * 3 + 2]!)
   }
 
+  /**
+   * Where the horizontal plane at height `y` cuts the triangles from index `indexFirst` for `indexCount` indices: its
+   * x extent, the side view's length at that height. Null if the plane misses them.
+   */
+  spanAtHeight(y: number, indexFirst: number, indexCount: number): [number, number] | null {
+    let lo = Infinity, hi = -Infinity
+    for (let i = indexFirst; i < indexFirst + indexCount; i += 3) {
+      for (let k = 0; k < 3; k++) {
+        const a = this.index[i + k]!, b = this.index[i + ((k + 1) % 3)]!
+        const ya = this.pos[a * 3 + 1]! - y, yb = this.pos[b * 3 + 1]! - y
+        if (ya < 0 === yb < 0) continue
+        const xa = this.pos[a * 3]!, xb = this.pos[b * 3]!
+        const x = xa + ((xb - xa) * ya) / (ya - yb)
+        lo = Math.min(lo, x); hi = Math.max(hi, x)
+      }
+    }
+    return lo <= hi ? [lo, hi] : null
+  }
+
   /** Move every vertex (the builder authors in the profile frame, then shifts into group space). */
   translate(offset: THREE.Vector3): void {
     for (let i = 0; i < this.pos.length; i += 3) {
@@ -97,6 +116,77 @@ export function tube(
     const j1 = (j + 1) % radial
     m.tri(ca, ra_[j1]!, ra_[j]!)
     m.tri(cb, rb_[j]!, rb_[j1]!)
+  }
+  return { indexFirst, indexCount: m.indexCount - indexFirst }
+}
+
+/**
+ * A closed tube swept along `points` (at least two), `radius` at each point, capped at both ends, every face outward.
+ * Its rings turn with the path, so it can curl. Texture s runs along it (0..1) at t 0.5.
+ */
+export function sweep(m: Mesher, points: THREE.Vector3[], radius: number[], part: Part, weights: Weights, radial = 6): { indexFirst: number; indexCount: number } {
+  const indexFirst = m.indexCount
+  const rings: number[][] = []
+  let u1 = new THREE.Vector3()
+  points.forEach((c, i) => {
+    const w = points[Math.min(i + 1, points.length - 1)]!.clone().sub(points[Math.max(i - 1, 0)]!).normalize()
+    // carry the ring's frame along the path so it never twists
+    if (i === 0) u1 = w.clone().cross(Math.abs(w.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)).normalize()
+    else u1.addScaledVector(w, -u1.dot(w)).normalize()
+    const u2 = w.clone().cross(u1)
+    const row: number[] = []
+    for (let j = 0; j < radial; j++) {
+      const th = (j / radial) * Math.PI * 2
+      const p = c.clone().addScaledVector(u1, Math.cos(th) * radius[i]!).addScaledVector(u2, Math.sin(th) * radius[i]!)
+      row.push(m.vertex(p, part, i / (points.length - 1), 0.5, weights))
+    }
+    rings.push(row)
+  })
+  for (let i = 0; i < rings.length - 1; i++) {
+    for (let j = 0; j < radial; j++) {
+      const j1 = (j + 1) % radial
+      m.quad(rings[i]![j]!, rings[i]![j1]!, rings[i + 1]![j1]!, rings[i + 1]![j]!)
+    }
+  }
+  const ca = m.vertex(points[0]!, part, 0, 0.5, weights), cb = m.vertex(points.at(-1)!, part, 1, 0.5, weights)
+  for (let j = 0; j < radial; j++) {
+    const j1 = (j + 1) % radial
+    m.tri(ca, rings[0]![j1]!, rings[0]![j]!)
+    m.tri(cb, rings.at(-1)![j]!, rings.at(-1)![j1]!)
+  }
+  return { indexFirst, indexCount: m.indexCount - indexFirst }
+}
+
+/**
+ * A thin closed lens over a grid of a (along) by b (across), both 0..1: two faces, each `bulge(a, b)` off the middle
+ * surface `at(a, b)` along the unit normal `n`, which meet wherever the bulge is 0 (it must be, all round the grid's
+ * edge). Every face outward.
+ */
+export function lens(
+  m: Mesher, S: number, T: number, at: (a: number, b: number) => THREE.Vector3, bulge: (a: number, b: number) => number,
+  n: THREE.Vector3, part: Part, weights: Weights,
+): { indexFirst: number; indexCount: number } {
+  const indexFirst = m.indexCount
+  // the winding that faces +n: which way the grid turns about n
+  const da = at(0.6, 0.5).sub(at(0.4, 0.5)), db = at(0.5, 0.6).sub(at(0.5, 0.4))
+  const turn = da.cross(db).dot(n) > 0
+  for (const side of [1, -1]) {
+    const grid: number[][] = []
+    for (let i = 0; i < S; i++) {
+      const row: number[] = []
+      for (let j = 0; j < T; j++) {
+        const a = i / (S - 1), b = j / (T - 1)
+        row.push(m.vertex(at(a, b).addScaledVector(n, side * bulge(a, b)), part, a, b, weights))
+      }
+      grid.push(row)
+    }
+    for (let i = 0; i < S - 1; i++) {
+      for (let j = 0; j < T - 1; j++) {
+        const q = [grid[i]![j]!, grid[i + 1]![j]!, grid[i + 1]![j + 1]!, grid[i]![j + 1]!] as const
+        if (turn === side > 0) m.quad(q[0], q[1], q[2], q[3])
+        else m.quad(q[0], q[3], q[2], q[1])
+      }
+    }
   }
   return { indexFirst, indexCount: m.indexCount - indexFirst }
 }

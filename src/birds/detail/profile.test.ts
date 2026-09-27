@@ -37,6 +37,16 @@ describe('createProfile', () => {
       expect(Math.min(s.up, s.down, s.halfWidth)).toBeGreaterThan(0)
     }
   })
+  it("turns a tilted station's section: its lower side forward, its upper side back", () => {
+    const tilted = createProfile(TEST_DETAIL.profile.map(s => (s.label === 'hip' ? { ...s, tilt: 20 } : s)))
+    const s = tilted.sampleAt(tilted.uOf('hip'))
+    expect((Math.acos(s.axis.dot(s.normal)) * 180) / Math.PI).toBeCloseTo(20, 2)
+    expect(s.axis.dot(s.tangent)).toBeLessThan(0)
+    expect(s.axis.length()).toBeCloseTo(1, 12)
+    // untilted, a section stays square to the spine
+    const plain = profile.sampleAt(profile.uOf('hip'))
+    expect(plain.axis.equals(plain.normal)).toBe(true)
+  })
   it('throws on an unknown label', () => {
     expect(() => profile.uOf('knee')).toThrow(/knee/)
   })

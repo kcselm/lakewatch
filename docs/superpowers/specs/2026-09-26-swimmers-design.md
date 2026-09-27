@@ -228,9 +228,12 @@ notch stays a known soft spot.
 
 ### Everything else
 
-The eyes, folded wing, painter, and atlas layout are unchanged. The six
-shorebirds must build exactly as before: a geometry fingerprint of each is a
-test.
+The eyes, painter, and atlas layout are unchanged. The six shorebirds must
+build exactly as before: a geometry fingerprint of each is a test. Three
+changes were made knowingly: the dowitcher's chin, retraced (above; Task 5);
+the head pump's arc, as `headBob` now lifts the head half as far as it
+thrusts it forward (Task 10); and the folded wing, refitted to clear the skin
+(Task 19b; see "Changed during implementation").
 
 ## The `swim` styles
 
@@ -247,15 +250,19 @@ research's section 11; the field names are settled in the plan.
 
 ### What every style shares
 
-- **Cruise** toward a spot near the flock target, with wake rings as today.
+- **Cruise** toward a spot near the flock target, leaving a wake ring every
+  1.5 s while under way (0.9 s before this round; see "Changed during
+  implementation").
 - **Loaf:** drift with the wind, neck drawn in, sometimes asleep or preening.
 - **Alert:** neck up for 1–4 s.
 - **The flock:** birds of one cast entry share a group, as probers do today.
   Its target drifts a short way at a time (the dowitcher's drifting flock), and
   each style sets its own radius and spacing.
-- **Spacing:** each swimmer steers away from any other swimmer in its zone,
-  of any species, closer than its style's spacing. Flockmates use the style's
-  own spacing: a Shoveler's tandem 0.2–0.35 m, a Mallard's 0.3–2 m.
+- **Spacing:** each swimmer steers away from any other swimmer on the water,
+  of any species and whichever zone it's in, closer than its style's spacing.
+  Zones overlap (`near-water` lies partly inside `open-water`), so spacing is
+  lake-wide; each bird still swims only in its own zone. Flockmates use the
+  style's own spacing: a Shoveler's tandem 0.2–0.35 m, a Mallard's 0.3–2 m.
 - **Motion rules** from the shorebird rounds: nothing snaps, poses ease in and
   out, and no move leans on the zone clamp.
 
@@ -323,10 +330,10 @@ research's section 11; the field names are settled in the plan.
   - never a duck-style forward leap
 - **Under:** 7.6 s on average (2–15), travelling 3.7 m (0–12) about the current
   heading, then up with a ring, look about for 1–3 s, and pause 2–10 s. Bouts
-  are 3–12 dives. About half the grebe's time is spent in bouts, so about 35%
-  of it under water.
+  are 3–12 dives. Nearly 60% of the grebe's time is spent in bouts, so about
+  35% of it under water.
 - **Sink-and-watch:** settle over 1–3 s until only the head and upper neck show
-  (the back 45 mm under), hold 5–30 s, then rise or slide into a dive. About
+  (the back 15–20 mm under), hold 5–30 s, then rise or slide into a dive. About
   once every 3–6 minutes.
 - **Spacing:** at least 10 m from other grebes.
 
@@ -463,7 +470,13 @@ measurements within 5%, no crease in the loft, and no bone turning more than
 - A version-only part is visible on its versions and hidden on the rest.
 - A tilted station removes a crease that the untilted section has, on a test
   fixture.
-- The six shorebirds' geometry fingerprints are unchanged.
+- The six shorebirds' geometry fingerprints are unchanged, except where
+  changed knowingly. Task 5 retraced the dowitcher. Task 10 gave the head
+  pump its arc, which changed seven pose prints (the six shorebirds' and the
+  Mallard's) and no geometry print; in the game only the Coot sets `headBob`,
+  so no other bird moves differently. Task 19b refitted the folded wing, which
+  changed every detailed species' geometry print and most pose prints. Every
+  atlas print stayed as it was.
 
 ### Species
 
@@ -490,8 +503,8 @@ For each style, over seeded simulations:
 - nothing snaps: `reach`, `lean`, `paddle`, and `headBob` change smoothly
 - the Shoveler pair turns as one, 0.25 m apart, in one direction per bout
 - a grebe comes up 0–12 m from where it went down
-- spacing: no two swimmers in a zone come closer than the smaller of their
-  spacings, beyond a brief tolerance
+- spacing: no two swimmers on the water, in one zone or two overlapping ones,
+  come closer than the larger of their spacings, beyond a brief tolerance
 - a bird under the water is not a targeting candidate
 - the cast schema accepts counts per version and rejects counts that don't sum
 
@@ -507,6 +520,63 @@ For each style, over seeded simulations:
   - whether each style reads as its species: upending Mallards, dipping
     Gadwalls, spinning Shovelers, pumping Coots, vanishing grebes
   - whether any birds overlap or snap
+
+## Changed during implementation
+
+The birds' work and its reviews changed these:
+
+- **The grebe's sink.** `AWASH` is 0.045 m, not 0.073.
+  - The traced grebe can't raise its neck as a live one does, so the sink
+    stops where its head and upper neck show.
+  - A roll-under now tips the stern up before the bird goes under: the lean
+    leads and the depth eases in.
+  - `src/behavior/grebe.ts`.
+- **Wakes every 1.5 s, not 0.9 s,** the plan's ring budget (Task 12).
+  - At the old rate the whole cast peaked at 38 live rings and pushed about
+    290 out of the 32-ring buffer in 20 minutes, half of them wakes.
+  - 1.5 s is the grebe research's measured rhythm. With it, the whole cast
+    stays inside the buffer: at 60 fps over ten minutes (seeds 42, 7, and
+    11), 15–16 live rings on average, peaks of 28–30, and nothing pushed out.
+  - `MAX_RIPPLES` stays 32. `src/birds/cast.test.ts` holds the budget.
+- **Folded-wing clearance.** The wing now clears the body's skin by 1.5 mm
+  (`GAP`) along its normal everywhere at rest.
+  - It is placed against the loft as meshed, on 27 fold columns, with its rows
+    spaced along the skin and a relaxation pass.
+  - Where the skin moves with the neck, it stands further off: 1.6% of the
+    chord at full neck weight.
+  - Each bird gains 208 triangles.
+  - `src/birds/detail/wing.ts`; `wing.test.ts` checks it in every game pose.
+- **The optics' near plane.** Raising the binoculars or the telescope moves
+  the camera's near plane to 1 m (the eye's is 0.1 m), eased with the fov, so
+  painted marks on the folded wing don't flicker through the skin at 65 m. The
+  viewer's near plane follows its camera's distance (`src/player/optics.ts`,
+  `src/viewer/main.ts`).
+- **Startup.** While the worker paints the atlases, the main thread places each
+  detailed species' folded wing, a species at a time. That is the costly part
+  of a species' first build, and the only per-species work the builder caches.
+  Then the cast is built (`src/birds/prewarm.ts`).
+  - The title card counts all three as one: "Getting the birds ready… N of 33",
+    for 20 atlases, 12 species, and the cast's build. It draws "32 of 33"
+    before the build starts.
+  - Measured in headless Chromium on this machine, two loads each, in seconds
+    from navigation:
+
+    | | Begin | longest pause |
+    |---|---|---|
+    | Before this round | 2.2–2.3 | 2.2 |
+    | Throwaway first builds after painting | 9.7–9.9 | 1.4–1.5 |
+    | Folds placed while painting | 4.6–5.9 | 1.3–1.6 |
+    | The same, with no Worker | 8.4–8.5 | 1.4 |
+
+  - A throwaway build of each species after the folds are placed was measured
+    and dropped. It cut the cast's build by about 0.2 s but took 0.4 s itself.
+- **The Gadwall's back** is lowered 6–10 mm from the traced January drake,
+  whose alternate-plumage tertials peak it, to the late-September birds'
+  height: 61 mm above the water.
+- **The Coot's culmen/head bound** is 0.7–0.9, not 0.85–1.2. The research's
+  1.01 is a caliper skull length. The builder's head is the feathered head
+  along the bill axis, which the traced photo gives as 0.76.
+- **The whole-cast tests** have a 120 s timeout, not 30 s.
 
 ## Known soft spots
 
@@ -524,6 +594,50 @@ For each style, over seeded simulations:
 - **One size per species,** at the mean of the sexes; drakes are larger.
 - **Coots and grebes spend time under water,** so a player may find a grebe
   hard to identify; that is true to life.
+
+Found while building and in the reviews, and accepted for this round:
+
+- **The folded wing's front lets the skin through** by up to 2.4 mm over the
+  neck's base in neck poses (the Wigeon's surface dabble). Giving the wing's
+  front the neck's skin weights was tried four ways; each bent some species'
+  wrist with its neck. The test holds it to 2.9 mm.
+- **A 1-px hairline** shows beside a duck's flanks, seen head-on through the
+  telescope, where the wing sits `GAP` outside the widest section.
+- **The folded wing's corners stand off the body.** The lower front corner
+  stands about 5 mm off on the Mallard and the Gadwall. The lower rear corner
+  stands 6 mm off on the Shoveler, where the flank narrows.
+- **The Coot's chin** falls 4.6–7.4 mm short of its photo. That is the price of
+  no lip under the bill. A facet line shows across its throat in close
+  three-quarter views, and the throat folds back 1–2 mm in its drawn-back pump,
+  loaf, and preen.
+- **The Shoveler's face dip** stops 26 mm under, not the research's 35. The
+  builder's neck swing limit is one constant for every species. Its pair-spin
+  heads stay shallow for the same reason.
+- **`breastFrontAbove`** reads from rings up to the rig's neck base, not the
+  `neckBase` station. A species whose rig puts the neck joint lower, like the
+  Coot, reads low (−16 mm).
+- **The loft's fold check** (`worstFold`) misses a ring that doubles back or
+  steps backwards along the spine. The Coot's and Gadwall's tests caught both
+  kinds by other measures.
+- **Lobes and claws can't take their own colour:** every leg tube samples one
+  texel.
+- **The tail spreads to the stern's width,** so from three-quarter and higher
+  views it reads as a broad plate.
+- **Begin still comes later than before this round:** 4.6–5.9 s against
+  2.2–2.3 s (see "Startup" above).
+  - The atlases and the folds are ready at 3.5–4.8 s. Painting is the longer of
+    the two.
+  - The last 1.0–1.2 s is the cast's build: one block, while the card reads "32
+    of 33". Building the cast a few birds a frame, in `spawnCast`, would break
+    it up next.
+  - The longest pause, 1.3–1.6 s, is the page's own load, before the card is
+    first drawn. It was 2.2 s before this round.
+  - With no Worker, the main thread paints and places both, and Begin comes at
+    8.4–8.5 s.
+- **The worker paints an atlas more slowly than the main thread:** about 108 ms,
+  against 82 ms on the no-Worker path and 64 ms before this round. The worker
+  may land on a slower core of this machine's hybrid CPU. Two workers, splitting
+  the jobs, would shorten painting.
 
 ## Build order
 
