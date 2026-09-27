@@ -56,10 +56,12 @@ const ECLIPSE: Layer[] = [
   { kind: 'fill', where: { part: 'tail' }, color: '#ebe6dd' },
   { kind: 'fill', where: { part: 'tail', t: [0.3, 0.7] }, color: '#5b534c', soft: 2 },
   { kind: 'fill', where: { part: 'tailUnder' }, color: '#e6e0d6' },
-  // the bill blackish slate, a dull orange-brown cast at the base and along the lower edges; the nail dark
+  // the bill blackish slate, "yellowish brown" in eclipse toward the base and edges: a dull orange-brown on the visible
+  // lower side at the base (Foss's September drake), and along the lower edge; the underside dark brown; the nail dark
   { kind: 'fill', where: { part: 'bill' }, color: '#2e2f31' },
-  { kind: 'fill', where: { part: 'bill', s: [0, 0.3], t: [0.55, 1] }, color: '#5f412b', soft: 3, opacity: 0.7 },
-  { kind: 'fill', where: { part: 'bill', s: [0, 0.7], t: [0.75, 1] }, color: '#4d3a2c', soft: 3, opacity: 0.6 },
+  { kind: 'fill', where: { part: 'bill', s: [0, 0.28], t: [0.45, 0.78] }, color: '#7a4a26', soft: 3, opacity: 0.9 },
+  { kind: 'fill', where: { part: 'bill', s: [0.2, 0.8], t: [0.6, 0.74] }, color: '#7a4a26', soft: 1.5, opacity: 0.75 },
+  { kind: 'fill', where: { part: 'bill', s: [0, 0.7], t: [0.78, 1] }, color: '#4d3a2c', soft: 3, opacity: 0.6 },
   { kind: 'fill', where: { part: 'bill', s: [0.9, 1], t: [0, 0.5] }, color: '#1c1c1c', soft: 0.5 },
   { kind: 'fill', where: { part: 'legs' }, color: '#e8622a' },
 ]
@@ -232,7 +234,7 @@ export const SPEC: SpeciesSpec = {
       'the eclipse drake from iNaturalist 402522476 (c) Steve Foss, CC BY-NC, https://www.inaturalist.org/observations/402522476, and iNaturalist 138050612 (c) Patricia, CC BY-NC, https://www.inaturalist.org/observations/138050612',
       'the pair in one light from iNaturalist 244091348 (c) Ilya Burylov, CC BY-NC, https://www.inaturalist.org/observations/244091348',
       'the alert profile from iNaturalist 319457994 (c) chatterton-blue, CC BY-NC, https://www.inaturalist.org/observations/319457994',
-      'the bill\'s width from iNaturalist 164545447 (c) Araceli Rodríguez-Casanova, CC BY-NC, https://www.inaturalist.org/observations/164545447, and "BecCanardDontFiltreur.jpg" by Lord Mountbatten, remade by Lamiot, CC BY 3.0, https://commons.wikimedia.org/wiki/File:BecCanardDontFiltreur.jpg',
+      'the bill\'s width from iNaturalist 164545447 (c) Araceli Rodríguez-Casanova, CC BY-NC, https://www.inaturalist.org/observations/164545447, "Shoveler bill compared.JPG" (c) Lord Mountbatten, CC BY-SA 3.0, https://commons.wikimedia.org/wiki/File:Shoveler_bill_compared.JPG, and its derivative "BecCanardDontFiltreur.jpg" by Lord Mountbatten, remade by Lamiot, CC BY 3.0, https://commons.wikimedia.org/wiki/File:BecCanardDontFiltreur.jpg',
       'numbers and marks: docs/research/2026-09-25-northern-shoveler.md',
     ],
   },

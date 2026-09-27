@@ -123,7 +123,7 @@ const EXPECTED_ATLAS: Record<string, string> = {
   // new: the Mallard's three versions (Task 14); with no version it paints the drake's
   mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
   // new: the Northern Shoveler's two versions (Task 17); with no version it paints the female's
-  norsho: 'd7db4d80', 'norsho:eclipse': '27affe7e', 'norsho:female': 'd7db4d80',
+  norsho: 'd7db4d80', 'norsho:eclipse': '09744929', 'norsho:female': 'd7db4d80',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
