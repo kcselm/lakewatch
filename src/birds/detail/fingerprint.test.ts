@@ -91,6 +91,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   pecsan: { geometry: 'fc0011fe', poses: '086a1105' },          // were bac5bab5
   lobdow: { geometry: 'bedf44dc', poses: 'f52423c1' },          // the throat retraced (Task 5); poses were 449d38d8
   mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
+  amewig: { geometry: '23baa5a5', poses: '8002ac5d' },          // new: the American Wigeon, detailed (Task 16)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -121,6 +122,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: 'e1e47f53',
   // new: the Mallard's three versions (Task 14); with no version it paints the drake's
   mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
+  // new: the American Wigeon's three versions (Task 16); with no version it paints the female-type bird's
+  amewig: '75dc9bbf', 'amewig:female': '75dc9bbf', 'amewig:eclipse': '07656a73', 'amewig:male': 'bd49e4d9',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
