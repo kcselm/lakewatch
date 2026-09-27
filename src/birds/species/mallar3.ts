@@ -181,10 +181,10 @@ export const SPEC: SpeciesSpec = {
     },
   },
   marks: {
-    size: 'a large, heavy dabbling duck, the biggest on the lake, sitting long and level',
+    size: 'a large, heavy dabbling duck, the biggest duck on the lake, sitting long and level',
     bill: 'a long, broad, flat bill: yellow on drakes, olive-yellow on a drake still moulting, orange with a dark saddle on females',
     head: 'drakes: glossy green over a thin white ring; a drake still moulting is speckled brown with green only on the crown and nape; females buff with a dark crown and a dark line through the eye',
-    body: 'drakes: chestnut breast, pale grey sides, a black stern with black curls over a white-edged tail; females mottled brown with a whitish tail. Upends to feed, tail in the air',
+    body: 'drakes: chestnut breast, pale grey sides, a black stern over a white-edged tail; a drake in full plumage has black curls above the tail, one still moulting none; females mottled brown with a whitish tail. Upends to feed, tail in the air',
     legs: 'orange feet, seen when it upends',
   },
   wingbeatHz: 6,
