@@ -50,14 +50,15 @@ describe('placeFolds', () => {
     expect(paintStats.atlases).toBe(before)
   }, 60_000)   // twelve first placements: about 2 s alone
 
-  it('yields before each species, so the title card draws first and between each pair, and counts from 0 to its total', async () => {
+  // a frame's animation callbacks run before it is drawn: two yields let a frame draw before the next piece of work
+  it('yields two frames before the first species, so the title card draws first, and one between each pair; counts from 0 to its total', async () => {
     const events: string[] = []
     await placeFolds(loc([
       { species: 'mallar3', behavior: 'swim', zone: 'w', count: 3, plumage: 'mixed' },
       { species: 'leasan', behavior: 'probe', zone: 'w', count: 5 },
       { species: 'grbher3', behavior: 'wade', zone: 'w', count: 1 },  // block species: no detail, skipped
     ]), { next: async () => { events.push('yield') }, onProgress: (d, t) => events.push(`${d} of ${t}`) })
-    expect(events).toEqual(['0 of 2', 'yield', '1 of 2', 'yield', '2 of 2'])
+    expect(events).toEqual(['0 of 2', 'yield', 'yield', '1 of 2', 'yield', '2 of 2'])
   })
 
   it('counts 0 of 0 for a cast of block species only, and resolves without yielding', async () => {
@@ -101,9 +102,9 @@ describe('prepareBirds', () => {
     expect(progress.every(([, t]) => t === total)).toBe(true)
     expect(progress.every(([d], i) => i === 0 || d >= progress[i - 1]![0])).toBe(true)
     expect(progress.filter(([d]) => d === total)).toHaveLength(1)
-    // a frame to show the count before the build, which blocks
-    expect(events.slice(-4)).toEqual([`${total - 1} of ${total}`, 'yield', 'build', `${total} of ${total}`])
-    expect(next).toHaveBeenCalledTimes(3)   // before each species' fold, and before the build
+    // two frames before the build, which blocks, so one draws the count first: the last atlas can arrive between frames
+    expect(events.slice(-5)).toEqual([`${total - 1} of ${total}`, 'yield', 'yield', 'build', `${total} of ${total}`])
+    expect(next).toHaveBeenCalledTimes(5)   // two before the first species' fold, one before the second, two before the build
   })
 
   it("rejects, and never reaches its total, when the cast's build throws", async () => {

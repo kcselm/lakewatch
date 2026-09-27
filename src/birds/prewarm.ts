@@ -37,8 +37,9 @@ function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>):
  * build places one later. It is the builder's only per-species cache, and the costly part of a species' first build.
  * It needs no atlas, so it runs on the main thread while the worker paints them.
  *
- * Yields (`next`) before each species, the first too, so the title card draws before any placing and again between
- * species. Counts from 0 to the number of species, once each. A placement that throws rejects here.
+ * Yields (`next`) before each species: two frames before the first, so the title card is drawn before any placing (a
+ * frame's animation callbacks, where the work resumes, run before it is drawn), and one between species, whose count
+ * is then drawn. Counts from 0 to the number of species, once each. A placement that throws rejects here.
  */
 export async function placeFolds(loc: Location, opts: PlaceFoldsOptions = {}): Promise<void> {
   const specs = opts.specs ?? SPECIES
@@ -47,6 +48,7 @@ export async function placeFolds(loc: Location, opts: PlaceFoldsOptions = {}): P
   const total = species.length
   opts.onProgress?.(0, total)
   for (let i = 0; i < total; i++) {
+    if (i === 0) await next()
     await next()
     placeFoldedWing(specs[species[i]!]!.detail!)
     opts.onProgress?.(i + 1, total)
@@ -62,8 +64,8 @@ export interface PrepareOptions extends PlaceFoldsOptions {
 
 /**
  * Gets the cast's birds ready behind the title card. It paints every atlas the cast needs (`prepaint`, in the worker)
- * and, meanwhile, places every folded wing on the main thread (`placeFolds`). When both are done, it yields a frame
- * and runs `build`.
+ * and, meanwhile, places every folded wing on the main thread (`placeFolds`). When both are done, it yields two frames,
+ * so one draws the count, and runs `build`.
  *
  * `onProgress` gets one count over all of it: the atlases still to paint, the species, and the build. The total is set
  * before anything starts, so it never changes, and the count reaches it once, when the build is done. Rejects if any
@@ -90,7 +92,9 @@ export async function prepareBirds(loc: Location, opts: PrepareOptions = {}): Pr
   const placing = placeFolds(loc, { next, specs, onProgress: done => { folds.done = done; report() } })
   await Promise.all([painting, placing])
   if (!opts.build) return
-  // the build blocks the main thread for a while: draw the count first
+  // the build blocks the main thread for a while, so draw the count first. The last atlas can arrive between frames,
+  // and a frame's animation callbacks run before it is drawn: one frame to draw it, the build in the next.
+  await next()
   await next()
   opts.build()
   built.done = 1
