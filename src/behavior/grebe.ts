@@ -10,7 +10,10 @@ type Start = 'roll' | 'splash' | 'sink'
 
 /** The Pied-billed Grebe's settings. */
 export interface GrebeSettings extends SwimSettings {
-  /** its time: foraging bouts of `dives` dives, cruising a few metres at a time, loafing with the stern puff cocked */
+  /**
+   * its time: foraging bouts of `dives` dives, cruising a few metres at a time, loafing with the stern puff cocked; a
+   * bout is never followed straight on by another, so a run of dives is one bout
+   */
   bouts: { share: number; dives: Range }
   /** it works a patch of its own: farther than `radius` metres from where it started, it heads back that way */
   patch: { radius: number }
@@ -29,14 +32,19 @@ export interface GrebeSettings extends SwimSettings {
   /**
    * under water: a gamma-distributed time with its mean and sd, kept to `range`; a distance the same way, within
    * `turn` radians of the heading, swum at most `speed` m/s (a long way stays down longer); `tries` at a spot clear of
-   * the others to come up. If another bird has come up near that spot meanwhile, it swims on under water to a clear
-   * one, for up to `extra` seconds more.
+   * the others to come up. If another bird has come up near that spot meanwhile, it swims on under water to the
+   * nearest clear one it can reach, for up to `extra` seconds more, and then comes up wherever it is. It turns under
+   * water, out of sight, so it comes up facing the way it went.
    */
   under: { mean: number; sd: number; range: Range; distance: { mean: number; sd: number; range: Range }; speed: number; turn: number; tries: number; extra: number }
   /** up in `rise` seconds, the neck upright in `neck`; then on the surface, looking about, for `pause` seconds (mean `pauseMean`) */
   resurface: { rise: number; neck: number; pause: Range; pauseMean: number }
-  /** sink and watch: settle to back-awash in `settle` seconds, hold `hold`, then rise in `up`, or `slide` of the time dive */
-  sink: { perSecond: number; settle: Range; hold: Range; up: Range; slide: number }
+  /**
+   * sink and watch, once every `every` seconds of the bird's time (the next drawn when one begins; one that comes due
+   * in a bout of dives waits for the bout to end): settle to back-awash in `settle` seconds, hold `hold`, then rise in
+   * `up`, or `slide` of the time dive
+   */
+  sink: { every: Range; settle: Range; hold: Range; up: Range; slide: number }
   rings: { roll: number; splash: number; sink: number; up: number }
 }
 
@@ -91,9 +99,9 @@ export const GREBE: GrebeSettings = {
   // head and body up together within 0.1 s, the neck upright by 0.4 s; the pause between dives 2-10 s, mean about 4
   // (Bleich's ratio gives 3.3), drawn skewed toward the short end
   resurface: { rise: 0.1, neck: 0.4, pause: [2, 10], pauseMean: 4 },
-  // once every 3-6 minutes (4.5 here); settle over 1-3 s, hold 5-30 s, rise over 2-4 s, or slide under into a dive
-  // (half the time, ours)
-  sink: { perSecond: 1 / 270, settle: [1, 3], hold: [5, 30], up: [2, 4], slide: 0.5 },
+  // once every 3-6 minutes; settle over 1-3 s, hold 5-30 s, rise over 2-4 s, or slide under into a dive (half the
+  // time, ours)
+  sink: { every: [180, 360], settle: [1, 3], hold: [5, 30], up: [2, 4], slide: 0.5 },
   // ring sizes are ours: a roll's ring, a splash's bigger one, a sink's swirl, and where it comes up
   rings: { roll: 0.5, splash: 0.7, sink: 0.3, up: 0.5 },
 }
@@ -142,12 +150,16 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
   let [ux, uz] = [0, 0]
   let face = 0, puff = 0, roll = 0, kick = 0, preen = 0
   let sinceRing = 0, paddlePhase = 0
+  // seconds until it next sinks to watch; the first comes at a random point of one spell, so the birds are out of step
+  let watchIn = ctx.rng() * between(ctx.rng, S.sink.every)
 
   const TABLE = {
     bout: { share: S.bouts.share, mean: mid(S.bouts.dives) * (S.under.mean + S.resurface.pauseMean + 1) },
     cruise: { share: S.cruising.share, mean: mid(S.cruise.seconds) },
     loaf: { share: S.loaf.share, mean: mid(S.loaf.seconds) },
   }
+  // after a bout, a rest: it cruises or loafs before the next
+  const REST = { cruise: TABLE.cruise, loaf: TABLE.loaf }
   const ring = (size: number) => ctx.onRipple?.(b.x, b.z, size)
   /** Go from the depth it is at to `target` over `seconds`, eased. */
   function sinkTo(target: number, seconds: number): void { from = depth; to = target; over = seconds; moved = 0 }
@@ -155,8 +167,9 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
   const toStage = (n: number) => { stage = n; onStage = 0 }
   const boutLength = () => Math.floor(between(ctx.rng, [S.bouts.dives[0], S.bouts.dives[1] + 1]))
 
-  function next(): void {
-    const pick = pickByShare(ctx.rng, TABLE)
+  /** the next spell: a bout, a cruise, or a loaf; straight after a bout, only a cruise or a loaf */
+  function next(afterBout = false): void {
+    const pick = afterBout ? pickByShare(ctx.rng, REST) : pickByShare(ctx.rng, TABLE)
     if (pick === 'bout') { dives = boutLength(); beforeDive() }
     else if (pick === 'cruise') cruise()
     else { state = 'loaf'; timer = between(ctx.rng, S.loaf.seconds) }
@@ -189,6 +202,7 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
     toStage(0)
     sinkTo(AWASH, between(ctx.rng, S.sink.settle))
     hold = between(ctx.rng, S.sink.hold)
+    watchIn = between(ctx.rng, S.sink.every)
   }
   let hold = 0
   /** peer first, a third of the time, then dive */
@@ -210,25 +224,34 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
     state = 'under'
     ;[wentX, wentZ] = [b.x, b.z]
     ;[ux, uz] = surfacing()
+    faceTheWayTo(ux, uz)
     // a long way takes the time it takes: at most 12 m at `speed`, 8 s, inside the 2-15 s a dive may last
     timer = Math.max(gamma(ctx.rng, S.under.mean, S.under.sd, S.under.range), Math.hypot(ux - b.x, uz - b.z) / S.under.speed)
   }
   let [wentX, wentZ] = [0, 0]
   /**
-   * A spot clear of the others within `extra` seconds' swim of (ux, uz), the nearest there is, if (ux, uz) isn't
-   * clear. The birds still under water count, where they are: they are about to come up too.
+   * Out of sight under water, it turns to face the way it goes, from where it went down toward (x, z), so it comes up
+   * facing the way it swam (a way under 0.1 m has no direction to speak of, and it keeps the heading it had).
    */
-  function clearOfOthers(): void {
+  function faceTheWayTo(x: number, z: number): void {
+    if (Math.hypot(x - wentX, z - wentZ) > 0.1) b.heading = Math.atan2(-(z - wentZ), x - wentX)
+  }
+  /**
+   * If (ux, uz) isn't clear of the others, the nearest spot that is and that it can still swim to in `seconds` (of
+   * those as near, the one nearest where it meant to come up), within the 12 m a dive may go. The birds still under
+   * water count, where they are: they are about to come up too.
+   */
+  function clearOfOthers(seconds: number): void {
     if (b.clearAt(ux, uz, 0, true)) return
     let best: [number, number] | null = null
-    const reach = S.under.speed * S.under.extra
-    for (let r = reach / 12; r <= reach + 1e-9; r += reach / 12) {
+    const reach = S.under.speed * seconds
+    for (let i = 1; i <= 12 && !best; i++) {
+      const r = (reach * i) / 12
       for (let k = 0; k < 16; k++) {
-        const [px, pz] = [ux + Math.cos((k * Math.PI) / 8) * r, uz - Math.sin((k * Math.PI) / 8) * r]
+        const [px, pz] = [b.x + Math.cos((k * Math.PI) / 8) * r, b.z - Math.sin((k * Math.PI) / 8) * r]
         const within = Math.hypot(px - wentX, pz - wentZ) <= S.under.distance.range[1]
         if (within && pointInPolygon(px, pz, b.zone.points) && b.clearAt(px, pz, 0.05, true) && (!best || Math.hypot(px - ux, pz - uz) < Math.hypot(best[0] - ux, best[1] - uz))) best = [px, pz]
       }
-      if (best) break
     }
     if (best) [ux, uz] = best
   }
@@ -261,6 +284,8 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
   }
   function resurface(): void {
     state = 'resurface'
+    // still out of sight this frame: square up to the way it went, should it have turned aside for a clear spot
+    faceTheWayTo(b.x, b.z)
     sinkTo(0, S.resurface.rise)
     // the pause, skewed toward the short end so its mean is `pauseMean`
     const [lo, hi] = S.resurface.pause
@@ -283,18 +308,20 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
       onStage += dt
       sinceRing += dt
       moved += dt
+      watchIn -= dt
       depth = settled() ? to : from + (to - from) * ease(moved / over)
 
+      // a sink-and-watch comes when it is due, if the bird is cruising or loafing; in a bout, it waits for the end
       if (state === 'cruise') {
         b.swimTo(tx, tz, S.cruise.speed, dt)
         if (b.speed > 0.05 && sinceRing >= S.cruising.ring.every) { sinceRing = 0; ring(S.cruising.ring.size) }
-        if (timer <= 0) next()
+        if (watchIn <= 0) sinkAndWatch()
+        else if (timer <= 0) next()
         else if (ctx.rng() < S.peer.perSecond * dt) { state = 'peer'; timer = between(ctx.rng, S.peer.seconds); dives = 0 }
-        else if (ctx.rng() < S.sink.perSecond * dt) sinkAndWatch()
       } else if (state === 'loaf') {
         b.float(dt)
-        if (timer <= 0) next()
-        else if (ctx.rng() < S.sink.perSecond * dt) sinkAndWatch()
+        if (watchIn <= 0) sinkAndWatch()
+        else if (timer <= 0) next()
       } else if (state === 'peer') {
         b.float(dt)
         if (timer <= 0) { if (dives > 0) dive(); else cruise() }
@@ -309,19 +336,22 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
         else if (start === 'sink' && stage === 1 && onStage >= S.entry.sinkHold) { toStage(2); sinkTo(S.entry.depth, S.entry.slide); ring(S.rings.sink) }
         else if (start === 'sink' && stage === 2 && settled()) goUnder()
       } else if (state === 'under') {
-        // Time to come up: if another bird is near the spot, afloat or about to come up itself, swim on to a clear
-        // one first, checking until it is up; after `extra` seconds more it comes up wherever it is.
-        const late = -timer < S.under.extra
-        if (timer <= 0 && late) clearOfOthers()
+        // Time to come up, `overdue` seconds ago: if another bird is near the spot, afloat or about to come up itself,
+        // it swims on to the nearest clear one it can still reach, checking every frame until it is up; once `extra`
+        // seconds more have gone, it comes up wherever it is.
+        const overdue = -timer
+        const outOfTime = overdue >= S.under.extra
+        if (overdue >= 0 && !outOfTime) clearOfOthers(S.under.extra - overdue)
         // swimming under water toward where it will come up, evenly over the time it stays down
         const left = Math.hypot(ux - b.x, uz - b.z)
         const by = Math.min(left, (left / Math.max(timer, dt)) * dt, S.under.speed * dt)
         if (left > 1e-9) { b.x += ((ux - b.x) / left) * by; b.z += ((uz - b.z) / left) * by }
         b.speed = 0
-        if (timer <= 0 && left - by < 1e-9 && (b.clearAt(ux, uz, 0, true) || !late)) resurface()
+        const there = left - by < 1e-9
+        if (outOfTime || (overdue >= 0 && there && b.clearAt(ux, uz, 0, true))) resurface()
       } else if (state === 'resurface') {
         b.float(dt)
-        if (timer <= 0) { if (dives > 0) beforeDive(); else next() }
+        if (timer <= 0) { if (dives > 0) beforeDive(); else next(true) }
       } else if (state === 'sink') {
         b.float(dt)
         if (stage === 0 && settled()) toStage(1)
