@@ -5,11 +5,12 @@ import { BONE_INDEX } from './rig'
 import { GAP } from './wing'
 import { defaultPose, type PoseState } from '../model'
 import { REGIONS, PAD, ATLAS_SIZE } from '../paint/atlas'
-import { DABBLERS } from '../../behavior/dabbler'
-import { SHOVELER } from '../../behavior/shoveler'
-import { COOT } from '../../behavior/coot'
-import { GREBE } from '../../behavior/grebe'
-import { STYLES } from '../../behavior/probe'
+import { DABBLERS, NECK as DABBLER_NECK } from '../../behavior/dabbler'
+import { SHOVELER, NECK as SHOVELER_NECK } from '../../behavior/shoveler'
+import { COOT, NECK as COOT_NECK } from '../../behavior/coot'
+import { GREBE, NECK as GREBE_NECK } from '../../behavior/grebe'
+import { PECK_BOTTOM } from '../../behavior/probe'
+import { STRIKE } from '../../behavior/wade'
 
 /** how far along its normal a point on the wing looks for the loft, each way, metres */
 const REACH = 0.05
@@ -121,38 +122,72 @@ describe('the folded wing', () => {
 })
 
 type Patch = Partial<Omit<PoseState, 'lean'>> & { leanX?: number }
-const tipUp = (S: { tipUp: { lean: number; tail: number } }): Patch => ({ leanX: S.tipUp.lean, tailTilt: S.tipUp.tail, paddle: 1, neckExtend: 1 })
-const headDip = (S: { headDip: { lean: number; depth: number; tail?: number } }): Patch =>
-  ({ leanX: S.headDip.lean, tailTilt: S.headDip.tail ?? 0, reach: 1, reachDepth: S.headDip.depth, reachAngle: Math.PI / 2, neckExtend: 1 })
-const peck = (lean: number, neckExtend: number): Patch => ({ leanX: lean, neckExtend, reach: 1 })
+const tipUp = (S: { tipUp: { lean: number; tail: number } }, neckExtend: number): Patch =>
+  ({ leanX: S.tipUp.lean, tailTilt: S.tipUp.tail, paddle: 1, neckExtend })
+const headDip = (S: { headDip: { lean: number; depth: number; tail?: number } }, neckExtend: number): Patch =>
+  ({ leanX: S.headDip.lean, tailTilt: S.headDip.tail ?? 0, reach: 1, reachDepth: S.headDip.depth, reachAngle: Math.PI / 2, neckExtend })
+/** the bill down at the water or the mud, the head reaching `reachAngle` below level at most */
+const reach = (neckExtend: number, reachAngle = Math.PI / 2, reachDepth = 0, leanX = 0): Patch =>
+  ({ leanX, reach: 1, reachDepth, reachAngle, neckExtend })
+const bottom = (b: { lean: number; neckExtend: number; reach: number }): Patch => ({ leanX: b.lean, neckExtend: b.neckExtend, reach: b.reach })
+const probing = (code: string): Patch => bottom(PECK_BOTTOM[SPECIES[code]!.foraging as keyof typeof PECK_BOTTOM])
 
-/** The poses the game puts each detailed bird in, from its behaviour's own settings, at their fullest. */
+/**
+ * The poses the game puts each detailed bird in, from its behaviour's own settings, at their fullest: every feeding
+ * pose at its bottom, the neck at full stretch (alert) and drawn in (loafing), the tail cocked, the coot's head at
+ * each end of its pump.
+ */
 const POSES: Record<string, Record<string, Patch>> = {
-  ...Object.fromEntries(Object.entries(DABBLERS).map(([code, S]) => [code, { 'tip-up': tipUp(S), 'head-dip': headDip(S) }])),
-  norsho: { 'tip-up': tipUp(SHOVELER), loaf: { neckExtend: 0.15 } },
-  y00475: { 'tip-up': tipUp(COOT), 'head-dip': headDip(COOT) },
-  pibgre: {
-    'loaf, the stern cocked': { tailTilt: GREBE.loaf.tail, neckExtend: 0.15 },
-    'roll-under': { leanX: GREBE.entry.rollLean, tailTilt: GREBE.loaf.tail, neckExtend: 1 },
+  ...Object.fromEntries(Object.entries(DABBLERS).map(([code, S]) => [code, {
+    'tip-up': tipUp(S, DABBLER_NECK.tipUp),
+    'head-dip': headDip(S, DABBLER_NECK.headDip),
+    'surface dabble': reach(DABBLER_NECK.surfaceDabble, S.surface.reachAngle, 0, S.surface.lean),
+    alert: { neckExtend: DABBLER_NECK.alert },
+    loaf: { neckExtend: DABBLER_NECK.loaf },
+  }])),
+  norsho: {
+    'tip-up': tipUp(SHOVELER, SHOVELER_NECK.tipUp),
+    'skim, the bill in the film': reach(SHOVELER_NECK.skim, SHOVELER.skim.reachAngle, SHOVELER.skim.film),
+    'skim, the face under': reach(SHOVELER_NECK.skim, SHOVELER.skim.reachAngle, SHOVELER.skim.face),
+    alert: { neckExtend: SHOVELER_NECK.alert },
+    loaf: { neckExtend: SHOVELER_NECK.loaf },
   },
-  killde: { peck: peck(STYLES.plover.peck.lean, STYLES.plover.peck.neckExtend) },
-  leasan: { peck: peck(STYLES.sandpiper.peck.lean, STYLES.sandpiper.peck.neckExtend) },
-  pecsan: { peck: peck(STYLES.sandpiper.peck.lean, STYLES.sandpiper.peck.neckExtend) },
-  lobdow: { stitch: peck(STYLES.dowitcher.stitch.lean, STYLES.dowitcher.stitch.neckExtend) },
-  // the wading strike's end (behavior/wade.ts)
-  greyel: { strike: peck(0.5, 1) },
-  lesyel: { strike: peck(0.5, 1) },
+  y00475: {
+    'tip-up': tipUp(COOT, COOT_NECK.tipUp),
+    'head-dip': headDip(COOT, COOT_NECK.headDip),
+    peck: reach(COOT_NECK.peck),
+    // the pump swings the head between these (behavior/coot.ts: headBob is half the amplitude, each way)
+    'pump, the head forward': { neckExtend: COOT_NECK.cruise, headBob: COOT.pump.amplitude / 2 },
+    'pump, the head back': { neckExtend: COOT_NECK.cruise, headBob: -COOT.pump.amplitude / 2 },
+    'dive, the lunge': { leanX: COOT.dive.lean, tailTilt: COOT.tipUp.tail, paddle: 1, neckExtend: COOT_NECK.dive },
+    alert: { neckExtend: COOT_NECK.alert, tailTilt: COOT.alert.tail },
+    loaf: { neckExtend: COOT_NECK.loaf },
+  },
+  pibgre: {
+    peer: reach(GREBE_NECK.peer, Math.PI / 2, GREBE.peer.depth),
+    'loaf, the stern cocked': { tailTilt: GREBE.loaf.tail, neckExtend: GREBE_NECK.loaf },
+    'roll-under': { leanX: GREBE.entry.rollLean, tailTilt: GREBE.loaf.tail, neckExtend: GREBE_NECK.dive },
+  },
+  killde: { peck: probing('killde') },
+  leasan: { peck: probing('leasan') },
+  pecsan: { peck: probing('pecsan') },
+  lobdow: { stitch: probing('lobdow') },
+  greyel: { strike: bottom(STRIKE) },
+  lesyel: { strike: bottom(STRIKE) },
 }
 
 /**
  * The folded wing hangs from its own bone, rigid with the body; the loft's skin blends from the body to the neck about
- * the neck's base. So where the neck moves (a head-dip, a peck, the neck stretched in a tip-up), the skin under the
- * front of the wing moves with it and can stand through the wing there: the wing's front, in front of FRONT, is a
- * known soft spot (Task 19b; giving the wing's front the skin's neck weights made it worse, the wrist bending with the
- * neck). Behind it the wing keeps its GAP in every pose; in front of it the skin stands no more than SOFT through it.
+ * the neck's base. So where the neck moves (a surface dabble, a strike, the neck stretched), the skin under the front
+ * of the wing moves with it and can stand through the wing there. The builder keeps the wing further off skin that
+ * moves with the neck (wing.ts, FLARE), which brought the worst, a Wigeon's surface dabble, from 6.8 mm through to
+ * 2.0 mm (the Greater Yellowlegs' strike 1.5 mm); giving the wing's front the skin's neck weights instead made it
+ * worse, the wrist bending with the neck (Task 19b). So the wing's front, in front of FRONT, is a known soft spot:
+ * behind it the wing keeps its GAP in every pose; in front of it the skin stands no more than SOFT through it, the
+ * worst measured and half a mm.
  */
 const FRONT = 0.35
-const SOFT = 0.006
+const SOFT = 0.0025
 
 describe('the folded wing in the poses the game uses', () => {
   it('covers every detailed species', () => {

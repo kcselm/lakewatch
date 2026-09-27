@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { createProfile, type Profile, type ProfileSample } from './profile'
 import type { DetailSpec } from './spec'
 import { Mesher } from './mesher'
-import { buildLoft, type LoftRig } from './loft'
+import { buildLoft, loftWeights, RADIAL, RINGS, type LoftRig } from './loft'
 
 /**
  * The folded wing's grid: columns along the chord (every other one where the builder had them before Task 19b, so the
@@ -19,6 +19,15 @@ const SPREAD_T = 4
  * at 1.5 mm it no longer did (Task 19b). The optics' raised near plane now leaves room to spare; GAP stays for the eye.
  */
 export const GAP = 0.0015
+/**
+ * How much further than GAP the folded wing stands off skin that moves with the neck, at full neck weight, as a
+ * fraction of the wing chord (in proportion to the skin's neck weight, so none where the skin is the body's alone; and
+ * to the bird's size, as the neck's swing is). The skin blends from the body to the neck about the neck's base, and
+ * where the wing's front lies over that blend (a Wigeon's, the yellowlegs'), the neck stretching or reaching swings the
+ * skin out under it, up to 8 mm on a Wigeon; the wing, rigid with the body, can't follow. 4 mm on a Wigeon, 1.4 mm on
+ * a Least Sandpiper, whose wing's front stood visibly off its breast, close up, at a flat 4 mm (Task 19b).
+ */
+const FLARE = 0.016
 /** half the spacing between the two folded wings where they cross over the rump and tail, metres */
 const MIN_Z = 0.003
 /**
@@ -73,6 +82,8 @@ function nearestBodySample(profile: Profile, x: number): ProfileSample {
  */
 interface Skin {
   v: number[]; tri: number[]; edge: number[]
+  /** each vertex's neck weight: how much of it moves with the neck and head rather than the body, 0 to 1 */
+  neck: number[]
   /** each vertex's, edge's and triangle's box in the side view: lowest x, highest x, lowest y, highest y */
   box: Record<keyof Near, Float64Array>
   /** room for each vertex's place relative to a wing triangle (see skinPast) */
@@ -85,7 +96,7 @@ function rightSkin(profile: Profile, rig: LoftRig): Skin {
   const g = m.geometry()
   const index = g.getIndex()!.array
   g.dispose()
-  const v: number[] = [], tri: number[] = [], edge: number[] = []
+  const v: number[] = [], neck: number[] = [], tri: number[] = [], edge: number[] = []
   const at = new Map<string, number>(), seen = new Set<number>()
   const p = new THREE.Vector3()
   // the skin's number for the loft vertex at (x, y, +-z), a vertex and its mirror image on the left being one
@@ -94,7 +105,13 @@ function rightSkin(profile: Profile, rig: LoftRig): Skin {
     m.position(i, p)
     const key = place(p.x, p.y, p.z)
     let k = at.get(key)
-    if (k === undefined) at.set(key, (k = v.push(p.x, p.y, Math.abs(p.z)) / 3 - 1))
+    if (k === undefined) {
+      at.set(key, (k = v.push(p.x, p.y, Math.abs(p.z)) / 3 - 1))
+      // the loft's vertices come ring by ring, RADIAL to a ring, then the rear cap's point and the front cap's
+      const r = i - loft.first
+      const u = r < RINGS * RADIAL ? Math.floor(r / RADIAL) / (RINGS - 1) : r === RINGS * RADIAL ? 0 : 1
+      neck.push(1 - loftWeights(u, profile, rig).reduce((s, [bone, w]) => s + (bone === 'body' ? w : 0), 0))
+    }
     return k
   }
   const add = (a: number, b: number, c: number) => {
@@ -125,16 +142,16 @@ function rightSkin(profile: Profile, rig: LoftRig): Skin {
   }
   const n = v.length / 3
   const box = { v: boxes(Array.from({ length: n }, (_, k) => k), 1), edge: boxes(edge, 2), tri: boxes(tri, 3) }
-  return { v, tri, edge, box, h: new Float64Array(n), u: new Float64Array(n), w: new Float64Array(n) }
+  return { v, neck, tri, edge, box, h: new Float64Array(n), u: new Float64Array(n), w: new Float64Array(n) }
 }
 
 /**
- * The skin's outermost triangle over side-view point (x, y), where the skin lies over itself, and its height (z)
- * there; triangle -1 and height -Infinity off the body.
+ * The skin's outermost triangle over side-view point (x, y), where the skin lies over itself, its height (z) there,
+ * and its neck weight there; triangle -1, height -Infinity and neck weight 0 off the body.
  */
-function outermost(skin: Skin, x: number, y: number): { tri: number; z: number } {
+function outermost(skin: Skin, x: number, y: number): { tri: number; z: number; neck: number } {
   const { v, tri } = skin
-  let z = -Infinity, best = -1
+  let z = -Infinity, best = -1, neck = 0
   for (let f = 0; f < tri.length; f += 3) {
     const a = tri[f]! * 3, b = tri[f + 1]! * 3, c = tri[f + 2]! * 3
     const area = (v[b]! - v[a]!) * (v[c + 1]! - v[a + 1]!) - (v[b + 1]! - v[a + 1]!) * (v[c]! - v[a]!)
@@ -143,9 +160,12 @@ function outermost(skin: Skin, x: number, y: number): { tri: number; z: number }
     const wc = ((v[b]! - v[a]!) * (y - v[a + 1]!) - (v[b + 1]! - v[a + 1]!) * (x - v[a]!)) / area
     if (wb < -1e-9 || wc < -1e-9 || wb + wc > 1 + 1e-9) continue
     const h = (1 - wb - wc) * v[a + 2]! + wb * v[b + 2]! + wc * v[c + 2]!
-    if (h > z) { z = h; best = f / 3 }
+    if (h > z) {
+      z = h; best = f / 3
+      neck = (1 - wb - wc) * skin.neck[tri[f]!]! + wb * skin.neck[tri[f + 1]!]! + wc * skin.neck[tri[f + 2]!]!
+    }
   }
-  return { tri: best, z }
+  return { tri: best, z, neck }
 }
 
 /** Skin triangle f's outward normal, turned square to the side view's x (so it never points along the body). */
@@ -180,6 +200,7 @@ function skinNear(skin: Skin, x0: number, x1: number, y0: number, y1: number, pa
 /** Where the line through p along unit d crosses skin triangle f, as a multiple of d (either sign); NaN if it misses. */
 function crossing(skin: Skin, f: number, p: THREE.Vector3, d: THREE.Vector3): number {
   const { v, tri } = skin
+  crossedAt[0] = crossedAt[1] = 0
   const a = tri[f * 3]! * 3, b = tri[f * 3 + 1]! * 3, c = tri[f * 3 + 2]! * 3
   const e1x = v[b]! - v[a]!, e1y = v[b + 1]! - v[a + 1]!, e1z = v[b + 2]! - v[a + 2]!
   const e2x = v[c]! - v[a]!, e2y = v[c + 1]! - v[a + 1]!, e2z = v[c + 2]! - v[a + 2]!
@@ -192,27 +213,38 @@ function crossing(skin: Skin, f: number, p: THREE.Vector3, d: THREE.Vector3): nu
   const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x
   const w = (d.x * qx + d.y * qy + d.z * qz) / det
   if (w < 0 || u + w > 1) return NaN
+  crossedAt[0] = u; crossedAt[1] = w
   return (e2x * qx + e2y * qy + e2z * qz) / det
 }
+/** where crossing() last met its triangle: the weights of the triangle's second and third corners */
+const crossedAt: [number, number] = [0, 0]
 
-/** The skin at its furthest out over a wing triangle: how far past the triangle's plane, and where (barycentric weights). */
+/**
+ * The skin at its nearest to a wing triangle, counting the flare: how far it stands out past the triangle's plane,
+ * plus `flare` times its neck weight there, and where (barycentric weights). The triangle clears it where h + GAP <= 0.
+ */
 interface Past { h: number; w: [number, number, number] }
 
 /**
- * How far the skin `near` a wing triangle (a, b, c) stands out past the triangle's plane, along its unit normal n, at
- * most, over the triangle seen along n (negative where the skin lies behind it), and where; null if none of it lies
- * between GAP behind the plane and LOOK in front. The skin is flat between its vertices, so its furthest point out over
- * the triangle is right under a corner, one of its own vertices inside, or where one of its edges crosses a side.
+ * How far the skin `near` a wing triangle (a, b, c) stands out past the triangle's plane, along its unit normal n,
+ * over the triangle seen along n (negative where the skin lies behind it), plus `flare` times its neck weight, at
+ * most, and where; null if none of it lies between GAP + `flare` behind the plane and LOOK in front. The skin, its
+ * place and its neck weight alike, is flat between its vertices, so the most is right under a corner, at one of its own
+ * vertices inside, or where one of its edges crosses a side.
  */
-function skinPast(skin: Skin, near: Near, a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, n: THREE.Vector3): Past | null {
-  const { v, edge } = skin
+function skinPast(
+  skin: Skin, near: Near, a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, n: THREE.Vector3, flare: number,
+): Past | null {
+  const { v, neck, tri, edge } = skin
+  // skin with height h counts from `back` behind the plane (where it could still come within GAP, flared) to LOOK out
+  const back = GAP + flare
   // the triangle in its own plane: a at (0, 0), b at (bu, 0), c at (cu, cv), with cv > 0
   const bu = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z)
   const e1x = (b.x - a.x) / bu, e1y = (b.y - a.y) / bu, e1z = (b.z - a.z) / bu
   const e2x = n.y * e1z - n.z * e1y, e2y = n.z * e1x - n.x * e1z, e2z = n.x * e1y - n.y * e1x
   const cu = (c.x - a.x) * e1x + (c.y - a.y) * e1y + (c.z - a.z) * e1z
   const cv = (c.x - a.x) * e2x + (c.y - a.y) * e2y + (c.z - a.z) * e2z
-  // the furthest out so far: its height over the plane, and where it lies in the plane
+  // the most so far, and where it lies in the plane
   let bh = -Infinity, bu0 = 0, bw0 = 0
   // skin vertex k, from a: its height over the plane (h), and where it lies in the plane (u, w)
   const { h, u, w } = skin
@@ -222,16 +254,17 @@ function skinPast(skin: Skin, near: Near, a: THREE.Vector3, b: THREE.Vector3, c:
   }
   for (const k of near.v) {
     place(k)
-    if (h[k]! < -GAP || h[k]! > LOOK || h[k]! <= bh) continue
+    const score = h[k]! + flare * neck[k]!
+    if (h[k]! < -back || h[k]! > LOOK || score <= bh) continue
     const wc = w[k]! / cv, wb = (u[k]! - cu * wc) / bu
-    if (wb >= 0 && wc >= 0 && wb + wc <= 1) { bh = h[k]!; bu0 = u[k]!; bw0 = w[k]! }
+    if (wb >= 0 && wc >= 0 && wb + wc <= 1) { bh = score; bu0 = u[k]!; bw0 = w[k]! }
   }
   const sides = [0, 0, bu, 0, bu, 0, cu, cv, cu, cv, 0, 0]
   for (const e of near.edge) {
     const k0 = edge[e * 2]!, k1 = edge[e * 2 + 1]!
     place(k0); place(k1)
     const h0 = h[k0]!, h1 = h[k1]!
-    if ((h0 < -GAP && h1 < -GAP) || (h0 > LOOK && h1 > LOOK) || Math.max(h0, h1) <= bh) continue
+    if ((h0 < -back && h1 < -back) || (h0 > LOOK && h1 > LOOK) || Math.max(h0, h1) + flare <= bh) continue
     const u0 = u[k0]!, w0 = w[k0]!, du = u[k1]! - u0, dw = w[k1]! - w0
     for (let i = 0; i < 12; i += 4) {
       // the edge at (u0, w0) + s (du, dw) meets the side from p to q at p + t (q - p)
@@ -241,15 +274,19 @@ function skinPast(skin: Skin, near: Near, a: THREE.Vector3, b: THREE.Vector3, c:
       const s = ((pu - u0) * sw - (pw - w0) * su) / den
       const t = ((pu - u0) * dw - (pw - w0) * du) / den
       const hs = h0 + s * (h1 - h0)
-      if (s < 0 || s > 1 || t < 0 || t > 1 || hs < -GAP || hs > LOOK || hs <= bh) continue
-      bh = hs; bu0 = pu + t * su; bw0 = pw + t * sw
+      const score = hs + flare * (neck[k0]! + s * (neck[k1]! - neck[k0]!))
+      if (s < 0 || s > 1 || t < 0 || t > 1 || hs < -back || hs > LOOK || score <= bh) continue
+      bh = score; bu0 = pu + t * su; bw0 = pw + t * sw
     }
   }
   const corners = [[a, 0, 0], [b, bu, 0], [c, cu, cv]] as const
   for (const [corner, cu0, cw0] of corners) {
     for (const f of near.tri) {
       const hc = crossing(skin, f, corner, n)
-      if (hc >= -GAP && hc <= LOOK && hc > bh) { bh = hc; bu0 = cu0; bw0 = cw0 }
+      if (!(hc >= -back && hc <= LOOK)) continue
+      const [wb, wc] = crossedAt
+      const score = hc + flare * ((1 - wb - wc) * neck[tri[f * 3]!]! + wb * neck[tri[f * 3 + 1]!]! + wc * neck[tri[f * 3 + 2]!]!)
+      if (score > bh) { bh = score; bu0 = cu0; bw0 = cw0 }
     }
   }
   if (bh === -Infinity) return null
@@ -270,11 +307,12 @@ export interface FoldResult {
  * measurements.wingChord long and droops `droop` degrees below straight back; `outline` sets its height.
  *
  * The shell follows the loft as it is meshed. Each point starts at its place (s, t) in the side view, GAP out (in z)
- * from the skin there; off the body, where the two wings cross over the rump and tail, MIN_Z out from the midline.
- * Then any of the shell's flat triangles that the skin still comes nearer than GAP to, along the triangle's normal
- * (bulging out between its corners, or where the triangle tilts over the curve of the back), has its corners moved out
- * a little at a time until none does: over the body along the skin's normal (never along the body), off it straight
- * out. A column with no height, or under THIN, moves as one, so it can't fold over itself.
+ * from the skin there, and further by the chord's FLARE in proportion to the skin's neck weight there; off the body,
+ * where the two wings cross over the rump and tail, MIN_Z out from the midline. Then any of the shell's flat triangles
+ * that the skin still comes nearer than that to, along the triangle's normal (bulging out between its corners, or where
+ * the triangle tilts over the curve of the back), has its corners moved out a little at a time until none does: over
+ * the body along the skin's normal (never along the body), off it straight out. A column with no height, or under
+ * THIN, moves as one, so it can't fold over itself.
  */
 function placeFold(detail: DetailSpec): THREE.Vector3[] {
   const chord = detail.measurements.wingChord
@@ -283,6 +321,7 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
   const down = new THREE.Vector2(-dir.y, dir.x)
   const [wx, wy] = detail.wing.wrist
   const skin = rightSkin(createProfile(detail.profile), detail.rig)
+  const flare = FLARE * chord
   // grid point (i, j), at s = i / (FOLD_S - 1) and t = j / (FOLD_T - 1), is number k(i, j): `at` is where it is, `out`
   // the way it moves out, and each column's height sets how it moves
   const k = (i: number, j: number) => i * FOLD_T + j
@@ -294,7 +333,7 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
       const s = i / (FOLD_S - 1), t = j / (FOLD_T - 1)
       const x = wx + dir.x * s * chord + down.x * t * h, y = wy + dir.y * s * chord + down.y * t * h
       const under = outermost(skin, x, y)
-      at.push(new THREE.Vector3(x, y, Math.max(under.z + GAP, MIN_Z)))
+      at.push(new THREE.Vector3(x, y, Math.max(under.z + GAP + flare * under.neck, MIN_Z)))
       out.push(h > 0 && under.tri >= 0 && under.z + GAP > MIN_Z ? outwardInSection(skin, under.tri) : new THREE.Vector3(0, 0, 1))
     }
     if (h > 0 && h <= THIN) {
@@ -313,15 +352,16 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
     if (near >= 0) for (let j = 0; j < FOLD_T; j++) at[k(i, j)]!.z = Math.max(at[k(i, j)]!.z, at[k(near, 0)]!.z)
   }
   // the triangles m.quad makes of each quad (see buildFoldedWings), and the skin each could come near: in the side
-  // view, the skin that counts (from GAP behind the triangle's plane to LOOK in front) lies within LOOK of the
-  // triangle; it is gathered PAD further, and gathered again once the triangle has moved further
+  // view, the skin that counts (from GAP + flare behind the triangle's plane to LOOK in front) lies within `reach` of
+  // the triangle; it is gathered PAD further, and gathered again once the triangle has moved further
+  const reach = Math.max(LOOK, GAP + flare)
   const box = (c: readonly number[]): [number, number, number, number] => {
     const xs = c.map(q => at[q]!.x), ys = c.map(q => at[q]!.y)
     return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
   }
   const gather = (c: readonly number[]) => {
     const b = box(c)
-    return { box: b, near: skinNear(skin, b[0], b[1], b[2], b[3], LOOK + PAD) }
+    return { box: b, near: skinNear(skin, b[0], b[1], b[2], b[3], reach + PAD) }
   }
   const tris: { c: [number, number, number]; box: [number, number, number, number]; near: Near }[] = []
   for (let i = 0; i < FOLD_S - 1; i++) {
@@ -342,16 +382,15 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
       if (!moved[c[0]] && !moved[c[1]] && !moved[c[2]]) continue
       const now = box(c)
       if (now[0] < tri.box[0] - PAD || now[1] > tri.box[1] + PAD || now[2] < tri.box[2] - PAD || now[3] > tri.box[3] + PAD) Object.assign(tri, gather(c))
-      const { near } = tri
       const a = at[c[0]]!, b = at[c[1]]!, d = at[c[2]]!
       normal.subVectors(b, a).cross(ad.subVectors(d, a))
       // a triangle with no area (a wing with no height) has no surface to clear
       if (normal.length() < 1e-10) continue
       normal.normalize()
-      const past = skinPast(skin, near, a, b, d, normal)
+      const past = skinPast(skin, tri.near, a, b, d, normal, flare)
       if (!past || past.h + GAP <= 0) continue
       const need = past.h + GAP
-      // the least moves of the corners that lift the plane by `need` over the skin's furthest point: the corners
+      // the least moves of the corners that lift the plane by `need` over the skin's nearest point: the corners
       // nearest it, and moving most nearly along the triangle's normal, move most
       const g = c.map((q, x) => past.w[x]! * Math.max(out[q]!.dot(normal), 0))
       const sum = g[0]! ** 2 + g[1]! ** 2 + g[2]! ** 2
