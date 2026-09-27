@@ -21,9 +21,11 @@ export interface CootSettings extends SwimSettings {
   alert: { tail: number; flick: number }
   /**
    * the head pump while under way: `perSecond` pumps, the head held still against the water for the first `hold` of
-   * each, then thrust forward; `amplitude` is the whole fore-and-aft travel in body lengths at `cruise.speed` and over
+   * each, then thrust forward; `amplitude` is the whole fore-and-aft travel in body lengths at `cruise.speed` and over,
+   * and `lift` the whole swing of `neckExtend` that goes with it, in step: the neck drawn in and the head low at the
+   * end of the hold, stretched and the head high at the end of the thrust
    */
-  pump: { perSecond: number; hold: number; amplitude: number; ring: { every: number; size: number } }
+  pump: { perSecond: number; hold: number; amplitude: number; lift: number; ring: { every: number; size: number } }
   /** peck bouts: `perSecond` pecks, the bill at the water for the first `bottom` of each and lifted `lift` of the reach between */
   peck: { share: number; seconds: Range; perSecond: number; bottom: number; lift: number }
   /** one peck bout in `every` ends with the head and neck `depth` metres under for `seconds`, the body tipped `lean` */
@@ -34,8 +36,10 @@ export interface CootSettings extends SwimSettings {
    * jump-dives, in bouts of `count`, a bout starting `boutsPerSecond`: the head down for `dip` seconds, a lunge that
    * arcs the body to `lean` and takes it `depth` metres under in `lunge` seconds, `under` seconds under (drawn skewed
    * toward the short end, `skew`), `move` metres from where it went down, back up in `rise` seconds back first, then
-   * eating on the surface for `eat` seconds; the next dive of the bout `gap` seconds after surfacing. Under water it
-   * swims at most `swim` m/s, and stays down a little longer if it must go round to surface clear of another bird.
+   * eating on the surface for `eat` seconds. A bout's first dive comes when the bird next chooses what to do; each
+   * later one `gap` seconds after the last surfacing (drawn as it comes up), from whatever it is doing on the surface.
+   * Under water it swims at most `swim` m/s, and stays down a little longer if it must go round to surface clear of
+   * another bird (but never longer than `under`'s longest in all).
    */
   dive: {
     boutsPerSecond: number; count: Range; gap: Range
@@ -72,8 +76,11 @@ export const COOT: CootSettings = {
   // turns (the flick's 0.5 s is ours)
   alert: { tail: 0.65, flick: 0.5 },
   // 2.2 a second (1.8-2.6), hold then thrust, the head still for about half of each; the bill travels about 5 cm fore
-  // and aft, 17% of the bill-to-tail length; a faint ring every 1-2 s while swimming (1.5 here)
-  pump: { perSecond: 2.2, hold: 0.5, amplitude: 0.17, ring: { every: 1.5, size: 0.3 } },
+  // and aft, 17% of the bill-to-tail length, and 2-3 cm up and down, the head rising as it goes forward; a faint ring
+  // every 1-2 s while swimming (1.5 here). The lift is sized on the coot's model as it is built today (the procedural
+  // one, whose bill rises 5.5 cm per unit of neckExtend about the swim's 0.6): 0.45 of it, 2.5 cm. The detailed
+  // builder's neck mostly tips forward as it stretches, and lifts a head far less for the same swing.
+  pump: { perSecond: 2.2, hold: 0.5, amplitude: 0.17, lift: 0.45, ring: { every: 1.5, size: 0.3 } },
   // bouts of 2-8 s at 2.5 pecks a second, each held 0.15-0.4 s at the bottom (0.2 s here, half the cycle), the head
   // rising 2-3 cm between: about a third of its 60-95 mm reach from rest to the water
   peck: { share: 0.4, seconds: [2, 8], perSecond: 2.5, bottom: 0.5, lift: 0.3 },
@@ -102,6 +109,11 @@ type State = 'travel' | 'cruise' | 'peck' | 'headDip' | 'tipUp' | 'dive' | 'loaf
 type DivePhase = 'dip' | 'lunge' | 'under' | 'rise' | 'eat'
 const NECK: Record<State, number> = { travel: 0.6, cruise: 0.6, peck: 0.8, headDip: 1, tipUp: 1, dive: 1, loaf: 0.15, preen: 0.3, alert: 1 }
 const step = (v: number, want: number, by: number) => (v < want ? Math.min(want, v + by) : Math.max(want, v - by))
+/**
+ * metres to spare beyond the spacing in a spot a coot makes for under water: the birds on the surface keep swimming,
+ * and it comes up once where it is is clear of them at all
+ */
+const ROOM = 0.1
 
 /** The hold-then-thrust head pump at phase f (0..1): held still against the water while the body moves on, then thrust. */
 export function pumpWave(f: number, hold: number): number {
@@ -130,7 +142,13 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
   let sink = 0
   let [dx0, dz0, ux, uz] = [0, 0, 0, 0]
   let underFor = 0
-  let bout = { left: 0, nextAt: Infinity }
+  // a dive bout: the dives left in it, when the next falls due, and whether its first is taken (until it is, the next
+  // dive waits for the bird to choose what to do next; after, it comes as soon as it falls due)
+  let bout = { left: 0, nextAt: Infinity, begun: false }
+  /** true when a bout's later dive falls due within `seconds`: a head-dip or tip-up that long would hold it up */
+  const diveDue = (seconds: number) => bout.begun && bout.left > 0 && clock + seconds >= bout.nextAt
+  // the neck's reach, eased toward each state's, before the pump's swing is added
+  let neck = NaN
 
   // a feeding cycle is a peck bout, one time in `every` a head-dip, and a pause; it takes the pecks' share scaled up
   const cycle = mid(S.peck.seconds) + mid(S.headDip.seconds) / S.headDip.every + mid(S.pause.seconds)
@@ -144,10 +162,11 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
   function pause(): void {
     state = ctx.rng() < S.pause.swim ? 'cruise' : 'alert'
     timer = between(ctx.rng, S.pause.seconds)
-    looked = 0
+    if (state === 'alert') looked = 0
     if (state === 'cruise') [tx, tz] = b.spot(clock)
   }
-  let looked = 0
+  // how long since it looked up, for the tail's flick
+  let looked = Infinity
   const ring = (size: number, ahead = 0) => ctx.onRipple?.(b.x + Math.cos(b.heading) * ahead, b.z - Math.sin(b.heading) * ahead, size)
 
   function next(): void {
@@ -158,7 +177,7 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       timer = Math.hypot(tx - b.x, tz - b.z) / S.travel.speed + 10
       return
     }
-    // a dive bout under way: the next dive once its gap is up, from the surface
+    // a dive bout under way: its first dive now, or the next if its gap is up
     if (bout.left > 0 && clock >= bout.nextAt) { dive(); return }
     state = pickByShare(ctx.rng, TABLE)
     timer = between(ctx.rng, state === 'travel' ? S.travel.seconds : S[state].seconds)
@@ -169,6 +188,7 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
     phase = 'dip'
     timer = between(ctx.rng, S.dive.dip)
     bout.left--
+    bout.begun = true
   }
   /** Where it comes up: up to `move` metres from where it went down, about the way it faces, in the zone and clear of the others. */
   function surfacing(): void {
@@ -181,21 +201,33 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
     ;[ux, uz] = [b.x + Math.cos(a) * len, b.z - Math.sin(a) * len]
   }
   /**
-   * A surfacing spot clear of the other swimmers, those under water too (they may come up there): the nearest to the
-   * planned one within `move` of the dive, if needed.
+   * How clear (px, pz) is: the least, over the other swimmers, of how far beyond the spacing this bird keeps from each
+   * it is. Those under the water count too, where they are now: they may come up there.
+   */
+  function clearance(px: number, pz: number): number {
+    let least = Infinity
+    for (const n of ctx.neighbours?.() ?? []) if (n !== self) least = Math.min(least, Math.hypot(n.x - px, n.z - pz) - b.spacingTo(n))
+    return least
+  }
+  /**
+   * A surfacing spot clear of the other swimmers with ROOM to spare, if needed: the nearest to the planned one within
+   * `move` of the dive, or if none is, the clearest.
    */
   function clearSpot(): void {
-    if (b.clearAt(ux, uz, 0, true)) return
-    let best: [number, number] | null = null
+    let most = clearance(ux, uz)
+    if (most >= ROOM) return
+    let near: [number, number] | null = null, clearest: [number, number] = [ux, uz]
     for (let r = 0.25; r <= 1; r += 0.25) {
       for (let k = 0; k < 16; k++) {
         const a = (k * Math.PI) / 8
         const [px, pz] = [dx0 + Math.cos(a) * r * S.dive.move, dz0 - Math.sin(a) * r * S.dive.move]
-        if (!pointInPolygon(px, pz, b.zone.points) || !b.clearAt(px, pz, 0, true)) continue
-        if (!best || Math.hypot(px - ux, pz - uz) < Math.hypot(best[0] - ux, best[1] - uz)) best = [px, pz]
+        if (!pointInPolygon(px, pz, b.zone.points)) continue
+        const c = clearance(px, pz)
+        if (c >= ROOM) { if (!near || Math.hypot(px - ux, pz - uz) < Math.hypot(near[0] - ux, near[1] - uz)) near = [px, pz] }
+        else if (c > most) { most = c; clearest = [px, pz] }
       }
     }
-    if (best) [ux, uz] = best
+    ;[ux, uz] = near ?? clearest
   }
   let checked = false
 
@@ -215,8 +247,9 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       sinceRing += dt
       // a dive bout starts now and then, whatever the bird is doing on the surface; its first dive comes when it next
       // chooses what to do
-      if (bout.left <= 0 && state !== 'dive' && ctx.rng() < S.dive.boutsPerSecond * dt) bout = { left: Math.floor(between(ctx.rng, [S.dive.count[0], S.dive.count[1] + 1])), nextAt: clock }
-      const feeding = state === 'peck' || state === 'cruise'
+      if (bout.left <= 0 && state !== 'dive' && ctx.rng() < S.dive.boutsPerSecond * dt) bout = { left: Math.floor(between(ctx.rng, [S.dive.count[0], S.dive.count[1] + 1])), nextAt: clock, begun: false }
+      // what it was doing coming into the frame: a tip-up never replaces a state chosen in it
+      const was = state
       if (state === 'dive') {
         if (phase === 'dip' || phase === 'eat') b.float(dt)
         if (phase === 'dip' && timer <= 0) { phase = 'lunge'; timer = S.dive.lunge; ring(S.dive.ring, 0.1) }
@@ -231,19 +264,26 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
           }
         } else if (phase === 'under') {
           // swimming under water toward where it will come up, evenly over the time it stays down; halfway, it makes
-          // sure no one is floating on the spot, and goes round to a clear one if they are
+          // sure no one is floating on the spot, and goes round to a clear one if they are (see clearSpot)
           if (!checked && timer <= underFor / 2) { checked = true; clearSpot() }
           const left = Math.hypot(ux - b.x, uz - b.z)
           const by = Math.min(left, (left / Math.max(timer, dt)) * dt, S.dive.swim * dt)
           if (left > 1e-9) { b.x += ((ux - b.x) / left) * by; b.z += ((uz - b.z) / left) * by }
-          if (timer <= 0 && left - by < 1e-9) { phase = 'rise'; timer = S.dive.rise; b.speed = 0 }
+          // Its time up, it comes up as soon as it is clear of the others. If a bird has come onto the spot since, it
+          // goes round to another, with room to spare as they are swimming too, and stays down a little longer: until
+          // it has been down the longest a coot stays down, and then it comes up where it is.
+          if (timer <= 0) {
+            if (clearance(b.x, b.z) >= 0 || underFor - timer >= S.dive.under[1]) { phase = 'rise'; timer = S.dive.rise; b.speed = 0 }
+            else if (left - by < 1e-9) clearSpot()
+          }
         } else if (phase === 'rise') {
           sink = step(sink, 0, dt / S.dive.rise)
-          if (timer <= 0) { sink = 0; phase = 'eat'; timer = between(ctx.rng, S.dive.eat); ring(S.dive.ring) }
-        } else if (phase === 'eat' && timer <= 0) {
-          bout.nextAt = clock + between(ctx.rng, S.dive.gap)
-          next()
-        }
+          if (timer <= 0) {
+            sink = 0; phase = 'eat'; timer = between(ctx.rng, S.dive.eat); ring(S.dive.ring)
+            // back at the surface: the bout's next dive falls due a gap from now
+            if (bout.left > 0) bout.nextAt = clock + between(ctx.rng, S.dive.gap)
+          }
+        } else if (phase === 'eat' && timer <= 0) next()
       } else if (state === 'travel' || state === 'cruise') {
         const speed = state === 'travel' ? S.travel.speed : S.cruise.speed
         if (b.swimTo(tx, tz, speed, dt) < 0.05) {
@@ -253,7 +293,9 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       } else if (state === 'peck') {
         b.float(dt)
         if (timer <= 0) {
-          if (ctx.rng() < 1 / S.headDip.every) { state = 'headDip'; timer = between(ctx.rng, S.headDip.seconds); ring(S.headDip.ring, 0.1) }
+          // a head-dip, unless the bout's next dive falls due before it would end
+          const dip = ctx.rng() < 1 / S.headDip.every ? between(ctx.rng, S.headDip.seconds) : 0
+          if (dip > 0 && !diveDue(dip)) { state = 'headDip'; timer = dip; ring(S.headDip.ring, 0.1) }
           else pause()
         }
       } else if (state === 'headDip') {
@@ -266,20 +308,25 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
         b.float(dt)
         if (timer <= 0) next()
       }
-      // a rare tip-up while feeding
-      if (feeding && state !== 'dive' && ctx.rng() < S.tipUp.perSecond * dt) {
-        state = 'tipUp'
-        timer = between(ctx.rng, S.tipUp.seconds) + (S.tipUp.down - S.tipUp.up) / 2
+      // a bout's next dive as soon as it falls due, from whatever the bird is doing on the surface (a head-dip or a
+      // tip-up never runs past it)
+      if (state !== 'dive' && state !== 'headDip' && state !== 'tipUp' && diveDue(0)) dive()
+      // a rare tip-up while it pecks or swims to feed: never over a state chosen this frame, nor holding up a dive
+      if (state === was && (state === 'peck' || state === 'cruise') && ctx.rng() < S.tipUp.perSecond * dt) {
+        const tip = between(ctx.rng, S.tipUp.seconds) + (S.tipUp.down - S.tipUp.up) / 2
+        if (!diveDue(tip)) { state = 'tipUp'; timer = tip }
       }
       sinceWake += dt
       if (b.speed > S.wake.above && sinceWake >= S.wake.every) { sinceWake = 0; ring(S.wake.size) }
       // the faint ring of the pump while it swims to feed (travelling, it leaves a wake instead)
       if (state === 'cruise' && b.speed > S.cruise.speed / 2 && sinceRing >= S.pump.ring.every) { sinceRing = 0; ring(S.pump.ring.size, 0.1) }
 
-      // the head pump, only while it swims: its reach grows with the speed, up to the feeding swim's
+      // the head pump, only while it swims: its reach grows with the speed, up to the feeding swim's; the head goes
+      // back and down with the neck drawn in over the hold, and forward and up with it stretched in the thrust
       pumpPhase = (pumpPhase + S.pump.perSecond * dt) % 1
       pumpK = step(pumpK, state === 'dive' ? 0 : Math.min(1, b.speed / S.cruise.speed), dt / 0.2)
-      pose.headBob = (pumpK * S.pump.amplitude * pumpWave(pumpPhase, S.pump.hold)) / 2
+      const pump = (pumpK * pumpWave(pumpPhase, S.pump.hold)) / 2
+      pose.headBob = S.pump.amplitude * pump
       // the peck: the bill at the water for the first part of each cycle, lifting a little between
       peckPhase += S.peck.perSecond * dt
       const f = peckPhase % 1
@@ -298,9 +345,10 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       arc = step(arc, diving && phase === 'lunge' ? 1 : diving && (phase === 'under' || phase === 'rise') ? 0.2 : 0, dt / S.dive.lunge)
       kick = step(kick, diving && phase === 'lunge' ? 1 : 0, dt / 0.25)
       pose.lean.x = Math.max(kUnder * S.headDip.lean, kTilt * S.tipUp.lean, ease(arc) * S.dive.lean)
-      // looking up, the tail flicks up and down again: a sin^2 over the flick's length
+      // looking up, the tail flicks up and down again: a sin^2 over the flick's length, run to its end even if a dive
+      // cuts the look short
       looked += dt
-      const flick = state === 'alert' && looked < S.alert.flick ? Math.sin((Math.PI * looked) / S.alert.flick) ** 2 : 0
+      const flick = looked < S.alert.flick ? Math.sin((Math.PI * looked) / S.alert.flick) ** 2 : 0
       pose.tailTilt = approach(pose.tailTilt, Math.max(flick * S.alert.tail, kTilt * S.tipUp.tail, ease(kick) * S.tipUp.tail), 12, dt)
       // the feet show in a tip-up and as the lunge takes the bird under
       pose.paddle = Math.max(kTilt, ease(kick))
@@ -308,7 +356,8 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       pose.paddlePhase = paddlePhase
       preen = approach(preen, state === 'preen' ? 1 : 0, 2, dt)
       pose.lean.z = preen * 0.1 * Math.sin(clock * Math.PI * 0.8)
-      pose.neckExtend = approach(pose.neckExtend, NECK[state], 3, dt)
+      neck = approach(Number.isNaN(neck) ? pose.neckExtend : neck, NECK[state], 3, dt)
+      pose.neckExtend = Math.min(1, Math.max(0, neck + S.pump.lift * pump))
     },
   }
   b.self = self
