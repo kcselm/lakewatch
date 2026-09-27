@@ -89,20 +89,22 @@ function posePrint(m: DetailedBirdModel): string {
 // lie off the body, where nothing moved, so their pose prints did not. The atlases are untouched. Then the wing kept
 // further off skin that moves with the neck (wing.ts, FLARE): every geometry print but the grebe's moved again (its
 // wing lies near no such skin), and the pose prints wherever the wrist moved (not the Mallard's, nor the Lesser
-// Yellowlegs').
+// Yellowlegs'). Then each column's rows were spaced along the skin, and the wing pulled back in close to it: every
+// geometry print moved again, and the pose prints of the Killdeer, the Least Sandpiper, the Greater Yellowlegs and the
+// Dowitcher, whose wrists moved.
 const EXPECTED: Record<string, { geometry: string; poses: string }> = {
-  killde: { geometry: 'e3de6680', poses: 'cfcecb3d' },          // were f5d077d0, f8173f03 before Task 19b; poses 4d9550b0 before the head pump's arc
-  leasan: { geometry: 'b5b57fe2', poses: 'de36aec1' },          // were 83eeff1f, cfa4b2d9; poses 0cd6b93e
-  greyel: { geometry: '78e84635', poses: 'ca657d49' },          // geometry was 7671be05; poses 88449834
-  lesyel: { geometry: '29f6269c', poses: 'b525d3d3' },          // geometry was 923592bf; poses e640b069
-  pecsan: { geometry: 'd813fe6a', poses: 'ff0f04c9' },          // were fc0011fe, 086a1105; poses bac5bab5
-  lobdow: { geometry: '2c558084', poses: 'ec826bdb' },          // the throat retraced (Task 5); were bedf44dc, f52423c1; poses 449d38d8
-  mallar3: { geometry: 'ea2779e9', poses: 'e879d30e' },         // the Mallard, detailed (Task 14); were 0e8b620c, 9e4a41a2; poses 821985c4
-  pibgre: { geometry: '29d7e375', poses: '87a95e1c' },          // the Pied-billed Grebe, detailed (Task 19); were 7aa2294d, 52b7741a; geometry bc526bd5 before the wing's last tenth flattened
-  amewig: { geometry: '453145c2', poses: 'f90d45d9' },          // the American Wigeon, detailed (Task 16); were 23baa5a5, 8002ac5d
-  norsho: { geometry: '85d82606', poses: '3a31c6da' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
-  y00475: { geometry: '19122ffc', poses: 'eb57fa07' },          // the American Coot, detailed (Task 18); the chin refitted (review); were 5c786913, 6e241e2f
-  gadwal: { geometry: '2a36698b', poses: 'c200f85d' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
+  killde: { geometry: '7c0165b2', poses: '1e8af947' },          // were f5d077d0, f8173f03 before Task 19b; poses 4d9550b0 before the head pump's arc
+  leasan: { geometry: '08195eea', poses: '8da0f82d' },          // were 83eeff1f, cfa4b2d9; poses 0cd6b93e
+  greyel: { geometry: '115716c3', poses: 'f5f09105' },          // geometry was 7671be05; poses 88449834
+  lesyel: { geometry: '7d825b07', poses: 'b525d3d3' },          // geometry was 923592bf; poses e640b069
+  pecsan: { geometry: '7973625f', poses: 'ff0f04c9' },          // were fc0011fe, 086a1105; poses bac5bab5
+  lobdow: { geometry: 'fb46c144', poses: '2b3e77bf' },          // the throat retraced (Task 5); were bedf44dc, f52423c1; poses 449d38d8
+  mallar3: { geometry: '3d92faa1', poses: 'e879d30e' },         // the Mallard, detailed (Task 14); were 0e8b620c, 9e4a41a2; poses 821985c4
+  pibgre: { geometry: '3e8d46e5', poses: '87a95e1c' },          // the Pied-billed Grebe, detailed (Task 19); were 7aa2294d, 52b7741a; geometry bc526bd5 before the wing's last tenth flattened
+  amewig: { geometry: 'bac74eba', poses: 'f90d45d9' },          // the American Wigeon, detailed (Task 16); were 23baa5a5, 8002ac5d
+  norsho: { geometry: '43f8e74d', poses: '3a31c6da' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
+  y00475: { geometry: '3d6eeba6', poses: 'eb57fa07' },          // the American Coot, detailed (Task 18); the chin refitted (review); were 5c786913, 6e241e2f
+  gadwal: { geometry: '0ae3390b', poses: 'c200f85d' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {

@@ -41,6 +41,18 @@ const PAD = 0.003
 const STEP = 0.001
 /** the most rounds of clearing the skin: every species' wing clears it in far fewer, and one that doesn't is a fault */
 const PASSES = 200
+/** the furthest a folded-wing point is pulled back in toward the skin after clearing it, metres */
+const RELAX = 0.01
+/** the most rounds of pulling the folded wing back in, and how finely, metres */
+const RELAX_ROUNDS = 8
+const RELAX_TO = 0.00001
+/**
+ * Pulling the folded wing back in brings no two rows of a column nearer than this down it (in the side view), nor any
+ * nearer that already are, metres
+ */
+const ROW_STEP = 0.0005
+/** how finely a folded-wing column is walked, down its height, to space its rows along the skin */
+const ROW_SAMPLES = 64
 /** a folded-wing column no taller than this, metres, moves out as one piece (its points lie too close to move apart) */
 const THIN = 0.004
 /** the spread wing reaches this multiple of the wing chord out from the shoulder */
@@ -150,9 +162,11 @@ function rightSkin(profile: Profile, rig: LoftRig): Skin {
  * and its neck weight there; triangle -1, height -Infinity and neck weight 0 off the body.
  */
 function outermost(skin: Skin, x: number, y: number): { tri: number; z: number; neck: number } {
-  const { v, tri } = skin
+  const { v, tri } = skin, box = skin.box.tri
   let z = -Infinity, best = -1, neck = 0
   for (let f = 0; f < tri.length; f += 3) {
+    const q = (f / 3) * 4
+    if (x < box[q]! - 1e-9 || x > box[q + 1]! + 1e-9 || y < box[q + 2]! - 1e-9 || y > box[q + 3]! + 1e-9) continue
     const a = tri[f]! * 3, b = tri[f + 1]! * 3, c = tri[f + 2]! * 3
     const area = (v[b]! - v[a]!) * (v[c + 1]! - v[a + 1]!) - (v[b + 1]! - v[a + 1]!) * (v[c]! - v[a]!)
     if (Math.abs(area) < 1e-14) continue
@@ -306,15 +320,16 @@ export interface FoldResult {
  * The right folded wing's points: a shell hugging the flank, hanging from the chord line (wrist to tip). The chord is
  * measurements.wingChord long and droops `droop` degrees below straight back; `outline` sets its height.
  *
- * The shell follows the loft as it is meshed. Each point starts at its place (s, t) in the side view, GAP out (in z)
- * from the skin there, and further by the chord's FLARE in proportion to the skin's neck weight there; off the body,
- * where the two wings cross over the rump and tail, MIN_Z out from the midline. Then any of the shell's flat triangles
- * that the skin still comes nearer than that to, along the triangle's normal (bulging out between its corners, or where
- * the triangle tilts over the curve of the back), has its corners moved out a little at a time until none does: over
- * the body along the skin's normal (never along the body), off it straight out. A column with no height, or under
- * THIN, moves as one, so it can't fold over itself.
+ * The shell follows the loft as it is meshed. Each column's rows are spaced evenly along the skin, and each point
+ * starts at its place (s, t) in the side view, GAP out (in z) from the skin there, and further by the chord's FLARE in
+ * proportion to the skin's neck weight there; off the body, where the two wings cross over the rump and tail, MIN_Z out
+ * from the midline. Then any of the shell's flat triangles that the skin still comes nearer than that to, along the
+ * triangle's normal (bulging out between its corners, or where the triangle tilts over the curve of the back), has its
+ * corners moved out a little at a time until none does: over the body along the skin's normal (never along the body),
+ * off it straight out. A column with no height, or under THIN, moves as one, so it can't fold over itself. Last, the
+ * points are pulled back in as far as the triangles still clear the skin.
  */
-function placeFold(detail: DetailSpec): THREE.Vector3[] {
+function placeFold(detail: DetailSpec): Fold {
   const chord = detail.measurements.wingChord
   const droop = THREE.MathUtils.degToRad(detail.wing.droop)
   const dir = new THREE.Vector2(-Math.cos(droop), -Math.sin(droop))
@@ -322,16 +337,47 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
   const [wx, wy] = detail.wing.wrist
   const skin = rightSkin(createProfile(detail.profile), detail.rig)
   const flare = FLARE * chord
-  // grid point (i, j), at s = i / (FOLD_S - 1) and t = j / (FOLD_T - 1), is number k(i, j): `at` is where it is, `out`
-  // the way it moves out, and each column's height sets how it moves
+  // grid point (i, j), at s = i / (FOLD_S - 1) and t = ts[k(i, j)], is number k(i, j): `at` is where it is, `out` the
+  // way it moves out, and each column's height sets how it moves
   const k = (i: number, j: number) => i * FOLD_T + j
   const height = (i: number) => outlineAt(detail.wing.outline, i / (FOLD_S - 1)) * chord
-  const at: THREE.Vector3[] = [], out: THREE.Vector3[] = []
+  const at: THREE.Vector3[] = [], out: THREE.Vector3[] = [], ts: number[] = []
   for (let i = 0; i < FOLD_S; i++) {
-    const h = height(i)
+    const h = height(i), s = i / (FOLD_S - 1)
+    const side = (t: number) => [wx + dir.x * s * chord + down.x * t * h, wy + dir.y * s * chord + down.y * t * h] as const
+    // The column's rows, spaced evenly along the skin (walked down in ROW_SAMPLES steps, GAP out) rather than in the
+    // side view: where a column crosses the top of the back, a few mm of its height in the side view turn through most
+    // of the back's width, and rows spaced evenly in the side view left one band bridging it flat, standing well off
+    // the back (a Shoveler's 7.7 mm, a plate beside its head seen head-on at 22 m through the telescope). A column
+    // under THIN, which moves as one, keeps them even in the side view.
+    const along = [0]
+    if (h > THIN) {
+      let last = new THREE.Vector3()
+      for (let n = 0; n <= ROW_SAMPLES; n++) {
+        const [x, y] = side(n / ROW_SAMPLES)
+        const p = new THREE.Vector3(x, y, Math.max(outermost(skin, x, y).z + GAP, MIN_Z))
+        if (n > 0) along.push(along[n - 1]! + p.distanceTo(last))
+        last = p
+      }
+    }
+    const rows = Array.from({ length: FOLD_T }, (_, j) => {
+      const even = j / (FOLD_T - 1)
+      if (h <= THIN) return even
+      const want = even * along[ROW_SAMPLES]!
+      let n = 0
+      while (n < ROW_SAMPLES - 1 && along[n + 1]! < want) n++
+      return (n + (want - along[n]!) / (along[n + 1]! - along[n]! || 1)) / ROW_SAMPLES
+    })
+    // but never nearer each other than THIN in the side view (rows closer than that, clearing the skin along its
+    // normal, can pass each other and fold the wing over: a Wigeon's, where it crosses onto the rump), which leaves a
+    // column under 4 THIN tall its rows even
+    const least = Math.min(THIN / h, 1 / (FOLD_T - 1))
+    for (let j = 1; j < FOLD_T - 1; j++) rows[j] = Math.max(rows[j]!, rows[j - 1]! + least)
+    for (let j = FOLD_T - 2; j > 0; j--) rows[j] = Math.min(rows[j]!, rows[j + 1]! - least)
     for (let j = 0; j < FOLD_T; j++) {
-      const s = i / (FOLD_S - 1), t = j / (FOLD_T - 1)
-      const x = wx + dir.x * s * chord + down.x * t * h, y = wy + dir.y * s * chord + down.y * t * h
+      const t = rows[j]!
+      ts.push(t)
+      const [x, y] = side(t)
       const under = outermost(skin, x, y)
       at.push(new THREE.Vector3(x, y, Math.max(under.z + GAP + flare * under.neck, MIN_Z)))
       out.push(h > 0 && under.tri >= 0 && under.z + GAP > MIN_Z ? outwardInSection(skin, under.tri) : new THREE.Vector3(0, 0, 1))
@@ -372,22 +418,27 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
     }
   }
   const normal = new THREE.Vector3(), ad = new THREE.Vector3()
+  // triangle f's unit normal (in `normal`) and the skin nearest it (see skinPast); null for a triangle with no area (a
+  // wing with no height has no surface to clear) or no skin near
+  const nearest = (f: number): Past | null => {
+    const tri = tris[f]!, { c } = tri
+    const now = box(c)
+    if (now[0] < tri.box[0] - PAD || now[1] > tri.box[1] + PAD || now[2] < tri.box[2] - PAD || now[3] > tri.box[3] + PAD) Object.assign(tri, gather(c))
+    const a = at[c[0]]!, b = at[c[1]]!, d = at[c[2]]!
+    normal.subVectors(b, a).cross(ad.subVectors(d, a))
+    if (normal.length() < 1e-10) return null
+    normal.normalize()
+    return skinPast(skin, tri.near, a, b, d, normal, flare)
+  }
   // only a triangle with a corner that moved can have come nearer the skin since it was last looked at
   let moved = at.map(() => true)
   for (let pass = 0; ; pass++) {
     const move = at.map(() => 0)
     let short = 0
-    for (const tri of tris) {
-      const { c } = tri
+    for (let f = 0; f < tris.length; f++) {
+      const { c } = tris[f]!
       if (!moved[c[0]] && !moved[c[1]] && !moved[c[2]]) continue
-      const now = box(c)
-      if (now[0] < tri.box[0] - PAD || now[1] > tri.box[1] + PAD || now[2] < tri.box[2] - PAD || now[3] > tri.box[3] + PAD) Object.assign(tri, gather(c))
-      const a = at[c[0]]!, b = at[c[1]]!, d = at[c[2]]!
-      normal.subVectors(b, a).cross(ad.subVectors(d, a))
-      // a triangle with no area (a wing with no height) has no surface to clear
-      if (normal.length() < 1e-10) continue
-      normal.normalize()
-      const past = skinPast(skin, tri.near, a, b, d, normal, flare)
+      const past = nearest(f)
       if (!past || past.h + GAP <= 0) continue
       const need = past.h + GAP
       // the least moves of the corners that lift the plane by `need` over the skin's nearest point: the corners
@@ -410,19 +461,80 @@ function placeFold(detail: DetailSpec): THREE.Vector3[] {
     at.forEach((p, q) => p.addScaledVector(out[q]!, move[q]!))
     moved = move.map(x => x > 0)
   }
-  return at
+  // Clearing moves every corner of a triangle the skin comes too near, some further than that triangle alone needed,
+  // and left the wing standing several mm off the skin in places (a Gadwall's 6.5 mm). So each point, or each group of
+  // points, is pulled back in along its way out as far as its triangles still clear the skin (and no row passes the
+  // next), over the wing and again, until none moves more than RELAX_TO: no further off than it must be, and never
+  // nearer than GAP.
+  const around: number[][] = at.map(() => [])
+  tris.forEach(({ c }, f) => { for (const q of c) around[q]!.push(f) })
+  const clear = (f: number) => { const past = nearest(f); return !past || past.h + GAP <= 1e-6 }
+  // how far below point q its column's next point lies, in the side view, down the column
+  const below = (q: number) => (at[q + 1]!.x - at[q]!.x) * down.x + (at[q + 1]!.y - at[q]!.y) * down.y
+  const flat = (f: number) => {
+    const { c } = tris[f]!
+    return normal.subVectors(at[c[1]]!, at[c[0]]!).cross(ad.subVectors(at[c[2]]!, at[c[0]]!)).length() < 1e-10
+  }
+  // What moves in: a column under THIN as one; a taller column's points each alone, and then all together. A column
+  // with no height (the chord line) moves as one too, where the wing fans back from it, but stays as far out as the
+  // column it fans to begins (see above); elsewhere it has no surface, and stays where it is.
+  const units: { points: number[]; tris: number[]; floor?: number }[] = []
+  for (let i = 0; i < FOLD_S; i++) {
+    const column = Array.from({ length: FOLD_T }, (_, j) => k(i, j))
+    const groups = height(i) <= THIN ? [column] : [...column.map(q => [q]), column]
+    const floor = height(i) > 0 ? undefined : [i + 1, i - 1].find(c => c >= 0 && c < FOLD_S && height(c) > 0)
+    if (height(i) <= 0 && floor === undefined) continue
+    for (const points of groups) units.push({ points, tris: [...new Set(points.flatMap(q => around[q]!))], floor })
+  }
+  for (let round = 0; round < RELAX_ROUNDS; round++) {
+    let most = 0
+    for (const { points, tris: fs, floor } of units) {
+      if (fs.every(flat)) continue
+      const home = points.map(q => at[q]!.clone())
+      // in by `d` along each point's way out, never nearer the midline than MIN_Z, nor a chord line than `floor` begins
+      const least = floor === undefined ? MIN_Z : Math.max(MIN_Z, at[k(floor, 0)]!.z)
+      const cap = Math.min(RELAX, ...points.map(q => (out[q]!.z > 1e-9 ? (at[q]!.z - least) / out[q]!.z : Infinity)))
+      // the rows the move could bring together down their column, and how far apart they are now: pulled in along the
+      // skin's normal, a point near the top of the back drops, and could pass the row below it and fold the wing over
+      const pairs = [...new Set(points.flatMap(q => [q % FOLD_T > 0 ? q - 1 : -1, q % FOLD_T < FOLD_T - 1 ? q : -1]))].filter(q => q >= 0)
+      const apart = pairs.map(below)
+      const inBy = (d: number) => {
+        points.forEach((q, x) => at[q]!.copy(home[x]!).addScaledVector(out[q]!, -d))
+        return pairs.every((q, x) => below(q) >= Math.min(apart[x]!, ROW_STEP)) && fs.every(clear)
+      }
+      // as far in as it goes, to RELAX_TO (most points, once in, can't go even that far again: tried first)
+      let lo = 0
+      if (cap > RELAX_TO && inBy(RELAX_TO)) {
+        lo = RELAX_TO
+        if (inBy(cap)) lo = cap
+        else {
+          let hi = cap
+          while (hi - lo > RELAX_TO) {
+            const mid = (lo + hi) / 2
+            if (inBy(mid)) lo = mid
+            else hi = mid
+          }
+        }
+      }
+      inBy(lo)
+      most = Math.max(most, lo)
+    }
+    if (most <= RELAX_TO) break
+  }
+  return { at, ts }
 }
 
-/**
- * The right folded wing's points, (i, j) at i * FOLD_T + j, for a detail block: every bird of a species shares them,
- * and they take a while to place
- */
-const placed = new WeakMap<DetailSpec, readonly THREE.Vector3[]>()
+/** The right folded wing's points, (i, j) at i * FOLD_T + j, and each one's t (its place down its column, 0 to 1). */
+interface Fold { at: readonly THREE.Vector3[]; ts: readonly number[] }
+
+/** each detail block's folded wing: every bird of a species shares it, and it takes a while to place */
+const placed = new WeakMap<DetailSpec, Fold>()
 
 /** Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. */
 export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
-  let at = placed.get(detail)
-  if (!at) placed.set(detail, (at = placeFold(detail)))
+  let fold = placed.get(detail)
+  if (!fold) placed.set(detail, (fold = placeFold(detail)))
+  const { at, ts } = fold
   const k = (i: number, j: number) => i * FOLD_T + j
   let low = Infinity
   for (const side of [1, -1] as const) {
@@ -433,7 +545,7 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
       for (let j = 0; j < FOLD_T; j++) {
         const p = at[k(i, j)]!
         low = Math.min(low, p.y)
-        row.push(m.vertex(new THREE.Vector3(p.x, p.y, side * p.z), 'wingFold', i / (FOLD_S - 1), j / (FOLD_T - 1), [[bone, 1]]))
+        row.push(m.vertex(new THREE.Vector3(p.x, p.y, side * p.z), 'wingFold', i / (FOLD_S - 1), ts[k(i, j)]!, [[bone, 1]]))
       }
       grid.push(row)
     }
