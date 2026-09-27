@@ -3,7 +3,7 @@ import { atlasKey as key, atlasReady, materialFor, paintSpecies, paintStats, typ
 import { paintJob } from './job'
 import { castAtlases, prepaint, type PaintWorker } from './prepaint'
 import { ATLAS_SIZE } from './atlas'
-import { TEST_DETAIL, TEST_SPEC } from '../detail/fixture'
+import { TEST_SWIM_DETAIL, TEST_SPEC } from '../detail/fixture'
 import { SPECIES, getSpec } from '../species'
 import { parseSpeciesSpec } from '../spec'
 import { expandCast } from '../spawn'
@@ -70,8 +70,9 @@ describe('castAtlases', () => {
     }
   })
   it('paints every version of a detailed species with versions, and nothing for block birds or flyovers', () => {
-    // a Mallard with a detail block and exactly two versions (Task 14 gives the real one three), the shorebirds as they are
-    const specs = { ...SPECIES, mallar3: parseSpeciesSpec({ ...getSpec('mallar3'), variants: { male: {}, female: {} }, detail: TEST_DETAIL }) }
+    // a Mallard with the test duck's detail block (a swimmer's has its waterline) and exactly two versions (the real
+    // one has three), the shorebirds as they are
+    const specs = { ...SPECIES, mallar3: parseSpeciesSpec({ ...getSpec('mallar3'), variants: { male: {}, female: {} }, detail: TEST_SWIM_DETAIL }) }
     const loc = {
       ...lake,
       cast: [

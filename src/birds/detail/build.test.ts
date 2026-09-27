@@ -173,8 +173,9 @@ describe('buildDetailedBird', () => {
     expect(billTipNow(m).distanceTo(m.anatomy.billTip)).toBeLessThan(1e-9)
   })
   it('refuses what it cannot build', () => {
-    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'perched' }))).toThrow(/standing and swimming/)
-    expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, posture: 'swimming' }))).toThrow(/detail.float/)
+    // the schema refuses these two at load (spec.test.ts); the builder still does, for a spec that never went through it
+    expect(() => buildDetailedBird({ ...TEST_SPEC, posture: 'perched' })).toThrow(/standing and swimming/)
+    expect(() => buildDetailedBird({ ...TEST_SPEC, posture: 'swimming' })).toThrow(/detail.float/)
     const sunk = { ...TEST_SWIM_DETAIL, float: { waterline: 1 } }
     expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SWIM_SPEC, detail: sunk }))).toThrow(/misses the body/)
     expect(() => buildDetailedBird(TEST_SPEC, 'male')).toThrow(/variant/)
