@@ -261,8 +261,8 @@ research's section 11; the field names are settled in the plan.
 - **Spacing:** each swimmer steers away from any other swimmer on the water,
   of any species and whichever zone it's in, closer than its style's spacing.
   Zones overlap (`near-water` lies partly inside `open-water`), so spacing is
-  lake-wide; each bird still swims only in its own zone. Flockmates use the style's
-  own spacing: a Shoveler's tandem 0.2–0.35 m, a Mallard's 0.3–2 m.
+  lake-wide; each bird still swims only in its own zone. Flockmates use the
+  style's own spacing: a Shoveler's tandem 0.2–0.35 m, a Mallard's 0.3–2 m.
 - **Motion rules** from the shorebird rounds: nothing snaps, poses ease in and
   out, and no move leans on the zone clamp.
 
@@ -504,7 +504,7 @@ For each style, over seeded simulations:
 - the Shoveler pair turns as one, 0.25 m apart, in one direction per bout
 - a grebe comes up 0–12 m from where it went down
 - spacing: no two swimmers on the water, in one zone or two overlapping ones,
-  come closer than the smaller of their spacings, beyond a brief tolerance
+  come closer than the larger of their spacings, beyond a brief tolerance
 - a bird under the water is not a targeting candidate
 - the cast schema accepts counts per version and rejects counts that don't sum
 
