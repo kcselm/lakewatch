@@ -27,4 +27,5 @@ export const SPEC: SpeciesSpec = {
     legs: 'legs set far back, never seen out of the water',
   },
   wingbeatHz: 7,
+  foraging: 'grebe',
 }

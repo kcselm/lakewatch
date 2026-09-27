@@ -27,4 +27,5 @@ export const SPEC: SpeciesSpec = {
     legs: 'yellow-green legs with lobed toes',
   },
   wingbeatHz: 5,
+  foraging: 'coot',
 }

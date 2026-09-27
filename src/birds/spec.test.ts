@@ -13,7 +13,7 @@ describe('parseSpeciesSpec', () => {
     expect(parseSpeciesSpec({ ...coot, foraging: 'plover' }).foraging).toBe('plover')
     expect(parseSpeciesSpec({ ...coot, foraging: 'dowitcher' }).foraging).toBe('dowitcher')
     for (const style of ['dabbler', 'shoveler', 'coot', 'grebe'] as const) expect(parseSpeciesSpec({ ...coot, foraging: style }).foraging).toBe(style)
-    expect(parseSpeciesSpec(coot).foraging).toBeUndefined()
+    expect(parseSpeciesSpec({ ...coot, foraging: undefined }).foraging).toBeUndefined()
     expect(() => parseSpeciesSpec({ ...coot, foraging: 'heron' })).toThrow(/foraging/)
   })
   it('requires every field mark', () => {
