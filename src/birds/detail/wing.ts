@@ -530,6 +530,11 @@ interface Fold { at: readonly THREE.Vector3[]; ts: readonly number[] }
 /** each detail block's folded wing: every bird of a species shares it, and it takes a while to place */
 const placed = new WeakMap<DetailSpec, Fold>()
 
+/** True once `detail`'s folded wing is placed and cached, so building another bird of the species places it no more. */
+export function isPlaced(detail: DetailSpec): boolean {
+  return placed.has(detail)
+}
+
 /** Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. */
 export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
   let fold = placed.get(detail)
