@@ -39,8 +39,9 @@ export const SPEC: SpeciesSpec = {
     // breast) were retraced to the photo's silhouette. The throat under the resting head, from the chin to the breast,
     // is retraced with tilted sections (neckBase to lores): the front outline lies within 0.8 mm of the photo's from
     // 10 mm below the hip up the throat, and within 1.8 mm under the chin, the chin rising steadily to the bill; the
-    // back of the neck and head stays within 1 mm of the earlier trace, the eye within 0.4 mm of the photo's, and the
-    // nape and crown stations move under 1 mm. It fell 6.5-8.3 mm short before the sections could tilt
+    // back of the neck and head stays within 1 mm of the earlier trace (measured 0.59 mm), and the eye within 0.4 mm
+    // of the photo's; the nape moves 0.95 mm and the crown 1.3 mm. It fell 6.5-8.3 mm short before the sections could
+    // tilt
     profile: [
       { label: 'rear',     x: -0.0638, y: -0.0254, up: 0.0066, down: 0.0058, halfWidth: 0.0055 },
       { label: 'rump',     x: -0.0479, y: -0.0217, up: 0.0099, down: 0.0129, halfWidth: 0.0098 },

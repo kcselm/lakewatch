@@ -79,6 +79,24 @@ describe('buildLoft', () => {
     const tilted = deep.map(s => (s.label! in tilt ? { ...s, tilt: tilt[s.label!]! } : s))
     expect(worstFold(createProfile(tilted), TEST_DETAIL.rig)).toBe(0)
   })
+  it('catches a crease that only appears once sections tilt', () => {
+    // TEST_DETAIL's spine never creases untilted (see above); twisting the crown one way and the eye the other
+    // turns their rings past square to the spine until they cross each other
+    const twisted = TEST_DETAIL.profile.map(s => {
+      if (s.label === 'crown') return { ...s, tilt: 30 }
+      if (s.label === 'eye') return { ...s, tilt: -30 }
+      return s
+    })
+    expect(worstFold(createProfile(twisted), TEST_DETAIL.rig)).toBeGreaterThan(0.003)
+    // the deep-throat fixture above only clears its crease tilted the right way (crown and eye forward, toward the
+    // bill); tilted the other way its sections still fold, now against their own tilted planes rather than the
+    // spine's
+    const throat: Record<string, number> = { nape: 0.03, occiput: 0.028, crown: 0.02 }
+    const deep = TEST_DETAIL.profile.map(s => (s.label! in throat ? { ...s, down: throat[s.label!]! } : s))
+    const wrongWay: Record<string, number> = { crown: -15, eye: -10 }
+    const wrong = deep.map(s => (s.label! in wrongWay ? { ...s, tilt: wrongWay[s.label!]! } : s))
+    expect(worstFold(createProfile(wrong), TEST_DETAIL.rig)).toBeGreaterThan(0.003)
+  })
   it('catches a spine that turns too tightly for its girth', () => {
     const tight = TEST_DETAIL.profile.map(s => (s.label === 'crown' ? { ...s, x: s.x - 0.012, y: s.y + 0.006 } : s))
     expect(worstFold(createProfile(tight), TEST_DETAIL.rig)).toBeGreaterThan(0.0005)
