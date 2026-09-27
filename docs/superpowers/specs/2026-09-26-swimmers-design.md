@@ -535,9 +535,25 @@ The birds' work and its reviews changed these:
   painted marks on the folded wing don't flicker through the skin at 65 m. The
   viewer's near plane follows its camera's distance (`src/player/optics.ts`,
   `src/viewer/main.ts`).
-- **Startup.** After the atlases paint, each detailed species' first build runs
-  one species at a time behind the title card, so the card keeps answering
-  (`src/birds/prewarm.ts`).
+- **Startup.** While the worker paints the atlases, the main thread places each
+  detailed species' folded wing, a species at a time. That is the costly part
+  of a species' first build, and the only per-species work the builder caches.
+  Then the cast is built (`src/birds/prewarm.ts`).
+  - The title card counts all three as one: "Getting the birds ready… N of 33",
+    for 20 atlases, 12 species, and the cast's build. It draws "32 of 33"
+    before the build starts.
+  - Measured in headless Chromium on this machine, two loads each, in seconds
+    from navigation:
+
+    | | Begin | longest pause |
+    |---|---|---|
+    | Before this round | 2.2–2.3 | 2.2 |
+    | Throwaway first builds after painting | 9.7–9.9 | 1.4–1.5 |
+    | Folds placed while painting | 4.6–5.9 | 1.3–1.6 |
+    | The same, with no Worker | 8.4–8.5 | 1.4 |
+
+  - A throwaway build of each species after the folds are placed was measured
+    and dropped. It cut the cast's build by about 0.2 s but took 0.4 s itself.
 - **The Gadwall's back** is lowered 6–10 mm from the traced January drake,
   whose alternate-plumage tertials peak it, to the late-September birds'
   height: 61 mm above the water.
@@ -591,9 +607,21 @@ Found while building and in the reviews, and accepted for this round:
   texel.
 - **The tail spreads to the stern's width,** so from three-quarter and higher
   views it reads as a broad plate.
-- **Each species' first build** still takes a few hundred milliseconds. Placing
-  the fold in the paint worker, or precomputing it, would shorten the wait
-  behind the title card.
+- **Begin still comes later than before this round:** 4.6–5.9 s against
+  2.2–2.3 s (see "Startup" above).
+  - The atlases and the folds are ready at 3.5–4.8 s. Painting is the longer of
+    the two.
+  - The last 1.0–1.2 s is the cast's build: one block, while the card reads "32
+    of 33". Building the cast a few birds a frame, in `spawnCast`, would break
+    it up next.
+  - The longest pause, 1.3–1.6 s, is the page's own load, before the card is
+    first drawn. It was 2.2 s before this round.
+  - With no Worker, the main thread paints and places both, and Begin comes at
+    8.4–8.5 s.
+- **The worker paints an atlas more slowly than the main thread:** about 108 ms,
+  against 82 ms on the no-Worker path and 64 ms before this round. The worker
+  may land on a slower core of this machine's hybrid CPU. Two workers, splitting
+  the jobs, would shorten painting.
 
 ## Build order
 
