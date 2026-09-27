@@ -123,7 +123,7 @@ const EXPECTED_ATLAS: Record<string, string> = {
   // new: the Mallard's three versions (Task 14); with no version it paints the drake's
   mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
   // new: the American Wigeon's three versions (Task 16); with no version it paints the female-type bird's
-  amewig: '75dc9bbf', 'amewig:female': '75dc9bbf', 'amewig:eclipse': '07656a73', 'amewig:male': 'bd49e4d9',
+  amewig: '75dc9bbf', 'amewig:female': '75dc9bbf', 'amewig:eclipse': '5ca710c7', 'amewig:male': 'bd49e4d9',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {

@@ -164,6 +164,8 @@ const ECLIPSE: Layer[] = [
   // the back and scapulars: dark brown, scalloped with rusty fringes, some grey vermiculated feathers
   { kind: 'fill', where: { part: 'skin', from: 'tailBase', to: 'neckBase', band: [0, 0.27] }, color: '#4b3a30', soft: 3 },
   { kind: 'feathers', where: { part: 'skin', from: 'tailBase', to: 'neckBase', band: [0, 0.27] }, length: 14, width: 10, center: '#3f3028', edge: '#9a6a4a', edgeWidth: 1.8, soft: 3 },
+  { kind: 'feathers', where: { part: 'skin', from: 'hip', to: 'flank', band: [0.02, 0.22] }, length: 12, width: 9, center: '#8e8680', edge: '#6f6862', edgeWidth: 1, soft: 4, opacity: 0.4 },
+  { kind: 'bars', where: { part: 'skin', from: 'hip', to: 'flank', band: [0.02, 0.22] }, color: '#3a3430', width: 0.4, spacing: 1.2, angle: 90, blur: 0.25, soft: 4, opacity: 0.25 },
   // the stern: a dark undertail behind a smaller, duller whitish patch at the rear of the flank
   { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.3, 1] }, color: '#2b2622', soft: 3 },
   { kind: 'fill', where: { part: 'skin', from: 'rump', to: 'tailBase', band: [0.66, 1] }, color: '#3a322c', soft: 3 },
@@ -317,7 +319,7 @@ export const SPEC: SpeciesSpec = {
       'Kortright 1953, The Ducks, Geese and Swans of North America pp. 183-185, 383 (plumages, soft parts, field marks, masses)',
       'Cox & Barry 2005, Birding 37(2): 156-164 (the forewing on the water, head shape, the black line round the bill, the pale eyelid)',
       'Wishart 1985, Canadian Field-Naturalist 99: 172-178; Bent 1923 p. 93 (the drakes\' moult out of eclipse in late September)',
-      'bill top view from the Skullsite skull of Anas americana, male (measured only)',
+      'bill top view from the Skullsite skull of Anas americana, male, https://skullsite.com/skullpage/anas-americana-american-wigeon/ (licence not stated; measured only)',
       'profile traced from iNaturalist photo 99559895 (observation 62160899) (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/photos/99559895',
       'the drake\'s forewing from iNaturalist photo 99559428 (observation 62160899) (c) Patricia (insectology), CC BY-NC, https://www.inaturalist.org/photos/99559428',
       'female from iNaturalist photo 157036064 (observation 94650895) (c) Seymore Gulls, CC BY-NC, https://www.inaturalist.org/photos/157036064',
