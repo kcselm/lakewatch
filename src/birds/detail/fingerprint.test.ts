@@ -92,6 +92,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   lobdow: { geometry: 'bedf44dc', poses: 'f52423c1' },          // the throat retraced (Task 5); poses were 449d38d8
   mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
   pibgre: { geometry: '7aa2294d', poses: '52b7741a' },          // new: the Pied-billed Grebe, detailed (Task 19); the wing's last tenth flattened in review (was bc526bd5)
+  amewig: { geometry: '23baa5a5', poses: '8002ac5d' },          // new: the American Wigeon, detailed (Task 16)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -124,6 +125,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
   // new: the Pied-billed Grebe's two versions (Task 19); with no version it paints the basic adult's
   pibgre: '85bc5af8', 'pibgre:basic': '85bc5af8', 'pibgre:juvenile': '302095eb',
+  // new: the American Wigeon's three versions (Task 16); with no version it paints the female-type bird's
+  amewig: '75dc9bbf', 'amewig:female': '75dc9bbf', 'amewig:eclipse': '5ca710c7', 'amewig:male': 'bd49e4d9',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
