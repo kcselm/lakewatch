@@ -56,8 +56,8 @@ export interface BehaviorContext {
   /** the species' code, for a style whose settings differ by species (the dabbler's) */
   species?: string
   /**
-   * swimmers: every swimmer in this bird's zone, of any species, this bird's own controller included (it knows itself
-   * by that); the spawner fills it
+   * swimmers: every swimmer on the water, of any species and in any zone, this bird's own controller included (it
+   * knows itself by that); the spawner fills it
    */
   neighbours?: () => readonly Neighbour[]
   onEvent?: (name: 'splash' | 'flap', x: number, y: number, z: number) => void

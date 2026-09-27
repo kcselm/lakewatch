@@ -118,8 +118,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const object = new THREE.Group()
   const rng = makeRng(deps.seed)
   const groups = new Map<string, NonNullable<BehaviorContext['group']>>()
-  /** the swimmers in each zone, which every swimmer there keeps its distance from */
-  const swimmers = new Map<string, BehaviorController[]>()
+  /**
+   * every swimmer on the water, which each keeps its distance from whatever their zones: zones overlap (the lake's near
+   * and open water do), and each bird still swims only in its own
+   */
+  const swimmers: BehaviorController[] = []
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
 
@@ -141,8 +144,6 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       groups.set(ind.groupKey, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
     }
     const group = groups.get(ind.groupKey)!
-    if (swim && !swimmers.has(ind.zone)) swimmers.set(ind.zone, [])
-    const inZone = swimmers.get(ind.zone) ?? []
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
@@ -151,14 +152,14 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
       group: ind.behavior === 'probe' || swim ? group : undefined,
       perch,
-      neighbours: swim ? () => inZone : undefined,
+      neighbours: swim ? () => swimmers : undefined,
       ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
-    const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, inZone)
+    const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, swimmers)
       : zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
-    if (swim) inZone.push(controller)
+    if (swim) swimmers.push(controller)
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
     object.add(model.group)
     birds.push({ controller, pose: defaultPose(), model })

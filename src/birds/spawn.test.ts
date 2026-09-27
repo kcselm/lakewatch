@@ -203,13 +203,39 @@ describe('spawnCast swimmers', () => {
       expect(shortestGap(d.registry.all())).toBeGreaterThanOrEqual(0)
     }
   })
-  it("lets every swimmer see the others in its zone: crowded into a small pond, none comes inside another's spacing", () => {
+  it("lets every swimmer see the others: crowded into a small pond, none comes inside another's spacing", () => {
     const d = deps(4)
     const world = spawnCast(pond([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 4 }, { species: 'y00475', behavior: 'swim', zone: 'w', count: 6 }], 6, 4), d)
     let gap = Infinity
     for (let i = 0; i < 60 * 30; i++) { world.update(1 / 30, d.wind); gap = Math.min(gap, shortestGap(d.registry.all())) }
     expect(gap).toBeGreaterThan(-0.01)
   })
+  it('keeps every swimmer clear of those in other zones: flocks in two overlapping zones meet, and none swims into another', () => {
+    // Gadwalls in one zone; Coots and a grebe, which keeps 1.5 m, in another that overlaps it by 5 of its 8 m, as the
+    // lake's near and open water overlap. The flocks meet within seconds; while each swimmer saw only its own zone's,
+    // they swam through each other.
+    const cast: Location['cast'] = [
+      { species: 'gadwal', behavior: 'swim', zone: 'a', count: 3 },
+      { species: 'y00475', behavior: 'swim', zone: 'b', count: 6 },
+      { species: 'pibgre', behavior: 'swim', zone: 'b', count: 1 },
+    ]
+    const l: Location = {
+      ...loc(cast),
+      zones: {
+        a: { kind: 'polygon', points: [[0, 0], [8, 0], [8, 5], [0, 5]] },
+        b: { kind: 'polygon', points: [[3, 0], [11, 0], [11, 5], [3, 5]] },
+      },
+    }
+    const zoneOf = Object.fromEntries(cast.map(e => [e.species, e.zone]))
+    for (const seed of [1, 2]) {
+      const d = deps(seed)
+      const world = spawnCast(l, d)
+      world.update(1e-6, d.wind)
+      let gap = shortestGap(d.registry.all(), zoneOf)
+      for (let i = 0; i < 120 * 30; i++) { world.update(1 / 30, d.wind); gap = Math.min(gap, shortestGap(d.registry.all(), zoneOf)) }
+      expect(gap, `seed ${seed}`).toBeGreaterThan(-0.01)
+    }
+  }, 60_000)   // two seeds x 120 s of ten swimmers: about 6 s alone, and a busy full run can take three times as long
 })
 
 describe('spawnCast divers', () => {

@@ -68,7 +68,7 @@ export function createSwimmer(ctx: BehaviorContext, x: number, z: number, S: Swi
     spacingTo(n: Neighbour): number {
       return n.group !== undefined && n.group === flock.group ? S.spacing.flock : Math.max(S.spacing.other, n.spacing ?? 0)
     },
-    /** the other swimmers in the zone, but for a partner, and any under the water */
+    /** the other swimmers on the water, whatever their zone, but for a partner, and any under the water */
     others(): Neighbour[] {
       return (ctx.neighbours?.() ?? []).filter(n => n !== body.self && n !== body.partner && !n.submerged)
     },
