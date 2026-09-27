@@ -4,35 +4,23 @@ import { Wind } from '../world/wind'
 import { RippleBuffer, MAX_RIPPLES } from '../world/ripples'
 import { loadLocation } from '../location'
 import { targetCandidates } from '../player/candidates'
-import type { SpeciesSpec, Foraging } from './spec'
-
-// Each swimmer in the style its species file will name when the species is detailed (the Mallard in Task 14, the
-// rest in Part 2). Until then the spec has no style and every swimmer would be a dabbler; a spec that already names
-// one keeps it.
-vi.mock('./species', async importOriginal => {
-  const real = await importOriginal<typeof import('./species')>()
-  const STYLE: Record<string, Foraging> = { mallar3: 'dabbler', gadwal: 'dabbler', amewig: 'dabbler', norsho: 'shoveler', y00475: 'coot', pibgre: 'grebe' }
-  const styled = (s: SpeciesSpec): SpeciesSpec => (STYLE[s.code] && !s.foraging ? { ...s, foraging: STYLE[s.code] } : s)
-  return { ...real, getSpec: (code: string) => styled(real.getSpec(code)) }
-})
 
 /**
- * Everything on the lake that rings the water, as the round's cast will have it: the 24 swimmers (three grebes, not
- * two), the six dowitchers, and the Kingfisher, whose dives ring too.
+ * Everything on the lake that rings the water: the 24 swimmers, each in the style its species file names, the six
+ * dowitchers, and the Kingfisher, whose dives ring too.
  */
 function ringers() {
   const lake = loadLocation()
   const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1']
-  const cast = lake.cast.filter(e => RINGS.includes(e.species)).map(e => (e.species === 'pibgre' ? { ...e, count: 3 } : e))
-  return { ...lake, cast }
+  return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species)) }
 }
 
 describe('the whole cast on the water', () => {
   it('rings the water within the buffer: over ten minutes no ring is pushed out before it fades, about 15 alive at once', () => {
-    // 24 swimmers' wakes, dips, and dives, six dowitchers' bills, and the Kingfisher: at 10 frames a second, which
-    // rings the water as the game does, for two seeds. In the scratch run (and over 5 seeds of 20 minutes each) the
-    // live rings averaged 14.0-14.6, 23 at the 99th percentile, and 28-30 at most; at 60 frames a second, 15.7-16.2
-    // on average and 28-32 at most, with nothing pushed out.
+    // 24 swimmers' wakes, dips, and dives, six dowitchers' bills, and the Kingfisher, for two seeds. The test steps at
+    // 10 frames a second to keep it quick; the game steps at the display rate. At 60 frames a second, in the scratch
+    // runs of ten minutes each (seeds 42, 7, and 11), the live rings averaged 15-16 and peaked at 28-30, with nothing
+    // pushed out.
     const counts: number[] = []
     let dropped = 0
     for (const seed of [42, 7]) {
