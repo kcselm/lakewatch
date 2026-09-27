@@ -179,12 +179,13 @@ export const SPEC: SpeciesSpec = {
     // photo's. The loft lies within 0.5 mm of the (lowered) outline on average along the back, the back of the head,
     // and the breast, 0.6 mm at the chin and the crown, 0.8 mm at the nape notch, 0.9 mm at the forehead, and 1.1 mm
     // under the stern; the rump under the tertials is drawn by hand from the black uppertail coverts to the back.
-    // The tail base is 41 mm wide each side, a few mm narrower than the flat-sided folded wings need to cover the
-    // rounded black rump where they cross it (wider, the black showed through them from above and in a tip-up)
+    // The tail base is 47 mm wide each side, as traced. The review narrowed it to 41 mm while the folded wings stood
+    // too close to the rounded black rump where they cross it (the black showed through them from above and in a
+    // tip-up); since the builder keeps the wings clear of the skin everywhere (Task 19b), it is back.
     profile: [
       { label: 'rear',     x: -0.1101, y: 0.0046, up: 0.0070, down: 0.0055, halfWidth: 0.0070 },
       { label: 'rump',     x: -0.0856, y: 0.0024, up: 0.0151, down: 0.0111, halfWidth: 0.0270 },
-      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0313, down: 0.0331, halfWidth: 0.0410 },
+      { label: 'tailBase', x: -0.0497, y: 0.0000, up: 0.0313, down: 0.0331, halfWidth: 0.0470 },
       { label: 'hip',      x: 0.0000,  y: 0.0000, up: 0.0423, down: 0.0597, halfWidth: 0.0610 },
       { label: 'flank',    x: 0.0450,  y: 0.0003, up: 0.0462, down: 0.0706, halfWidth: 0.0610, tilt: 5.3 },
       { label: 'mantle',   x: 0.0720,  y: 0.0046, up: 0.0459, down: 0.0693, halfWidth: 0.0570, tilt: 12.8 },

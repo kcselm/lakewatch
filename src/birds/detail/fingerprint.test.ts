@@ -99,7 +99,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   amewig: { geometry: '6ddf2c6e', poses: '6a1f520c' },          // the American Wigeon, detailed (Task 16); were 23baa5a5, 8002ac5d
   norsho: { geometry: 'f1493770', poses: '57cfdf5e' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
   y00475: { geometry: '2b79915c', poses: '8997b965' },          // the American Coot, detailed (Task 18); the chin refitted (review); were 5c786913, 6e241e2f
-  gadwal: { geometry: '6101feb8', poses: '5c9af423' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19
+  gadwal: { geometry: '032a15e1', poses: 'd34e32f5' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -138,8 +138,10 @@ const EXPECTED_ATLAS: Record<string, string> = {
   norsho: 'd7db4d80', 'norsho:eclipse': '09744929', 'norsho:female': 'd7db4d80',
   // new: the Coot's two versions (Task 18); with no version it paints the adult's
   y00475: '6ea851ec', 'y00475:adult': '6ea851ec', 'y00475:juvenile': '0afe9995',
-  // new: the Gadwall's two versions (Task 15); with no version it paints the female's
-  gadwal: '423851a1', 'gadwal:male': 'd6f3b199', 'gadwal:female': '423851a1',
+  // new: the Gadwall's two versions (Task 15); with no version it paints the female's. Task 19b put the tail base back to
+  // 47 mm each side; the skin's girth there sets its atlas layout, so both versions' prints changed (were 423851a1 and
+  // d6f3b199)
+  gadwal: 'cf7aa4de', 'gadwal:male': '3fc0ff05', 'gadwal:female': 'cf7aa4de',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
