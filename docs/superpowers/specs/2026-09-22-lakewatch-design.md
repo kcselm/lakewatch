@@ -217,7 +217,8 @@ Three implementations:
 - **Detailed**: `buildDetailedBird(spec, variant?)` for species with a
   `detail` block: one skinned mesh lofted from a traced side profile, built
   to published measurements, with jointed legs and a painted atlas of field
-  marks. See `2026-09-24-detailed-birds-design.md`.
+  marks. See `2026-09-24-detailed-birds-design.md`. The six swimmers float
+  on a traced waterline; see `2026-09-26-swimmers-design.md`.
 - **GLTF**: loads a Blender export whose node names follow the part
   convention. The species file points at the file; nothing else changes.
 
@@ -225,14 +226,15 @@ Three implementations:
 
 Procedural curves blended into `PoseState` by the behavior: wingbeat,
 coot head-pump, heron neck extend and strike, plover run-stop-look-peck,
-sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up, preen and
-wing-stretch idles.
+sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
+shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
+preen and wing-stretch idles.
 
 ### Behaviors
 
 | Behavior | What it does |
 |---|---|
-| swim | Wander in a water zone, drift downwind, dabble or dive occasionally, spawn ripple rings |
+| swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows. Swimmers keep their distance from each other |
 | wade | Slow steps along a shore zone, long stillness, strike |
 | probe | Forage in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together; a dowitcher stands belly-deep in a tight flock and stitches, its bill going down and up and its head dipping into the water |
 | perch | Sit on the snag, shuffle, stretch, short loop flight and return |
@@ -322,6 +324,8 @@ accuracy.
 ## UI
 
 - **Title card**: name, click to begin (unlocks audio), credits link.
+  Begin waits while the birds' plumage atlases paint in a Web Worker, with
+  a count.
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel

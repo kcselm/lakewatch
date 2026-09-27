@@ -29,9 +29,13 @@ harvest scripts. `data/ambience.json` is the ambience manifest.
 and for converted ones a `detail` block (traced profile, measurements,
 field-mark layers) that the detailed builder turns into a skinned, painted
 bird. A probing species can also set `probeDepth`, how far (in metres) its
-bill goes into the mud at the bottom of a peck. `npm run dev`, then
-`/viewer.html`, opens the model viewer: any two species at true scale,
-through the game's optics, over a reference photo.
+bill goes into the mud at the bottom of a peck. A swimming species sets
+`float.waterline` (where the water meets it in its traced side view), and
+may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
+`tail.shape: 'none'`, `parts` only some plumage versions have, and a station
+`tilt`. A cast entry can give exact counts per plumage version.
+`npm run dev`, then `/viewer.html`, opens the model viewer: any two
+species at true scale, through the game's optics, over a reference photo.
 
 ### Harvest
 
