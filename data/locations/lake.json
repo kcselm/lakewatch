@@ -22,7 +22,7 @@
   },
   "cast": [
     { "species": "y00475",  "behavior": "swim",  "zone": "near-water", "count": 6 },
-    { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": "mixed" },
+    { "species": "mallar3", "behavior": "swim",  "zone": "near-water", "count": 4, "plumage": { "male": 1, "maleMoult": 1, "female": 2 } },
     { "species": "gadwal",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },
     { "species": "amewig",  "behavior": "swim",  "zone": "open-water", "count": 5, "plumage": "mixed" },
     { "species": "norsho",  "behavior": "swim",  "zone": "open-water", "count": 3, "plumage": "mixed" },

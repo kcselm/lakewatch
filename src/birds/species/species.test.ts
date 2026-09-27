@@ -82,8 +82,8 @@ describe('species specs', () => {
       expect(() => getSpec(code), code).toThrow(/No species spec/)
     }
   })
-  it('mallard has male and female variants', () => {
-    expect(Object.keys(getSpec('mallar3').variants).sort()).toEqual(['female', 'male'])
+  it('mallard has its three late-September versions: the drake, the drake still moulting, and the female', () => {
+    expect(Object.keys(getSpec('mallar3').variants).sort()).toEqual(['female', 'male', 'maleMoult'])
   })
   it('heron stands taller than it is long', () => {
     const h = getSpec('grbher3')

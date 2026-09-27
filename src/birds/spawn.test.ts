@@ -21,10 +21,10 @@ describe('expandCast', () => {
     expect(out).toHaveLength(3)
     expect(out.every(b => b.species === 'y00475' && b.variant === undefined)).toBe(true)
   })
-  it('assigns male and female variants for mixed plumage', () => {
+  it("assigns every one of the species' versions for mixed plumage", () => {
     const out = expandCast(loc([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 20, plumage: 'mixed' }]), makeRng(2))
     const variants = new Set(out.map(b => b.variant))
-    expect(variants).toEqual(new Set(['male', 'female']))
+    expect(variants).toEqual(new Set(['male', 'maleMoult', 'female']))
   })
   it('uses the named variant when plumage is not mixed', () => {
     const out = expandCast(loc([{ species: 'mallar3', behavior: 'swim', zone: 'w', count: 2, plumage: 'female' }]), makeRng(3))

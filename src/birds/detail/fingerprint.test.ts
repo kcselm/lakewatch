@@ -87,6 +87,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   lesyel: { geometry: '923592bf', poses: 'e640b069' },
   pecsan: { geometry: 'fc0011fe', poses: 'bac5bab5' },
   lobdow: { geometry: 'bedf44dc', poses: '449d38d8' },          // the throat retraced (Task 5)
+  mallar3: { geometry: '0e8b620c', poses: '821985c4' },         // new: the Mallard, detailed (Task 14)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -115,6 +116,8 @@ function atlasPrint(spec: (typeof SPECIES)[string], variant?: string): string {
 // what it was. The dowitcher's is new: its retraced neck and head (Task 5) give its skin new lengths and girths.
 const EXPECTED_ATLAS: Record<string, string> = {
   killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: 'e1e47f53',
+  // new: the Mallard's three versions (Task 14); with no version it paints the drake's
+  mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
