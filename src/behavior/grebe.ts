@@ -67,8 +67,12 @@ export const GREBE: GrebeSettings = {
   spacing: { flock: 10, other: 1.5 },
   // no duck's wake: a grebe leaves a small ring every 1.5 s as it swims (`cruising.ring`)
   wake: { every: 0.9, size: 1, above: Infinity },
-  // about half its time in foraging bouts of 3-12 dives; the rest cruising and loafing (the split is ours)
-  bouts: { share: 0.5, dives: [3, 12] },
+  // foraging bouts of 3-12 dives; the rest cruising and loafing (the split is ours). Bleich's feeding birds were 70%
+  // submerged within a bout; here about 60% of a bout is under water (the entry, the peer, and the look about on coming
+  // up take the rest), so to be under water about 35% of the time, as the spec has it, a grebe spends nearly 60% of its
+  // time in bouts. The shares are weights: 0.72 against the rest's 0.42 comes to that, as a bout never follows a bout
+  // and sinking to watch takes 7% of its time.
+  bouts: { share: 0.72, dives: [3, 12] },
   // each works its own patch; 6 m either way is ours: with the patches 20 m apart, 8 m of water lies between them
   patch: { radius: 6 },
   // a small ring about every 1.5 s as it swims; a cruise goes 1-5 m (ours)

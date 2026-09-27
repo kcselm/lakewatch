@@ -229,11 +229,13 @@ describe('grebe', () => {
     expect(mean(pauses)).toBeGreaterThan(GREBE.resurface.pauseMean - 0.3)
     expect(mean(pauses)).toBeLessThan(GREBE.resurface.pauseMean + 0.3)
   })
-  it('spends about a third of its time under water', () => {
+  it('spends about 35% of its time under water', () => {
+    // the spec's ~35%: in the scratch run, 12 grebe-hours came to 33.5-36.4% over twelve sets of four seeds (35.1% on
+    // average, the spread 0.8%)
     let under = 0, all = 0
     for (const h of hours) for (const f of h.frames) for (const y of f.ys) { all++; if (y <= -DEPTH + 1e-9) under++ }
-    expect(under / all).toBeGreaterThan(0.25)
-    expect(under / all).toBeLessThan(0.4)
+    expect(under / all).toBeGreaterThan(0.325)
+    expect(under / all).toBeLessThan(0.375)
   })
   it('keeps at least 10 m from the other grebes on the water, coming up clear of them too', () => {
     // one passing under another's patch is out of sight, and doesn't count
