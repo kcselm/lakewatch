@@ -95,6 +95,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   amewig: { geometry: '23baa5a5', poses: '8002ac5d' },          // new: the American Wigeon, detailed (Task 16)
   norsho: { geometry: '457394f6', poses: '24395fd5' },          // new: the Northern Shoveler, detailed (Task 17)
   y00475: { geometry: '5c786913', poses: '6e241e2f' },          // new: the American Coot, detailed (Task 18); the chin refitted (review)
+  gadwal: { geometry: 'd4acba2f', poses: '420e1f19' },          // new: the Gadwall, detailed (Task 15)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -133,6 +134,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   norsho: 'd7db4d80', 'norsho:eclipse': '09744929', 'norsho:female': 'd7db4d80',
   // new: the Coot's two versions (Task 18); with no version it paints the adult's
   y00475: '6ea851ec', 'y00475:adult': '6ea851ec', 'y00475:juvenile': '0afe9995',
+  // new: the Gadwall's two versions (Task 15); with no version it paints the female's
+  gadwal: '423851a1', 'gadwal:male': 'd6f3b199', 'gadwal:female': '423851a1',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
