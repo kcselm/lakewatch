@@ -104,7 +104,7 @@ export const COOT: CootSettings = {
 
 type State = 'travel' | 'cruise' | 'peck' | 'headDip' | 'tipUp' | 'dive' | 'loaf' | 'preen' | 'alert'
 type DivePhase = 'dip' | 'lunge' | 'under' | 'rise' | 'eat'
-const NECK: Record<State, number> = { travel: 0.6, cruise: 0.6, peck: 0.8, headDip: 1, tipUp: 1, dive: 1, loaf: 0.15, preen: 0.3, alert: 1 }
+export const NECK: Record<State, number> = { travel: 0.6, cruise: 0.6, peck: 0.8, headDip: 1, tipUp: 1, dive: 1, loaf: 0.15, preen: 0.3, alert: 1 }
 const step = (v: number, want: number, by: number) => (v < want ? Math.min(want, v + by) : Math.max(want, v - by))
 /**
  * metres to spare beyond the spacing in a spot a coot makes for under water: the birds on the surface keep swimming,

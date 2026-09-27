@@ -81,7 +81,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const bill: BillResult = buildBill(m, detail, profile)
   const shield = buildShield(m, detail, profile)
   buildEyes(m, detail, profile)
-  const fold = buildFoldedWings(m, detail, profile)
+  const fold = buildFoldedWings(m, detail)
   const shoulder = shoulderAt(detail, profile)
   buildSpreadWings(m, detail, shoulder)
   const tail = buildTail(m, detail, profile)

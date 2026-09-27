@@ -93,7 +93,7 @@ export const SHOVELER: ShovelerSettings = {
 }
 
 type State = 'cruise' | 'loaf' | 'preen' | 'alert' | 'skim' | 'circle' | 'tipUp'
-const NECK: Record<State, number> = { cruise: 0.3, loaf: 0.15, preen: 0.3, alert: 1, skim: 1, circle: 1, tipUp: 1 }
+export const NECK: Record<State, number> = { cruise: 0.3, loaf: 0.15, preen: 0.3, alert: 1, skim: 1, circle: 1, tipUp: 1 }
 /** what a flockmate may be doing when asked to spin: feeding or resting, not under way or already spinning */
 const FREE: readonly string[] = ['skim', 'loaf', 'preen', 'alert']
 /** how far outside its place on the circle a gathering bird swims to, before gliding in onto it, metres */

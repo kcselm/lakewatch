@@ -143,6 +143,19 @@ function paintAtlasPanel(): void {
 }
 
 // --- camera --------------------------------------------------------------------------------------
+/**
+ * The near plane: a field view's is its optics' (player/optics.ts), as in the game; an orbiting camera's follows its
+ * distance to its target, a 200th of it and at least 1 cm (a fixed 0.01 m left depth steps of about 7 mm at 35 m, and
+ * showed z-fighting the game never would).
+ */
+function fitNear(): void {
+  const field = state.field ? FIELD_VIEWS[state.field] : null
+  const near = field ? field.near : Math.max(0.01, camera.position.distanceTo(controls.target) / 200)
+  if (near === camera.near) return
+  camera.near = near
+  camera.updateProjectionMatrix()
+}
+
 function place(): void {
   const field = state.field ? FIELD_VIEWS[state.field] : null
   const w = field ? 1280 : innerWidth, h = field ? 720 : innerHeight
@@ -306,6 +319,7 @@ function frame(): void {
     if (state.walk) s.model.group.position.x += stride % WALK_LOOP
     s.model.pose(p)
   }
+  fitNear()
   renderer.render(scene, camera)
 
   labels.replaceChildren()

@@ -83,19 +83,28 @@ function posePrint(m: DetailedBirdModel): string {
 // every `poses` print moved, knowingly, when headBob gained the head pump's rise and fall (the head goes up half as far
 // as it goes forward; Task 10 review). Only POSES' two headBob poses move: in the game only the coot sets a non-zero
 // headBob, so no shipped bird moves differently. The geometry prints are untouched.
+// Task 19b moved every geometry print, knowingly: the folded wing now stands GAP (1.5 mm) clear of the loft as it is
+// meshed, along the wing's normal, everywhere on it, on 27 columns (it had 14, each now every other one). The pose
+// prints moved with the folded wing's bone, which sits at the wrist, wherever the wrist moved; the yellowlegs' wrists
+// lie off the body, where nothing moved, so their pose prints did not. The atlases are untouched. Then the wing kept
+// further off skin that moves with the neck (wing.ts, FLARE): every geometry print but the grebe's moved again (its
+// wing lies near no such skin), and the pose prints wherever the wrist moved (not the Mallard's, nor the Lesser
+// Yellowlegs'). Then each column's rows were spaced along the skin, and the wing pulled back in close to it: every
+// geometry print moved again, and the pose prints of the Killdeer, the Least Sandpiper, the Greater Yellowlegs and the
+// Dowitcher, whose wrists moved.
 const EXPECTED: Record<string, { geometry: string; poses: string }> = {
-  killde: { geometry: 'f5d077d0', poses: 'f8173f03' },          // poses were 4d9550b0 before the head pump's arc
-  leasan: { geometry: '83eeff1f', poses: 'cfa4b2d9' },          // were 0cd6b93e
-  greyel: { geometry: '7671be05', poses: '9f3dded8' },          // were 88449834
-  lesyel: { geometry: '923592bf', poses: 'b525d3d3' },          // were e640b069
-  pecsan: { geometry: 'fc0011fe', poses: '086a1105' },          // were bac5bab5
-  lobdow: { geometry: 'bedf44dc', poses: 'f52423c1' },          // the throat retraced (Task 5); poses were 449d38d8
-  mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
-  pibgre: { geometry: '7aa2294d', poses: '52b7741a' },          // new: the Pied-billed Grebe, detailed (Task 19); the wing's last tenth flattened in review (was bc526bd5)
-  amewig: { geometry: '23baa5a5', poses: '8002ac5d' },          // new: the American Wigeon, detailed (Task 16)
-  norsho: { geometry: '457394f6', poses: '24395fd5' },          // new: the Northern Shoveler, detailed (Task 17)
-  y00475: { geometry: '5c786913', poses: '6e241e2f' },          // new: the American Coot, detailed (Task 18); the chin refitted (review)
-  gadwal: { geometry: 'd4acba2f', poses: '420e1f19' },          // new: the Gadwall, detailed (Task 15)
+  killde: { geometry: '7c0165b2', poses: '1e8af947' },          // were f5d077d0, f8173f03 before Task 19b; poses 4d9550b0 before the head pump's arc
+  leasan: { geometry: '08195eea', poses: '8da0f82d' },          // were 83eeff1f, cfa4b2d9; poses 0cd6b93e
+  greyel: { geometry: '115716c3', poses: 'f5f09105' },          // geometry was 7671be05; poses 88449834
+  lesyel: { geometry: '7d825b07', poses: 'b525d3d3' },          // geometry was 923592bf; poses e640b069
+  pecsan: { geometry: '7973625f', poses: 'ff0f04c9' },          // were fc0011fe, 086a1105; poses bac5bab5
+  lobdow: { geometry: 'fb46c144', poses: '2b3e77bf' },          // the throat retraced (Task 5); were bedf44dc, f52423c1; poses 449d38d8
+  mallar3: { geometry: '3d92faa1', poses: 'e879d30e' },         // the Mallard, detailed (Task 14); were 0e8b620c, 9e4a41a2; poses 821985c4
+  pibgre: { geometry: '3e8d46e5', poses: '87a95e1c' },          // the Pied-billed Grebe, detailed (Task 19); were 7aa2294d, 52b7741a; geometry bc526bd5 before the wing's last tenth flattened
+  amewig: { geometry: 'bac74eba', poses: 'f90d45d9' },          // the American Wigeon, detailed (Task 16); were 23baa5a5, 8002ac5d
+  norsho: { geometry: '43f8e74d', poses: '3a31c6da' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
+  y00475: { geometry: '3d6eeba6', poses: 'eb57fa07' },          // the American Coot, detailed (Task 18); the chin refitted (review); were 5c786913, 6e241e2f
+  gadwal: { geometry: '0ae3390b', poses: 'c200f85d' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -134,8 +143,10 @@ const EXPECTED_ATLAS: Record<string, string> = {
   norsho: 'd7db4d80', 'norsho:eclipse': '09744929', 'norsho:female': 'd7db4d80',
   // new: the Coot's two versions (Task 18); with no version it paints the adult's
   y00475: '6ea851ec', 'y00475:adult': '6ea851ec', 'y00475:juvenile': '0afe9995',
-  // new: the Gadwall's two versions (Task 15); with no version it paints the female's
-  gadwal: '423851a1', 'gadwal:male': 'd6f3b199', 'gadwal:female': '423851a1',
+  // new: the Gadwall's two versions (Task 15); with no version it paints the female's. Task 19b put the tail base back to
+  // 47 mm each side; the skin's girth there sets its atlas layout, so both versions' prints changed (were 423851a1 and
+  // d6f3b199)
+  gadwal: 'cf7aa4de', 'gadwal:male': '3fc0ff05', 'gadwal:female': 'cf7aa4de',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {

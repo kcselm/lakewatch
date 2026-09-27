@@ -3,14 +3,14 @@ import { OPTICS } from '../player/optics'
 export const VIEWS = ['side', 'front', 'top', 'three'] as const
 export type View = (typeof VIEWS)[number]
 
-/** Field views: how the player sees the pair from the bank. */
+/** Field views: how the player sees the pair from the bank, through the game's optics (their fov and near plane). */
 export const FIELD_VIEWS = {
-  scope22: { label: 'telescope, 22 m (shallows)', distance: 22, fov: OPTICS.telescope.fov },
-  scope35: { label: 'telescope, 35 m (open water)', distance: 35, fov: OPTICS.telescope.fov },
-  scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov },
-  bino15: { label: 'binoculars, 15 m (near water)', distance: 15, fov: OPTICS.binoculars.fov },
-  bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov },
-  bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov },
+  scope22: { label: 'telescope, 22 m (shallows)', distance: 22, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  scope35: { label: 'telescope, 35 m (open water)', distance: 35, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  bino15: { label: 'binoculars, 15 m (near water)', distance: 15, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
 } as const
 export type FieldView = keyof typeof FIELD_VIEWS | ''
 

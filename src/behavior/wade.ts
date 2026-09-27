@@ -13,6 +13,9 @@ const STRIKE_HOLD = 0.25
 
 const smoothstep = (w: number) => w * w * (3 - 2 * w)
 
+/** the bottom of a strike: the body tipped `lean` forward, the neck stretched, the bill down at the water */
+export const STRIKE = { lean: 0.5, neckExtend: 1, reach: 1 } as const
+
 export function createWade(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
   const zone = polygonOf(ctx)
   let x = startX, z = startZ, heading = ctx.rng() * Math.PI * 2
@@ -68,9 +71,9 @@ export function createWade(ctx: BehaviorContext, startX: number, startZ: number)
         // STRIKE_HOLD (wide enough that a single large-dt update still lands in it), then a slow recovery
         if (strikeT <= STRIKE_HOLD) {
           const k = smoothstep(Math.min(1, strikeT / STRIKE_DOWN))
-          pose.neckExtend = from.neck + (1 - from.neck) * k
-          pose.reach = from.reach + (1 - from.reach) * k
-          pose.lean.x = from.lean + (0.5 - from.lean) * k
+          pose.neckExtend = from.neck + (STRIKE.neckExtend - from.neck) * k
+          pose.reach = from.reach + (STRIKE.reach - from.reach) * k
+          pose.lean.x = from.lean + (STRIKE.lean - from.lean) * k
         } else {
           pose.neckExtend = approach(pose.neckExtend, 0.3, 3, dt)
           pose.reach = approach(pose.reach, 0, 3, dt)

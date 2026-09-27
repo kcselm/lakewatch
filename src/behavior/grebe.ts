@@ -120,7 +120,7 @@ export const GREBE: GrebeSettings = {
 }
 
 type State = 'cruise' | 'peer' | 'dive' | 'under' | 'resurface' | 'sink' | 'loaf'
-const NECK: Record<State, number> = { cruise: 0.8, peer: 1, dive: 1, under: 1, resurface: 0.9, sink: 1, loaf: 0.15 }
+export const NECK: Record<State, number> = { cruise: 0.8, peer: 1, dive: 1, under: 1, resurface: 0.9, sink: 1, loaf: 0.15 }
 const step = (v: number, want: number, by: number) => (v < want ? Math.min(want, v + by) : Math.max(want, v - by))
 /** cubic ease-in: slow to start, quickening toward the end (a roll-under's depth, section 7: shallow while the stern tips up, then under) */
 const easeIn = (t: number) => t * t * t

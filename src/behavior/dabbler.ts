@@ -137,7 +137,7 @@ export const dabblerFor = (species?: string): DabblerSettings => (species !== un
 type State = 'cruise' | 'loaf' | 'preen' | 'alert' | 'surfaceDabble' | 'headDip' | 'tipUp'
 
 /** neck extension for each state: loafing drawn in, alert and feeding stretched */
-const NECK: Record<State, number> = { cruise: 0.6, loaf: 0.15, preen: 0.3, alert: 1, surfaceDabble: 0.8, headDip: 1, tipUp: 1 }
+export const NECK: Record<State, number> = { cruise: 0.6, loaf: 0.15, preen: 0.3, alert: 1, surfaceDabble: 0.8, headDip: 1, tipUp: 1 }
 /** how long the head takes to go under, or come up, s */
 const DIP = 0.3
 /** A whole number from lo to hi, each equally likely. */
