@@ -52,7 +52,7 @@ describe('validateCast', () => {
     expect(validateCast(one('pibgre', 'swim'), catalog, specs)).toEqual([])
   })
   describe('plumage counts', () => {
-    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland'])]
+    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('amwpel', ['wetland'])]
     const one = (entry: Partial<CastEntry>): Location => ({
       ...loc,
       zones: { ...loc.zones, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
@@ -74,7 +74,7 @@ describe('validateCast', () => {
     })
     it('reports a malformed record without throwing: no versions, a species with none, a count that is not a number', () => {
       expect(validateCast(one({ plumage: {} }), catalog)).toEqual(['cast[0]: plumage counts add up to 0, not the count of 3'])
-      expect(validateCast(one({ species: 'y00475', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: y00475 has no plumage version adult'])
+      expect(validateCast(one({ species: 'amwpel', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: amwpel has no plumage version adult'])
       expect(validateCast(one({ species: 'nosuchbird', plumage: { male: 3 } }), catalog)).toEqual([
         'cast[0]: species nosuchbird is not in the catalog',
         'cast[0]: nosuchbird has no plumage version male',
