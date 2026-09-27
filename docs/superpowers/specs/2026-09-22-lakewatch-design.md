@@ -324,8 +324,9 @@ accuracy.
 ## UI
 
 - **Title card**: name, click to begin (unlocks audio), credits link.
-  Begin waits while the birds' plumage atlases paint in a Web Worker, with
-  a count.
+  Begin waits while the birds' plumage atlases paint in a Web Worker, the
+  folded wings are placed a species at a time, and the cast is built. One
+  count covers all three: "Getting the birds ready… N of 33".
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel
