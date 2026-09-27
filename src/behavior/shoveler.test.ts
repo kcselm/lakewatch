@@ -1,25 +1,34 @@
 import { createShoveler, SHOVELER, type ShovelerSettings } from './shoveler'
 import { createSwim, companyOf } from './swim'
-import { startSpot } from './swimmer'
+import { AVOID, DRIFT, startSpot } from './swimmer'
 import { defaultPose, type PoseState } from '../birds/model'
 import { makeRng } from '../catalog/rng'
+import { pointInPolygon } from '../location/zones'
 import type { BehaviorContext, BehaviorController, FlockGroup, Spin } from './types'
 
 type Pt = [number, number]
 const pond = { kind: 'polygon' as const, points: [[0, 0], [20, 0], [20, 12], [0, 12]] as Pt[] }
+const WIND = { dirX: 1, dirZ: 0, effective: 0.3 }
 const ctx = (seed: number, more: Partial<BehaviorContext> = {}): BehaviorContext => ({
-  zone: pond, rng: makeRng(seed), wind: () => ({ dirX: 1, dirZ: 0, effective: 0.3 }), ground: () => -2, foraging: 'shoveler', ...more,
+  zone: pond, rng: makeRng(seed), wind: () => WIND, ground: () => -2, foraging: 'shoveler', ...more,
 })
 
-interface Frame { t: number; states: string[]; xs: number[]; zs: number[]; headings: number[]; reach: number[]; poses: PoseState[]; spin?: Spin & { snapshot: true } }
+/**
+ * One frame, recorded after every bird has updated; `states` is each bird's state as the frame began, and `stray` is
+ * true for a bird that, just after its own update, was circling in a spin that doesn't name it.
+ */
+interface Frame {
+  t: number; states: string[]; xs: number[]; zs: number[]; headings: number[]; reach: number[]; depth: number[]; stray: boolean[]
+  poses: PoseState[]; spin?: Spin & { snapshot: true }
+}
 interface Ring { t: number; size: number }
 
-/** A flock of three shovelers, started as the spawner starts them, recorded every frame. */
-function flock(seed: number, seconds: number, fps: number, S: ShovelerSettings = SHOVELER, keepPoses = false) {
+/** A flock of shovelers (three unless `n` says), started as the spawner starts them, recorded every frame. */
+function flock(seed: number, seconds: number, fps: number, S: ShovelerSettings = SHOVELER, keepPoses = false, n = 3) {
   const rng = makeRng(seed), group: FlockGroup = { targetX: 10, targetZ: 6, retargetAt: 60 }
   const birds: BehaviorController[] = [], rings: Ring[] = []
   let t = 0
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < n; k++) {
     const [x, z] = startSpot(pond, rng, group, companyOf('shoveler'), birds)
     birds.push(createShoveler(ctx(seed * 10 + k, { group, neighbours: () => birds, onRipple: (_x, _z, size) => rings.push({ t, size: size ?? 1 }) }), x, z, S))
   }
@@ -27,24 +36,49 @@ function flock(seed: number, seconds: number, fps: number, S: ShovelerSettings =
   for (let i = 0; i < seconds * fps; i++) {
     t = i / fps
     const states = birds.map(b => b.state)
-    birds.forEach((b, k) => b.update(1 / fps, poses[k]!))
+    const stray = birds.map(() => false)
+    birds.forEach((b, k) => {
+      b.update(1 / fps, poses[k]!)
+      stray[k] = b.state === 'circle' && !group.spin?.pair.includes(b)
+    })
     frames.push({
-      t, states, xs: birds.map(b => b.x), zs: birds.map(b => b.z), headings: birds.map(b => b.heading), reach: poses.map(p => p.reach),
+      t, states, xs: birds.map(b => b.x), zs: birds.map(b => b.z), headings: birds.map(b => b.heading),
+      reach: poses.map(p => p.reach), depth: poses.map(p => p.reachDepth), stray,
       poses: keepPoses ? poses.map(p => ({ ...p, lean: p.lean.clone() })) : [],
       spin: group.spin ? { ...group.spin, snapshot: true } : undefined,
     })
   }
-  return { frames, rings, birds, group }
+  return { frames, rings, birds, group, fps }
+}
+type Flock = ReturnType<typeof flock>
+
+/** The most a shoveler moves in a frame: its cruise, plus paddling away from a neighbour, plus the wind. */
+const pace = (fps: number) => (SHOVELER.cruise.speed + AVOID + DRIFT * WIND.effective) / fps + 1e-9
+/**
+ * Spins made frequent and short, and every other spell brief, so a flock of five keeps asking, ending, and asking
+ * again: now and then a bird that has just ended a spin is asked by another straight away.
+ */
+const FREQUENT: ShovelerSettings = {
+  ...SHOVELER,
+  circle: { ...SHOVELER.circle, share: 0.8, seconds: [1, 2], long: [1, 2], after: [1, 3] },
+  skim: { ...SHOVELER.skim, travel: { ...SHOVELER.skim.travel, seconds: [2, 4] }, potter: { ...SHOVELER.skim.potter, seconds: [2, 4] } },
+  cruise: { ...SHOVELER.cruise, seconds: [1, 3] }, loaf: { ...SHOVELER.loaf, seconds: [1, 3] }, preen: { ...SHOVELER.preen, seconds: [1, 3] },
 }
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
-const reachOf = (_h: unknown, f: Frame, k: number) => f.reach[k]!
 
 describe('shoveler', () => {
   // four flocks of three for an hour each, at 10 frames a second
   const hours = [1, 2, 3, 4].map(seed => flock(seed, 3600, 10))
   // one flock for ten minutes at 60 frames a second
   const fine = flock(7, 600, 60, SHOVELER, true)
+  // a flock whose every skim is a pottering one, for an hour
+  const potterers = flock(5, 3600, 10, { ...SHOVELER, skim: { ...SHOVELER.skim, travelling: 0 } })
+  // flocks of five spinning often and briefly: sixteen for 15 minutes at 10 frames a second, two for 5 minutes at 60
+  const busy: Flock[] = [
+    ...Array.from({ length: 16 }, (_, k) => flock(k + 1, 900, 10, FREQUENT, false, 5)),
+    ...[17, 18].map(seed => flock(seed, 300, 60, FREQUENT, false, 5)),
+  ]
 
   it('is what swim gives a shoveler', () => {
     const c = createSwim(ctx(1), 5, 5)
@@ -84,7 +118,7 @@ describe('shoveler', () => {
   })
   it('turns the pair as one: the two centres 0.25 m apart about a fixed midpoint, one direction a bout, once round every 3.4 s', () => {
     let bouts = 0
-    for (const h of [...hours, fine]) {
+    for (const h of [...hours, fine, ...busy]) {
       let cur: Frame[] = []
       const done = (bout: Frame[]) => {
         if (bout.length < 20) return
@@ -112,28 +146,39 @@ describe('shoveler', () => {
         const seconds = bout.at(-1)!.t - bout[0]!.t
         expect(turned / seconds).toBeCloseTo((2 * Math.PI) / SHOVELER.circle.revolution, 2)
       }
-      // from the second frame of each turn: in the first, the second bird is still stepping onto its place
+      // from the first frame of each turn: the two start turning exactly on their places
       let turning = 0
       for (const f of h.frames) {
         turning = f.spin?.spinning ? turning + 1 : 0
-        if (turning > 1) cur.push(f)
+        if (turning > 0) cur.push(f)
         else if (cur.length) { done(cur); cur = [] }
       }
     }
     expect(bouts).toBeGreaterThan(10)
   })
-  it('spins for 4-8 s a bout, now and then a minute or two', () => {
-    const lengths: number[] = []
+  it('spins for 4-8 s a bout, now and then a minute or two, unless another bird comes too close to the circle', () => {
+    const lengths: number[] = [], cut: number[] = []
+    // what the pair keeps clear about its circle's midpoint while it turns
+    const keep = SHOVELER.spacing.flock + SHOVELER.circle.apart / 2 + SHOVELER.circle.room.keep
     for (const h of hours) {
       let start = -1
-      for (const f of h.frames) {
+      h.frames.forEach((f, i) => {
         if (f.spin?.spinning && start < 0) start = f.t
-        if (!f.spin?.spinning && start >= 0) { lengths.push(f.t - start); start = -1 }
-      }
+        if (f.spin?.spinning || start < 0) return
+        const s = h.frames[i - 1]!.spin!, d = f.t - start
+        start = -1
+        // the birds' clocks run a frame ahead of t: a bout that ran its length ends on the first frame they reach its end
+        if (f.t + 1 / h.fps >= s.ends - 1e-6) { lengths.push(d); return }
+        // one cut short: another bird had come inside that room, as the first bird saw it in this frame
+        const near = (g: Frame) => h.birds.some((b, k) => !s.pair.includes(b) && Math.hypot(g.xs[k]! - s.cx, g.zs[k]! - s.cz) < keep)
+        expect(near(f) || near(h.frames[i - 1]!), `a bout ended at ${d} s with no bird close`).toBe(true)
+        cut.push(d)
+      })
     }
     expect(lengths.length).toBeGreaterThan(10)
-    // the bout's clock starts when the pair is asked, so the turning part is a little shorter than the drawn length
-    for (const d of lengths) expect((d >= 1 && d <= 8.1) || (d >= 50 && d <= 120.1), `${d} s`).toBe(true)
+    // the turn starts once both are on their places, and runs the drawn length to the frame
+    for (const d of lengths) expect((d >= 4 - 1e-6 && d <= 8.1 + 1e-6) || (d >= 60 - 1e-6 && d <= 120.1 + 1e-6), `${d} s`).toBe(true)
+    expect(cut.length).toBeLessThan(lengths.length / 10)
   })
   it('points both birds along the circle once turning, nose to tail', () => {
     const { frames, birds } = fine
@@ -166,21 +211,35 @@ describe('shoveler', () => {
     })
     return out
   }
-  it("skims in bouts: the travelling head down 30-60 s, the potterer's face down 0.75-2.75 s and up 0.25-1 s", () => {
-    const q = 0.15
-    const down: number[] = [], up: number[] = []
+  it("skims in bouts: the travelling head down 30-60 s then up 2 s, the potterer's face down 0.75-2.75 s and up 0.25-1 s with the bill left in", () => {
+    const q = 0.15, mid = (SHOVELER.skim.film + SHOVELER.skim.face) / 2
+    const headUp: number[] = [], faceDown: number[] = [], billOnly: number[] = []
     for (const h of hours) {
       for (let k = 0; k < 3; k++) {
-        const skimming = (f: Frame) => f.states[k] === 'skim'
-        // the bill down (reach past half-way) and up, inside skimming, for spells the skim itself ended
-        for (const r of spells(h.frames, k, f => skimming(f) && reachOf(h, f, k) > 0.5, 'skim')) if (r.within) down.push(r.to - r.from)
-        for (const r of spells(h.frames, k, f => skimming(f) && reachOf(h, f, k) <= 0.5, 'skim')) if (r.within) up.push(r.to - r.from)
+        // spells inside skimming that the skim itself ended: the head right up (reach at most half-way), the face
+        // under (past half-way from the film to the eye), and the bill alone in the film
+        const lengths = (test: (f: Frame) => boolean) =>
+          spells(h.frames, k, f => f.states[k] === 'skim' && test(f), 'skim').filter(r => r.within).map(r => r.to - r.from)
+        headUp.push(...lengths(f => f.reach[k]! <= 0.5))
+        faceDown.push(...lengths(f => f.depth[k]! > mid))
+        billOnly.push(...lengths(f => f.reach[k]! > 0.5 && f.depth[k]! <= mid))
       }
     }
-    expect(down.length).toBeGreaterThan(100)
-    for (const d of down) expect((d >= 0.75 - q && d <= 2.75 + q) || (d >= 30 - q && d <= 60 + q), `down ${d} s`).toBe(true)
-    for (const d of up) expect((d >= 0.25 - q && d <= 1 + q) || Math.abs(d - SHOVELER.skim.travel.up) <= q, `up ${d} s`).toBe(true)
-    expect(down.filter(d => d >= 30).length).toBeGreaterThan(5)
+    expect(faceDown.length).toBeGreaterThan(100)
+    for (const d of faceDown) expect(d >= 0.75 - q && d <= 2.75 + q, `face down ${d} s`).toBe(true)
+    // the bill alone in the film: the potterer's raise, or a travelling bird's whole head-down (after the raise that
+    // ended a pottering bout, if the one ran straight into the other)
+    expect(billOnly.filter(d => d <= 1 + q).length).toBeGreaterThan(100)
+    expect(billOnly.filter(d => d >= 30).length).toBeGreaterThan(5)
+    for (const d of billOnly) expect((d >= 0.25 - q && d <= 1 + q) || (d >= 30 - q && d <= 61 + q), `bill only ${d} s`).toBe(true)
+    // the head right up: the travelling bird's look up, or now and then a potterer's raise that lifts the bill clear
+    for (const d of headUp) expect((d >= 0.25 - q && d <= 1 + q) || Math.abs(d - SHOVELER.skim.travel.up) <= q, `head up ${d} s`).toBe(true)
+    // pottering, the head is right up only about 2% of the time (bill only 22%, the face or head under 76%)
+    const skims = potterers.frames.flatMap(f => f.states.flatMap((s, k) => (s === 'skim' ? [f.reach[k]!] : [])))
+    const up = skims.filter(r => r <= 0.5).length / skims.length
+    expect(skims.length).toBeGreaterThan(10000)
+    expect(up).toBeGreaterThan(0.01)
+    expect(up).toBeLessThan(0.04)
   })
   it('wanders its heading a few degrees as it skims, never sweeping more than 8 degrees', () => {
     // A bird on its own, so no neighbour turns it aside: under way, it swims the way its body faces, and the heading it
@@ -237,6 +296,50 @@ describe('shoveler', () => {
     expect(sizes).toContain(SHOVELER.circle.ring)
     expect(sizes).toContain(SHOVELER.tipUp.ring)
     expect([...sizes].every(x => x <= 1)).toBe(true)
+  })
+  it("spins only in its own pair: a bird whose partner ends their spin and is straight away asked by another follows neither", () => {
+    // A handover: one of the pair of a spin just ended named in a new spin in the same frame or the next, before the
+    // other has seen its own spin end. That other is still circling then, and could take up the new spin.
+    let handovers = 0
+    for (const h of busy) {
+      let ended: { pair: readonly unknown[]; at: number } | undefined
+      h.frames.forEach((f, i) => {
+        f.stray.forEach((stray, k) => { if (stray) expect.fail(`bird ${k} circling in a spin that doesn't name it at ${f.t.toFixed(2)} s`) })
+        const [was, now] = [h.frames[i - 1]?.spin?.pair, f.spin?.pair]
+        if (was && was !== now) ended = { pair: was, at: i }
+        if (now && now !== was && ended && i - ended.at <= 1 && now.some(b => ended!.pair.includes(b))) handovers++
+      })
+    }
+    expect(handovers).toBeGreaterThan(5)
+  })
+  it('stays in its zone, and no frame moves it further than its pace, gathering, turning, or feeding', () => {
+    for (const h of [...hours, fine, potterers, ...busy]) {
+      const most = pace(h.fps)
+      for (let i = 1; i < h.frames.length; i++) {
+        const [f, g] = [h.frames[i]!, h.frames[i - 1]!]
+        for (let k = 0; k < h.birds.length; k++) {
+          if (!pointInPolygon(f.xs[k]!, f.zs[k]!, pond.points)) expect.fail(`bird ${k} left the zone at ${f.t.toFixed(2)} s`)
+          const moved = Math.hypot(f.xs[k]! - g.xs[k]!, f.zs[k]! - g.zs[k]!)
+          if (moved > most) expect.fail(`bird ${k} moved ${(moved * 1000).toFixed(1)} mm at ${f.t.toFixed(2)} s (${f.states[k]}), beyond its ${(most * 1000).toFixed(1)} mm`)
+        }
+      }
+    }
+  })
+  it('keeps its distance: no two birds but the pair of a spin come closer than their spacing, beyond 1 cm', () => {
+    let closest = Infinity, where = ''
+    for (const h of [...hours, fine, potterers, ...busy]) {
+      for (const f of h.frames) {
+        for (let a = 0; a < h.birds.length; a++) {
+          for (let c = a + 1; c < h.birds.length; c++) {
+            const [A, C] = [h.birds[a]!, h.birds[c]!]
+            if (f.spin?.pair.includes(A) && f.spin.pair.includes(C)) continue
+            const d = Math.hypot(f.xs[a]! - f.xs[c]!, f.zs[a]! - f.zs[c]!)
+            if (d < closest) [closest, where] = [d, `birds ${a} and ${c} ${d.toFixed(4)} m apart at ${f.t.toFixed(2)} s (${f.states[a]}, ${f.states[c]})`]
+          }
+        }
+      }
+    }
+    expect(closest, where).toBeGreaterThan(SHOVELER.spacing.flock - 0.01)
   })
 
 })
