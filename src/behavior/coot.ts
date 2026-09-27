@@ -21,11 +21,10 @@ export interface CootSettings extends SwimSettings {
   alert: { tail: number; flick: number }
   /**
    * the head pump while under way: `perSecond` pumps, the head held still against the water for the first `hold` of
-   * each, then thrust forward; `amplitude` is the whole fore-and-aft travel in body lengths at `cruise.speed` and over,
-   * and `lift` the whole swing of `neckExtend` that goes with it, in step: the neck drawn in and the head low at the
-   * end of the hold, stretched and the head high at the end of the thrust
+   * each, then thrust forward; `amplitude` is the whole fore-and-aft travel in body lengths at `cruise.speed` and over.
+   * `headBob` carries it all: the builder moves the head up and down with it.
    */
-  pump: { perSecond: number; hold: number; amplitude: number; lift: number; ring: { every: number; size: number } }
+  pump: { perSecond: number; hold: number; amplitude: number; ring: { every: number; size: number } }
   /** peck bouts: `perSecond` pecks, the bill at the water for the first `bottom` of each and lifted `lift` of the reach between */
   peck: { share: number; seconds: Range; perSecond: number; bottom: number; lift: number }
   /** one peck bout in `every` ends with the head and neck `depth` metres under for `seconds`, the body tipped `lean` */
@@ -76,11 +75,9 @@ export const COOT: CootSettings = {
   // turns (the flick's 0.5 s is ours)
   alert: { tail: 0.65, flick: 0.5 },
   // 2.2 a second (1.8-2.6), hold then thrust, the head still for about half of each; the bill travels about 5 cm fore
-  // and aft, 17% of the bill-to-tail length, and 2-3 cm up and down, the head rising as it goes forward; a faint ring
-  // every 1-2 s while swimming (1.5 here). The lift is sized on the coot's model as it is built today (the procedural
-  // one, whose bill rises 5.5 cm per unit of neckExtend about the swim's 0.6): 0.45 of it, 2.5 cm. The detailed
-  // builder's neck mostly tips forward as it stretches, and lifts a head far less for the same swing.
-  pump: { perSecond: 2.2, hold: 0.5, amplitude: 0.17, lift: 0.45, ring: { every: 1.5, size: 0.3 } },
+  // and aft, 17% of the bill-to-tail length, and 2-3 cm up and down, which is the builder's to add (the neck stays
+  // still); a faint ring every 1-2 s while swimming (1.5 here)
+  pump: { perSecond: 2.2, hold: 0.5, amplitude: 0.17, ring: { every: 1.5, size: 0.3 } },
   // bouts of 2-8 s at 2.5 pecks a second, each held 0.15-0.4 s at the bottom (0.2 s here, half the cycle), the head
   // rising 2-3 cm between: about a third of its 60-95 mm reach from rest to the water
   peck: { share: 0.4, seconds: [2, 8], perSecond: 2.5, bottom: 0.5, lift: 0.3 },
@@ -147,8 +144,6 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
   let bout = { left: 0, nextAt: Infinity, begun: false }
   /** true when a bout's later dive falls due within `seconds`: a head-dip or tip-up that long would hold it up */
   const diveDue = (seconds: number) => bout.begun && bout.left > 0 && clock + seconds >= bout.nextAt
-  // the neck's reach, eased toward each state's, before the pump's swing is added
-  let neck = NaN
 
   // a feeding cycle is a peck bout, one time in `every` a head-dip, and a pause; it takes the pecks' share scaled up
   const cycle = mid(S.peck.seconds) + mid(S.headDip.seconds) / S.headDip.every + mid(S.pause.seconds)
@@ -325,12 +320,10 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       // the faint ring of the pump while it swims to feed (travelling, it leaves a wake instead)
       if (state === 'cruise' && b.speed > S.cruise.speed / 2 && sinceRing >= S.pump.ring.every) { sinceRing = 0; ring(S.pump.ring.size, 0.1) }
 
-      // the head pump, only while it swims: its reach grows with the speed, up to the feeding swim's; the head goes
-      // back and down with the neck drawn in over the hold, and forward and up with it stretched in the thrust
+      // the head pump, only while it swims: its reach grows with the speed, up to the feeding swim's
       pumpPhase = (pumpPhase + S.pump.perSecond * dt) % 1
       pumpK = step(pumpK, state === 'dive' ? 0 : Math.min(1, b.speed / S.cruise.speed), dt / 0.2)
-      const pump = (pumpK * pumpWave(pumpPhase, S.pump.hold)) / 2
-      pose.headBob = S.pump.amplitude * pump
+      pose.headBob = (pumpK * S.pump.amplitude * pumpWave(pumpPhase, S.pump.hold)) / 2
       // the peck: the bill at the water for the first part of each cycle, lifting a little between
       peckPhase += S.peck.perSecond * dt
       const f = peckPhase % 1
@@ -360,8 +353,7 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
       pose.paddlePhase = paddlePhase
       preen = approach(preen, state === 'preen' ? 1 : 0, 2, dt)
       pose.lean.z = preen * 0.1 * Math.sin(clock * Math.PI * 0.8)
-      neck = approach(Number.isNaN(neck) ? pose.neckExtend : neck, NECK[state], 3, dt)
-      pose.neckExtend = Math.min(1, Math.max(0, neck + S.pump.lift * pump))
+      pose.neckExtend = approach(pose.neckExtend, NECK[state], 3, dt)
     },
   }
   b.self = self

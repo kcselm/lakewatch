@@ -115,21 +115,17 @@ describe('coot', () => {
     drops.sort((a, b) => a - b)
     expect(drops[Math.floor(drops.length * 0.2)]! / drops[Math.floor(drops.length * 0.8)]!).toBeGreaterThan(0.8)
   })
-  it('raises its head as it thrusts it forward and lowers it over the hold: the neck swings in step with the pump', () => {
+  it('pumps with headBob alone: the neck holds still while the head goes back and forth (the builder adds the rise and fall)', () => {
     // swimming to feed or travelling, long enough for the neck to have settled at the swim's reach
     const f = fine.frames
     const swims = runs(f, (x, i) => (x.state === 'cruise' || x.state === 'travel') && i > 0 && Math.hypot(x.x - f[i - 1]!.x, x.z - f[i - 1]!.z) * 60 > 0.19)
       .filter(r => r.frames.length > 150)
     expect(swims.length).toBeGreaterThan(3)
-    const k = COOT.pump.lift / COOT.pump.amplitude
     for (const r of swims) {
       const settled = r.frames.slice(90, -15)
-      // the whole swing of the neck is the pump's lift
-      expect(Math.max(...settled.map(x => x.neck)) - Math.min(...settled.map(x => x.neck))).toBeCloseTo(COOT.pump.lift, 1)
-      // and in step with the head's fore and aft: highest when it is furthest forward, lowest furthest back, and
-      // everywhere between, so that the neck less its share of the bob is still
-      const rest = settled.map(x => x.neck - k * x.bob)
-      expect(Math.max(...rest) - Math.min(...rest)).toBeLessThan(0.01)
+      const range = (xs: number[]) => Math.max(...xs) - Math.min(...xs)
+      expect(range(settled.map(x => x.bob))).toBeCloseTo(COOT.pump.amplitude, 2)
+      expect(range(settled.map(x => x.neck))).toBeLessThan(0.01)
     }
   })
   it('keeps its head still when it is not swimming', () => {
