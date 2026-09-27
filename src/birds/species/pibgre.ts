@@ -4,7 +4,9 @@ import type { Layer } from '../detail/spec'
 // Two late-September versions share one traced bird and differ only in paint: the plain basic adult (and the
 // first-winter birds that have already lost their stripes) and the striped juvenile. Colours are the research's words
 // (docs/research/2026-09-25-pied-billed-grebe.md, sections 4 and 9), picked for a field-guide plate from the credited
-// photos, the basic in the overcast light of `pibgre-basic-fluffed.jpg`. Skin t: 0 the back's midline (the hindneck on
+// photos and checked against the overcast light of `pibgre-basic-fluffed.jpg`. The basic's neck is toned to the middle
+// of section 4.1's "grayish buff tinged reddish to rich reddish tawny": redder than that overcast bird's dull
+// rufous-brown, duller than the traced bird's sunlit tawny. Skin t: 0 the back's midline (the hindneck on
 // the upright neck, the crown on the head), 1 the belly's (the foreneck and throat); along the body the water meets
 // the flank at t 0.45, and the stern at 0.65 by the rump.
 
@@ -25,6 +27,38 @@ const BELLY: Layer[] = [
   { kind: 'fill', where: { part: 'skin', from: 'tailBase', to: 'chest', band: [0.6, 1] }, color: '#dcd6cb', soft: 5 },
 ]
 
+/**
+ * The basic's thin whitish bare eyelid ring (about 0.5 mm) and the narrow whitish feathered crescent behind and above
+ * the eye (section 4.1). The eye sits on the curved side of the head, where the atlas stretches the skin 1.0-1.6 times
+ * (most below the eye, where the section is steepest), so a circle painted in the atlas's millimetres renders as an
+ * oval hanging below it. Instead each is a chain of short stripes on the rim itself: for every 30 degrees about the eye
+ * (every 28 for the crescent), the skin point where the eye's sphere meets the loft (2.9-3.5 mm out), carried to the
+ * skin's (u, t), its t corrected for the skin's girth changing along the head, and each stripe's width divided by the
+ * stretch across it. The ring's inner edge sits 0.1 mm inside the rim, so no skin shows between it and the eye; the
+ * crescent lies 0.9 mm outside the rim, from above the eye's front round behind it.
+ */
+const EYE_RING: Layer[] = [
+  { kind: 'stripe', from: { at: 'eye', t: 0.371, dx: 3.21 }, to: { at: 'eye', t: 0.35, dx: 2.71 }, width: 0.42, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.35, dx: 2.71 }, to: { at: 'eye', t: 0.354, dx: 1.56 }, width: 0.46, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.354, dx: 1.56 }, to: { at: 'eye', t: 0.373, dx: 0.08 }, width: 0.5, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.373, dx: 0.08 }, to: { at: 'eye', t: 0.404, dx: -1.68 }, width: 0.52, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.404, dx: -1.68 }, to: { at: 'eye', t: 0.436, dx: -2.78 }, width: 0.54, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.436, dx: -2.78 }, to: { at: 'eye', t: 0.467, dx: -3.24 }, width: 0.57, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.467, dx: -3.24 }, to: { at: 'eye', t: 0.494, dx: -2.96 }, width: 0.56, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.494, dx: -2.96 }, to: { at: 'eye', t: 0.503, dx: -1.83 }, width: 0.5, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.503, dx: -1.83 }, to: { at: 'eye', t: 0.493, dx: -0.07 }, width: 0.41, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.493, dx: -0.07 }, to: { at: 'eye', t: 0.454, dx: 1.77 }, width: 0.4, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.454, dx: 1.77 }, to: { at: 'eye', t: 0.412, dx: 2.92 }, width: 0.43, color: '#ebe5d8', blur: 0.3 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.412, dx: 2.92 }, to: { at: 'eye', t: 0.371, dx: 3.21 }, width: 0.43, color: '#ebe5d8', blur: 0.3 },
+]
+const EYE_CRESCENT: Layer[] = [
+  { kind: 'stripe', from: { at: 'eye', t: 0.326, dx: 1.99 }, to: { at: 'eye', t: 0.349, dx: 0.23 }, width: 0.85, color: '#f1ede4', blur: 0.4, opacity: 0.85 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.349, dx: 0.23 }, to: { at: 'eye', t: 0.386, dx: -2.02 }, width: 0.88, color: '#f1ede4', blur: 0.4 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.386, dx: -2.02 }, to: { at: 'eye', t: 0.427, dx: -3.56 }, width: 0.89, color: '#f1ede4', blur: 0.4 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.427, dx: -3.56 }, to: { at: 'eye', t: 0.468, dx: -4.35 }, width: 0.92, color: '#f1ede4', blur: 0.4 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.468, dx: -4.35 }, to: { at: 'eye', t: 0.504, dx: -4.27 }, width: 0.95, color: '#f1ede4', blur: 0.4, opacity: 0.85 },
+]
+
 const BASIC: Layer[] = [
   { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#3f352c', side: '#5f4a3b', bottom: '#dcd6cb' },
   // the back and scapulars dark grey-brown, their paler grey-brown edges giving the "hoary" look; they cover the upper
@@ -38,29 +72,41 @@ const BASIC: Layer[] = [
   ...BELLY,
   // the white stern puff (the undertail coverts), 20-30 mm long, under the dark rump
   { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'tailBase', band: [0.3, 1] }, color: '#f3f0ea', soft: 2 },
-  // the lower neck and breast tawny to rufous, strongest just above the water
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'chest', band: [0.35, 0.62] }, color: '#8f6448', soft: 5 },
-  { kind: 'fill', where: { part: 'skin', from: 'chest', to: 'neckMid', band: [0.4, 1] }, color: '#9c6a4a', soft: 4 },
+  // the lower neck and breast a reddish tawny-buff, strongest just above the water
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'chest', band: [0.35, 0.62] }, color: '#7e6655', soft: 5 },
+  { kind: 'fill', where: { part: 'skin', from: 'chest', to: 'neckMid', band: [0.4, 1] }, color: '#86705f', soft: 4 },
   // the neck's sides buff-brown, its upper front buff
   { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'occiput', band: [0.25, 0.8] }, color: '#8c745e', soft: 4 },
   { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'nape', band: [0.75, 1] }, color: '#c7ab88', soft: 4 },
   // the hindneck dark down to the back
   { kind: 'fill', where: { part: 'skin', from: 'neckBase', to: 'occiput', band: [0, 0.28] }, color: '#3a3028', soft: 3 },
-  // the face greyish-buff, paler than the crown
-  { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'billBase', band: [0.34, 0.8] }, color: '#a28a72', soft: 2 },
-  // the whitish chin and throat, from the lower mandible back about 25 mm
+  // the face greyish buff-brown, paler than the crown, darker than the chin
+  { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'billBase', band: [0.34, 0.8] }, color: '#98806a', soft: 2 },
+  // the whitish chin and throat: a clean patch from the gape and the lower mandible back under the eye, then the throat
+  // down the foreneck. Its top edge follows the photo's (carried to the skin with the tracing tools): t 0.61 from the
+  // eye forward (the photo's 0.60-0.65), held at 0.615 under the rear of the eye where the photo's rises to 0.59 (so the
+  // face above stays plain from the occiput to the lores), then falling back to 0.64, 0.69, 0.74 and 0.77 at 4, 9, 13
+  // and 20 mm behind the eye. Behind the eye it is a chain of stripes 8 mm wide hung from that edge, each end's t
+  // corrected for the head's girth growing behind the eye
+  { kind: 'fill', where: { part: 'skin', from: 'eye', to: 'billBase', band: [0.61, 1] }, color: '#ece6da', soft: 1 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.714, dx: -0.87 }, to: { at: 'eye', t: 0.75, dx: -4.86 }, width: 8, color: '#ece6da', blur: 1 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.75, dx: -4.86 }, to: { at: 'eye', t: 0.807, dx: -9.08 }, width: 8, color: '#ece6da', blur: 1 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.807, dx: -9.08 }, to: { at: 'eye', t: 0.891, dx: -14.24 }, width: 8, color: '#ece6da', blur: 1 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.891, dx: -14.24 }, to: { at: 'eye', t: 0.962, dx: -18.46 }, width: 8, color: '#ece6da', blur: 1 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.962, dx: -18.46 }, to: { at: 'eye', t: 0.984, dx: -21.75 }, width: 8, color: '#ece6da', blur: 1 },
   { kind: 'fill', where: { part: 'skin', from: 'crown', to: 'billBase', band: [0.74, 1] }, color: '#ece6da', soft: 2 },
   { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'crown', band: [0.84, 1] }, color: '#e6dccb', soft: 3 },
   // the crown and nape darkest, the cap down to the top of the eye
   { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'billBase', band: [0, 0.35] }, color: '#342b23', soft: 1.5 },
   // at most a slightly darker line through the eye
   { kind: 'stripe', from: { at: 'lores', t: 0.5 }, to: { at: 'occiput', t: 0.42 }, width: 1.6, color: '#86705b', blur: 1.5, opacity: 0.5 },
-  // the thin whitish eyelid ring
-  { kind: 'ring', at: { at: 'eye', t: 0.44 }, radius: 3.6, width: 0.6, color: '#ebe5d8', blur: 0.3 },
+  // the thin whitish eyelid ring, and the whitish crescent behind and above the eye
+  ...EYE_RING,
+  ...EYE_CRESCENT,
   // the folded wing, under the scapulars: the back's colour and pattern, the primaries' wedge a little darker
   { kind: 'fill', where: { part: 'wingFold' }, color: '#3d342b' },
   { kind: 'streaks', where: { part: 'wingFold' }, ...HOARY, color: '#7a6f62', opacity: 0.6 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.8, 1] }, color: '#342c25', soft: 3, opacity: 0.5 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.72, 0.9] }, color: '#342c25', soft: 3, opacity: 0.5 },
   ...SPREAD,
   // pale yellowish horn, the lower mandible yellower, the culmen dusky from the base nearly to the tip
   { kind: 'fill', where: { part: 'bill' }, color: '#c4b890' },
@@ -82,9 +128,9 @@ const JUVENILE: Layer[] = [
   // white too, but a smaller puff than the adult's
   { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.36, 1] }, color: '#f1eee8', soft: 1.5 },
   { kind: 'fill', where: { part: 'skin', from: 'rump', to: 'tailBase', band: [0.5, 1] }, color: '#ece8e0', soft: 3 },
-  // the foreneck and breast buff to rufous-buff, mottled and streaked dark brown
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'chest', band: [0.35, 0.62] }, color: '#8e6446', soft: 5 },
-  { kind: 'fill', where: { part: 'skin', from: 'chest', to: 'neckMid', band: [0.4, 1] }, color: '#ae7f58', soft: 4 },
+  // the foreneck and breast buff to rufous-buff (toned as the basic's), mottled and streaked dark brown
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'chest', band: [0.35, 0.62] }, color: '#856552', soft: 5 },
+  { kind: 'fill', where: { part: 'skin', from: 'chest', to: 'neckMid', band: [0.4, 1] }, color: '#a6846a', soft: 4 },
   { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'nape', band: [0.7, 1] }, color: '#c8a680', soft: 4 },
   { kind: 'spots', where: { part: 'skin', from: 'chest', to: 'nape', band: [0.45, 1] }, color: '#5c4232', size: 1.6, spacing: 2.8, blur: 0.4, soft: 3, opacity: 0.7 },
   // the sides of the neck pale, streaked and blotched dark brown on from the face
@@ -108,7 +154,7 @@ const JUVENILE: Layer[] = [
   { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'billBase', band: [0, 0.35] }, color: '#251e18', soft: 1.5 },
   { kind: 'fill', where: { part: 'wingFold' }, color: '#2d241e' },
   { kind: 'streaks', where: { part: 'wingFold' }, ...HOARY, color: '#54473c', opacity: 0.5 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.8, 1] }, color: '#241e19', soft: 3, opacity: 0.5 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.72, 0.9] }, color: '#241e19', soft: 3, opacity: 0.5 },
   ...SPREAD,
   // pinkish horn, the lower mandible pink-buff, the culmen dark brown
   { kind: 'fill', where: { part: 'bill' }, color: '#c7a288' },
@@ -143,7 +189,7 @@ export const SPEC: SpeciesSpec = {
     size: 'small and stocky, smaller than a coot: a compact, big-headed diver that rides low, with almost no tail',
     bill: 'a short, deep, chicken-like bill with a small hooked tip: pale horn with a dusky ridge, pinkish on juveniles; no black ring in autumn',
     head: 'adults plain brown, darkest on the crown and the back of the neck, with a whitish chin and a thin pale eye-ring; juveniles a dark cap over a whitish face striped and streaked dark brown',
-    body: 'dark grey-brown above, tawny on the lower neck and breast, a fluffy white stern and no visible tail; sinks until only its head shows, and slips under without a splash',
+    body: 'dark grey-brown above, tawny on the lower neck and breast, a fluffy white stern and no visible tail; sinks until only its head and neck show; usually slips under with barely a ripple, now and then a splashy crash-dive',
     legs: 'lobed toes set far back, seen only as it kicks under',
   },
   wingbeatHz: 7,
@@ -188,8 +234,8 @@ export const SPEC: SpeciesSpec = {
       // the distal half, and the upper mandible's own tip hooks 1.2 mm below it, so the tip lands on the photo's
       curve: -0.05,
       hook: 0.0012,
-      // depth from the two side-on photos (0.94, 0.81, 0.61, 0.36 of the base at 25, 50, 75, 90%), width from AVONET
-      // at the base and the head-on photos along it; knife-edged at the tip
+      // depth from the two side-on photos (0.94, 0.81, 0.61, 0.36 of the base at 25, 50, 75, 90%); width from AVONET
+      // at the base, and along the bill the research's estimate (section 5.1); knife-edged at the tip
       profile: [[0, 1, 1], [0.25, 0.91, 0.94], [0.5, 0.73, 0.81], [0.75, 0.545, 0.61], [0.9, 0.27, 0.36], [1, 0.09, 0.08]],
     },
     // the photo's eye: 7 mm across, set high, level with the top of the bill's base; the iris dark brown
@@ -197,11 +243,12 @@ export const SPEC: SpeciesSpec = {
     wing: {
       // folded into the flank feathers and under the scapulars, nothing of it shows on a floating bird. The chord runs
       // back along the top of the side, 3 mm under the back, to a tip on the rump over the tail base, 21 mm short of the
-      // stern's end, so the stern cocks up (a loafing bird's puff, a roll-under) clear of it; the wrist, 125 mm ahead,
-      // lies hidden in the base of the neck. It is a line with no height over its front half, and a strip no more than
-      // 5 mm deep behind, painted as the back, where the primaries' wedge lies
+      // stern's end; the wrist, 125 mm ahead, lies hidden in the base of the neck. It is a line with no height over its
+      // front half and over its last tenth, and between them a strip no more than 5 mm deep, painted as the back, where
+      // the primaries' wedge lies. The last tenth is a line so that when the stern cocks up (a loafing bird's puff, a
+      // roll-under) and the rump's skin turns with it, no edge of the wing stands out of the side
       wrist: [0.1065, 0.0237], droop: 3.4,
-      outline: [[0, 0], [0.5, 0], [0.6, 0.02], [0.75, 0.04], [0.9, 0.035], [1, 0.01]],
+      outline: [[0, 0], [0.5, 0], [0.6, 0.02], [0.72, 0.04], [0.82, 0.03], [0.9, 0], [1, 0]],
     },
     // no tail: the rectrices are a downy tuft hidden in the white undertail puff, which is the stern itself; cocking the
     // tail bone cocks the puff
