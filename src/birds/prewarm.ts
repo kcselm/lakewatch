@@ -21,17 +21,23 @@ function defaultNext(): Promise<void> {
   })
 }
 
+interface PrewarmEntry { code: string; variant?: string }
+
 /**
  * Every detailed species the cast can need, once each, in cast order: whatever `expandCast` would build, minus the
- * duplicates and the block species. Doesn't depend on the spawner's seed (mirrors castAtlases's own traversal).
+ * duplicates and the block species. Each entry carries the variant that species' first individual in the traversal
+ * gets, so building it draws the atlas `materialFor` will actually find: `undefined` when the cast really spawns the
+ * species with no variant (castAtlases painted only its own plumage then), and a named one otherwise (castAtlases
+ * painted every one of the species' variants then, so whichever this is, it's already there). Doesn't depend on the
+ * spawner's seed (mirrors castAtlases's own traversal).
  */
-function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): string[] {
+function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): PrewarmEntry[] {
   const seen = new Set<string>()
-  const out: string[] = []
+  const out: PrewarmEntry[] = []
   for (const ind of expandCast(loc, makeRng(1))) {
     if (seen.has(ind.species) || !specs[ind.species]?.detail) continue
     seen.add(ind.species)
-    out.push(ind.species)
+    out.push({ code: ind.species, variant: ind.variant })
   }
   return out
 }
@@ -40,6 +46,10 @@ function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>):
  * Builds each detailed species the cast needs once, throwaway, so its first build's cost (the folded wing's
  * placement, the loft, and the rest of it: about 2 s across a fresh process's 12 species) runs here, a species at a
  * time behind the title card, instead of blocking `spawnCast` on the main thread all at once.
+ *
+ * Each build uses a variant the cast really produces for that species (see `detailedCastSpecies`), so its atlas is
+ * one `prepaint` has already painted: `materialFor` finds it cached instead of painting a fresh one, synchronously
+ * and un-yielded, that no bird would ever wear.
  *
  * Only the geometry a throwaway build makes is disposed. The atlas material (and its texture) it draws from stays in
  * the painter's cache, which `prepaint` has already filled for the cast and which every bird of the species shares;
@@ -55,7 +65,8 @@ export async function prewarmBirds(loc: Location, opts: PrewarmOptions = {}): Pr
   const total = species.length
   for (let i = 0; i < species.length; i++) {
     if (i > 0) await next()
-    const model = createBirdModel(specs[species[i]!]!)
+    const { code, variant } = species[i]!
+    const model = createBirdModel(specs[code]!, variant)
     model.dispose()
     opts.onProgress?.(i + 1, total)
   }

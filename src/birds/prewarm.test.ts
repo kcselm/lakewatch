@@ -4,6 +4,8 @@ import { getSpec } from './species'
 import { isPlaced } from './detail/wing'
 import { TEST_SPEC } from './detail/fixture'
 import { parseSpeciesSpec } from './spec'
+import { paintStats } from './paint/painter'
+import { castAtlases, prepaint } from './paint/prepaint'
 
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
@@ -41,6 +43,15 @@ describe('prewarmBirds', () => {
     expect(isPlaced(detail)).toBe(false)
     await prewarmBirds(loc([{ species: 'gadwal', behavior: 'swim', zone: 'w', count: 1 }]))
     expect(isPlaced(detail)).toBe(true)
+  })
+
+  it('paints no atlas for a species the cast always gives a named variant: it builds with one prepaint already painted', async () => {
+    // a count-map entry (as the lake's real ducks use): every individual gets a named variant, never none
+    const countMapLoc = loc([{ species: 'amewig', behavior: 'swim', zone: 'w', count: 3, plumage: { female: 2, eclipse: 1 } }])
+    await prepaint(castAtlases(countMapLoc))    // paints every variant this cast can produce, exactly as main.tsx does
+    const before = paintStats.atlases
+    await prewarmBirds(countMapLoc)
+    expect(paintStats.atlases).toBe(before)     // no fresh atlas for a variant (or lack of one) no bird will ever wear
   })
 
   it('rejects when a build throws, as spawnCast would', async () => {
