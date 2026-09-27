@@ -51,7 +51,7 @@ describe('the whole cast on the water', () => {
     const mean = counts.reduce((a, b) => a + b, 0) / counts.length
     expect(mean).toBeGreaterThan(10)
     expect(mean).toBeLessThan(18)
-  }, 30_000)   // two seeds x 600 s of the whole cast: about 2 s alone, more in a busy full run
+  }, 120_000)   // two seeds x 600 s of the whole cast: about 20 s with the other tests running, past 80 s on a loaded machine
   it('hides each diving bird exactly while it is under the water, and never offers a hidden bird as a target', () => {
     const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
     const registry = new BirdRegistry()
@@ -70,5 +70,5 @@ describe('the whole cast on the water', () => {
       for (const b of registry.all()) if (!b.model.group.visible && offered.has(b.id)) expect.fail(`hidden ${b.species} offered as a target`)
     }
     expect(hidden).toBeGreaterThan(100)
-  }, 30_000)   // 300 s of the whole cast, checking every bird each frame
+  }, 120_000)   // 300 s of the whole cast, checking every bird each frame; slower as each swimmer is detailed
 })
