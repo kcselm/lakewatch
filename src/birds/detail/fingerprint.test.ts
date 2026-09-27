@@ -93,6 +93,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
   pibgre: { geometry: '7aa2294d', poses: '52b7741a' },          // new: the Pied-billed Grebe, detailed (Task 19); the wing's last tenth flattened in review (was bc526bd5)
   amewig: { geometry: '23baa5a5', poses: '8002ac5d' },          // new: the American Wigeon, detailed (Task 16)
+  norsho: { geometry: '457394f6', poses: '24395fd5' },          // new: the Northern Shoveler, detailed (Task 17)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -127,6 +128,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   pibgre: '85bc5af8', 'pibgre:basic': '85bc5af8', 'pibgre:juvenile': '302095eb',
   // new: the American Wigeon's three versions (Task 16); with no version it paints the female-type bird's
   amewig: '75dc9bbf', 'amewig:female': '75dc9bbf', 'amewig:eclipse': '5ca710c7', 'amewig:male': 'bd49e4d9',
+  // new: the Northern Shoveler's two versions (Task 17); with no version it paints the female's
+  norsho: 'd7db4d80', 'norsho:eclipse': '09744929', 'norsho:female': 'd7db4d80',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
