@@ -3,12 +3,13 @@ import type { SpeciesSpec } from './spec'
 import { SPECIES } from './species'
 import { expandCast } from './spawn'
 import { makeRng } from '../catalog/rng'
-import { createBirdModel } from './factory'
+import { placeFoldedWing } from './detail/wing'
+import { castAtlases, prepaint, type PrepaintOptions } from './paint/prepaint'
 
-export interface PrewarmOptions {
-  /** yields to the browser between species; defaults to one animation frame, or a zero timeout without one */
+export interface PlaceFoldsOptions {
+  /** yields to the browser; defaults to one animation frame, or a zero timeout without one */
   next?: () => Promise<void>
-  /** called once for each detailed species built: how many are built, of how many */
+  /** called at the start and after each species: how many are done, of how many */
   onProgress?: (done: number, total: number) => void
   /** the registry, or a test's own (as castAtlases takes) */
   specs?: Record<string, SpeciesSpec>
@@ -21,53 +22,77 @@ function defaultNext(): Promise<void> {
   })
 }
 
-interface PrewarmEntry { code: string; variant?: string }
-
 /**
  * Every detailed species the cast can need, once each, in cast order: whatever `expandCast` would build, minus the
- * duplicates and the block species. Each entry carries the variant that species' first individual in the traversal
- * gets, so building it draws the atlas `materialFor` will actually find: `undefined` when the cast really spawns the
- * species with no variant (castAtlases painted only its own plumage then), and a named one otherwise (castAtlases
- * painted every one of the species' variants then, so whichever this is, it's already there). Doesn't depend on the
- * spawner's seed (mirrors castAtlases's own traversal).
+ * duplicates and the block species. Doesn't depend on the spawner's seed (mirrors castAtlases's own traversal).
  */
-function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): PrewarmEntry[] {
+function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): string[] {
   const seen = new Set<string>()
-  const out: PrewarmEntry[] = []
-  for (const ind of expandCast(loc, makeRng(1))) {
-    if (seen.has(ind.species) || !specs[ind.species]?.detail) continue
-    seen.add(ind.species)
-    out.push({ code: ind.species, variant: ind.variant })
-  }
-  return out
+  for (const ind of expandCast(loc, makeRng(1))) if (specs[ind.species]?.detail) seen.add(ind.species)
+  return [...seen]
 }
 
 /**
- * Builds each detailed species the cast needs once, throwaway, so its first build's cost (the folded wing's
- * placement, the loft, and the rest of it: about 2 s across a fresh process's 12 species) runs here, a species at a
- * time behind the title card, instead of blocking `spawnCast` on the main thread all at once.
+ * Places the folded wing of each detailed species the cast needs (`placeFoldedWing`), a species at a time, so no bird
+ * build places one later. It is the builder's only per-species cache, and the costly part of a species' first build.
+ * It needs no atlas, so it runs on the main thread while the worker paints them.
  *
- * Each build uses a variant the cast really produces for that species (see `detailedCastSpecies`), so its atlas is
- * one `prepaint` has already painted: `materialFor` finds it cached instead of painting a fresh one, synchronously
- * and un-yielded, that no bird would ever wear.
- *
- * Only the geometry a throwaway build makes is disposed. The atlas material (and its texture) it draws from stays in
- * the painter's cache, which `prepaint` has already filled for the cast and which every bird of the species shares;
- * disposing it here would break every bird `spawnCast` builds afterward.
- *
- * Yields to the browser (`next`, one animation frame by default) between species, so no single step blocks the main
- * thread for longer than one species' build. A build that throws rejects here, exactly as `spawnCast`'s would.
+ * Yields (`next`) before each species, the first too, so the title card draws before any placing and again between
+ * species. Counts from 0 to the number of species, once each. A placement that throws rejects here.
  */
-export async function prewarmBirds(loc: Location, opts: PrewarmOptions = {}): Promise<void> {
+export async function placeFolds(loc: Location, opts: PlaceFoldsOptions = {}): Promise<void> {
   const specs = opts.specs ?? SPECIES
   const next = opts.next ?? defaultNext
   const species = detailedCastSpecies(loc, specs)
   const total = species.length
-  for (let i = 0; i < species.length; i++) {
-    if (i > 0) await next()
-    const { code, variant } = species[i]!
-    const model = createBirdModel(specs[code]!, variant)
-    model.dispose()
+  opts.onProgress?.(0, total)
+  for (let i = 0; i < total; i++) {
+    await next()
+    placeFoldedWing(specs[species[i]!]!.detail!)
     opts.onProgress?.(i + 1, total)
   }
+}
+
+export interface PrepareOptions extends PlaceFoldsOptions {
+  /** makes the paint worker, as for `prepaint` */
+  worker?: PrepaintOptions['worker']
+  /** builds the cast (main.tsx: `spawnCast`), once every atlas is painted and every fold placed; one step of the count */
+  build?: () => void
+}
+
+/**
+ * Gets the cast's birds ready behind the title card. It paints every atlas the cast needs (`prepaint`, in the worker)
+ * and, meanwhile, places every folded wing on the main thread (`placeFolds`). When both are done, it yields a frame
+ * and runs `build`.
+ *
+ * `onProgress` gets one count over all of it: the atlases still to paint, the species, and the build. The total is set
+ * before anything starts, so it never changes, and the count reaches it once, when the build is done. Rejects if any
+ * part does, and builds nothing if painting or placing does.
+ *
+ * No throwaway build warms the engine first: measured in the browser, one per species after painting cut the cast's
+ * build by about 0.2 s but took 0.4 s itself, so Begin came later.
+ */
+export async function prepareBirds(loc: Location, opts: PrepareOptions = {}): Promise<void> {
+  const specs = opts.specs ?? SPECIES
+  const next = opts.next ?? defaultNext
+  const folds = { done: 0, total: detailedCastSpecies(loc, specs).length }
+  const atlases = { done: 0, total: 0 }
+  const built = { done: 0, total: opts.build ? 1 : 0 }
+  const report = () => opts.onProgress?.(
+    atlases.done + folds.done + built.done,
+    atlases.total + folds.total + built.total,
+  )
+  // prepaint first: it reports its total before it awaits anything, so even the first count has the whole total
+  const painting = prepaint(castAtlases(loc, specs), {
+    worker: opts.worker,
+    onProgress: (done, total) => { atlases.done = done; atlases.total = total; report() },
+  })
+  const placing = placeFolds(loc, { next, specs, onProgress: done => { folds.done = done; report() } })
+  await Promise.all([painting, placing])
+  if (!opts.build) return
+  // the build blocks the main thread for a while: draw the count first
+  await next()
+  opts.build()
+  built.done = 1
+  report()
 }

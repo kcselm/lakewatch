@@ -14,8 +14,7 @@ import { createReeds, createGrass } from './world/vegetation'
 import { createTree, createSnag, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
-import { prewarmBirds } from './birds/prewarm'
-import { castAtlases, prepaint } from './birds/paint/prepaint'
+import { prepareBirds } from './birds/prewarm'
 import { createStore } from './store/store'
 import type { PaintProgress } from './ui/Title'
 import { LookControls } from './player/look'
@@ -226,15 +225,14 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
 }
-// Every atlas the cast needs paints in a worker behind the title card. Only then does each detailed species get its
-// throwaway first build, a species at a time, so its costly first-build work (the folded wing's placement, the loft)
-// runs behind the title card too, instead of freezing it when spawnCast builds the whole cast at once. Only then is
-// the cast itself built, on now-warm caches, and Begin enabled.
-prepaint(castAtlases(loc), {
+// Behind the title card, every atlas the cast needs paints in a worker while the main thread places each detailed
+// species' folded wing, the costly part of its first build, a species at a time. Then the cast is built, and Begin
+// enabled. The card counts all three: atlases, species, and the build.
+prepareBirds(loc, {
   worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
   onProgress: (done, total) => painting.set({ done, total }),
-}).then(() => prewarmBirds(loc)).then(() => {
-  world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches }))
+  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches })),
+}).then(() => {
   painting.set({ ready: true })
 }).catch(err => {
   console.error(err)

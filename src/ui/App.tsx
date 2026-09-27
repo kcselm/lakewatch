@@ -29,7 +29,7 @@ export interface AppDeps {
   persistent: () => boolean
   onCloseLifeList: () => void
   unsupported: string | null
-  /** the birds' atlases painting behind the title card */
+  /** how far the birds are ready behind the title card: atlases, folded wings, and the cast's build */
   painting: Store<PaintProgress>
   onBegin: () => void
   onOpenSettings: () => void

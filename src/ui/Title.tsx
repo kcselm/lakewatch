@@ -1,4 +1,7 @@
-/** How far the birds' atlases have painted; Begin waits for `ready`, when every bird is built */
+/**
+ * How far the birds are ready: one count over the atlases to paint, the species' folded wings to place, and the cast's
+ * build (see birds/prewarm.ts). Begin waits for `ready`, when every bird is built.
+ */
 export interface PaintProgress { done: number; total: number; ready: boolean }
 
 export interface TitleProps {
@@ -22,7 +25,7 @@ export function Title({ unsupported, painting, onBegin, onSettings, onCredits }:
           <>
             <button class="begin" onClick={onBegin} disabled={!painting.ready}>Begin</button>
             {/* hidden, not removed, once ready: the card is centred, and Begin mustn't move as it enables */}
-            <p class={painting.ready ? 'painting ready' : 'painting'} role="status">Painting the birds… {painting.done} of {painting.total}</p>
+            <p class={painting.ready ? 'painting ready' : 'painting'} role="status">Getting the birds ready… {painting.done} of {painting.total}</p>
           </>
         )}
         <div class="title-links">

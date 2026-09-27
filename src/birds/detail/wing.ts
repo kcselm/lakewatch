@@ -535,11 +535,18 @@ export function isPlaced(detail: DetailSpec): boolean {
   return placed.has(detail)
 }
 
+/**
+ * Places `detail`'s folded wing and caches it, unless it already is: the costly part of a species' first build. It
+ * needs no atlas, so startup runs it while the atlases paint (see birds/prewarm.ts).
+ */
+export function placeFoldedWing(detail: DetailSpec): void {
+  if (!placed.has(detail)) placed.set(detail, placeFold(detail))
+}
+
 /** Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. */
 export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
-  let fold = placed.get(detail)
-  if (!fold) placed.set(detail, (fold = placeFold(detail)))
-  const { at, ts } = fold
+  placeFoldedWing(detail)
+  const { at, ts } = placed.get(detail)!
   const k = (i: number, j: number) => i * FOLD_T + j
   let low = Infinity
   for (const side of [1, -1] as const) {
