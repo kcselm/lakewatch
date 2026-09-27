@@ -264,17 +264,21 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
           }
         } else if (phase === 'under') {
           // swimming under water toward where it will come up, evenly over the time it stays down; halfway, it makes
-          // sure no one is floating on the spot, and goes round to a clear one if they are (see clearSpot)
-          if (!checked && timer <= underFor / 2) { checked = true; clearSpot() }
+          // sure no one is floating on the spot, and goes round to a clear one if they are (see clearSpot), and again
+          // whenever a bird comes onto it after
+          if (timer <= underFor / 2 && (!checked || clearance(ux, uz) < 0)) { checked = true; clearSpot() }
           const left = Math.hypot(ux - b.x, uz - b.z)
           const by = Math.min(left, (left / Math.max(timer, dt)) * dt, S.dive.swim * dt)
           if (left > 1e-9) { b.x += ((ux - b.x) / left) * by; b.z += ((uz - b.z) / left) * by }
           // Its time up, it comes up as soon as it is clear of the others. If a bird has come onto the spot since, it
           // goes round to another, with room to spare as they are swimming too, and stays down a little longer: until
-          // it has been down the longest a coot stays down, and then it comes up where it is.
+          // it has been down the longest a coot stays down, and then it comes up where it is. It starts up in this
+          // frame, so that no bird swims at it unseen while it is still all the way under.
           if (timer <= 0) {
-            if (clearance(b.x, b.z) >= 0 || underFor - timer >= S.dive.under[1]) { phase = 'rise'; timer = S.dive.rise; b.speed = 0 }
-            else if (left - by < 1e-9) clearSpot()
+            if (clearance(b.x, b.z) >= 0 || underFor - timer >= S.dive.under[1]) {
+              phase = 'rise'; timer = S.dive.rise - dt; b.speed = 0
+              sink = step(sink, 0, dt / S.dive.rise)
+            } else if (left - by < 1e-9) clearSpot()
           }
         } else if (phase === 'rise') {
           sink = step(sink, 0, dt / S.dive.rise)
