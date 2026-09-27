@@ -130,6 +130,34 @@ describe('buildDetailedBird, swimming', () => {
   })
 })
 
+describe('headBob', () => {
+  // A coot's bill travels about 5 cm fore and aft in its head pump and 2-3 cm up and down, rising as it goes forward;
+  // on the test duck, scaled from the coot's 0.31 m to its own length.
+  const m = buildDetailedBird(TEST_SWIM_SPEC)
+  const L = m.profile.length, scale = L / 0.31
+  const tipAt = (headBob: number) => { m.pose(posed({ headBob })); m.group.updateMatrixWorld(true); return billTipNow(m).clone() }
+
+  it('carries the bill forward and up by half as much: 2-3 cm for 5 cm on a coot-sized bird', () => {
+    const rest = tipAt(0)
+    for (const sign of [1, -1]) {
+      const moved = tipAt((sign * 0.05) / 0.31).sub(rest)
+      expect(moved.x * sign).toBeCloseTo(0.05 * scale, 3)
+      expect(moved.y * sign).toBeGreaterThanOrEqual(0.02 * scale)
+      expect(moved.y * sign).toBeLessThanOrEqual(0.03 * scale)
+      expect(Math.abs(moved.z)).toBeLessThan(1e-9)
+    }
+  })
+  it('changes nothing at 0: after a pump, headBob 0 puts every bone back where the rest pose has it', () => {
+    const fresh = buildDetailedBird(TEST_SWIM_SPEC)
+    fresh.pose(defaultPose()); fresh.group.updateMatrixWorld(true)
+    m.pose(posed({ headBob: 0.085 })); m.pose(posed({ headBob: 0 })); m.group.updateMatrixWorld(true)
+    for (const b of fresh.mesh.skeleton.bones) {
+      const e = bone(m, b.name).matrixWorld.elements
+      b.matrixWorld.elements.forEach((v, i) => expect(e[i]).toBeCloseTo(v, 12))
+    }
+  })
+})
+
 describe('reachDepth and reachAngle', () => {
   it('aim a reach reachDepth below the ground or the water: the bill tip goes down by its value', () => {
     const m = buildDetailedBird(TEST_SPEC)

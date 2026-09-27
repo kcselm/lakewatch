@@ -78,16 +78,19 @@ function posePrint(m: DetailedBirdModel): string {
 }
 
 // Prints taken on master at c588f75, before the swimmers round. A change to the builder that moves any shipped
-// bird's mesh, its skinning, its texture layout, or any of its poses by a micrometre changes these. The one change
-// since: the swimmers round retraced the dowitcher's throat with tilted sections (Task 5), so its prints are new.
+// bird's mesh, its skinning, its texture layout, or any of its poses by a micrometre changes these. The changes
+// since: the swimmers round retraced the dowitcher's throat with tilted sections (Task 5), so its prints are new; and
+// every `poses` print moved, knowingly, when headBob gained the head pump's rise and fall (the head goes up half as far
+// as it goes forward; Task 10 review). Only POSES' two headBob poses move: in the game only the coot sets a non-zero
+// headBob, so no shipped bird moves differently. The geometry prints are untouched.
 const EXPECTED: Record<string, { geometry: string; poses: string }> = {
-  killde: { geometry: 'f5d077d0', poses: '4d9550b0' },
-  leasan: { geometry: '83eeff1f', poses: '0cd6b93e' },
-  greyel: { geometry: '7671be05', poses: '88449834' },
-  lesyel: { geometry: '923592bf', poses: 'e640b069' },
-  pecsan: { geometry: 'fc0011fe', poses: 'bac5bab5' },
-  lobdow: { geometry: 'bedf44dc', poses: '449d38d8' },          // the throat retraced (Task 5)
-  mallar3: { geometry: '0e8b620c', poses: '821985c4' },         // new: the Mallard, detailed (Task 14)
+  killde: { geometry: 'f5d077d0', poses: 'f8173f03' },          // poses were 4d9550b0 before the head pump's arc
+  leasan: { geometry: '83eeff1f', poses: 'cfa4b2d9' },          // were 0cd6b93e
+  greyel: { geometry: '7671be05', poses: '9f3dded8' },          // were 88449834
+  lesyel: { geometry: '923592bf', poses: 'b525d3d3' },          // were e640b069
+  pecsan: { geometry: 'fc0011fe', poses: '086a1105' },          // were bac5bab5
+  lobdow: { geometry: 'bedf44dc', poses: 'f52423c1' },          // the throat retraced (Task 5); poses were 449d38d8
+  mallar3: { geometry: '0e8b620c', poses: '9e4a41a2' },         // new: the Mallard, detailed (Task 14); poses were 821985c4
 }
 
 describe('the shipped detailed birds build exactly as before', () => {

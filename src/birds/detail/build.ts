@@ -273,6 +273,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.neckMid.position.copy(neckMidRest).multiplyScalar(k)
     bones.head.position.copy(headRest).multiplyScalar(k)
     bones.head.position.x += st.headBob * bodyLength
+    // the head pump's rise and fall: the head goes up half as far as it goes forward, and down as it draws back (a
+    // coot's bill rises 2-3 cm as it thrusts about 5 cm forward)
+    bones.head.position.y += 0.5 * st.headBob * bodyLength
     bones.neckMid.rotation.z = 0
     const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
     if (reach > 0) reachDown(smooth(reach), probeDepth + Math.max(0, st.reachDepth), THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
