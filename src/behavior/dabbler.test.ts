@@ -1,8 +1,19 @@
 import { createDabbler, MALLARD, GADWALL, WIGEON, dabblerFor, type DabblerSettings } from './dabbler'
 import { createSwim } from './swim'
+import { mid } from './swimmer'
 import { defaultPose } from '../birds/model'
 import { makeRng } from '../catalog/rng'
 import type { BehaviorContext } from './types'
+
+// Every bout begins with a pick of what to do next, and a bird can pick the same again: loafing on, or a second tip-up
+// bout straight after the first, the two running together with nothing to show where one ends. The picks are counted
+// so the tests can tell such bouts apart.
+const picks = vi.hoisted(() => ({ made: 0 }))
+vi.mock('./swimmer', async importOriginal => {
+  const real = await importOriginal<typeof import('./swimmer')>()
+  const pickByShare = (...args: Parameters<typeof real.pickByShare>) => { picks.made++; return real.pickByShare(...args) }
+  return { ...real, pickByShare: pickByShare as typeof real.pickByShare }
+})
 
 type Pt = [number, number]
 const zone = { kind: 'polygon' as const, points: [[-20, -20], [20, -20], [20, 20], [-20, 20]] as Pt[] }
@@ -10,10 +21,13 @@ const ctx = (seed: number, more: Partial<BehaviorContext> = {}): BehaviorContext
   zone, rng: makeRng(seed), wind: () => ({ dirX: 1, dirZ: 0, effective: 0.3 }), ground: () => -2, ...more,
 })
 
-interface Frame { t: number; state: string; lean: number; tail: number; reach: number; depth: number; angle: number; paddle: number; phase: number; neck: number; bob: number }
+interface Frame { t: number; state: string; bout: number; lean: number; tail: number; reach: number; depth: number; angle: number; paddle: number; phase: number; neck: number; bob: number }
 interface Ring { t: number; size: number }
 
-/** A bird feeding on its own for `seconds`, one record per frame, under the state it was in as the frame began. */
+/**
+ * A bird feeding on its own for `seconds`, one record per frame, under the state it was in as the frame began and the
+ * number of the pick that began its bout.
+ */
 function record(S: DabblerSettings, seed: number, seconds: number, fps = 30) {
   const rings: Ring[] = []
   let t = 0
@@ -21,11 +35,32 @@ function record(S: DabblerSettings, seed: number, seconds: number, fps = 30) {
   const pose = defaultPose(), frames: Frame[] = []
   for (let i = 0; i < seconds * fps; i++) {
     t = i / fps
-    const state = c.state
+    const state = c.state, bout = picks.made
     c.update(1 / fps, pose)
-    frames.push({ t, state, lean: pose.lean.x, tail: pose.tailTilt, reach: pose.reach, depth: pose.reachDepth, angle: pose.reachAngle, paddle: pose.paddle, phase: pose.paddlePhase, neck: pose.neckExtend, bob: pose.headBob })
+    frames.push({ t, state, bout, lean: pose.lean.x, tail: pose.tailTilt, reach: pose.reach, depth: pose.reachDepth, angle: pose.reachAngle, paddle: pose.paddle, phase: pose.paddlePhase, neck: pose.neckExtend, bob: pose.headBob })
   }
   return { frames, rings }
+}
+
+interface Bout { state: string; from: number; to: number; first: number; last: number }
+
+/** Each bout: the frames under one pick, its state, its start and end times, and its first and last frame. */
+function bouts(frames: Frame[]): Bout[] {
+  const out: Bout[] = []
+  for (let i = 1, first = 0; i < frames.length; i++) {
+    if (frames[i]!.bout === frames[first]!.bout && frames[i]!.state === frames[first]!.state) continue
+    out.push({ state: frames[first]!.state, from: frames[first]!.t, to: frames[i]!.t, first, last: i - 1 })
+    first = i
+  }
+  return out
+}
+
+/** How many times `above` comes to hold within a bout: the tip-ups, or head-dips, it starts. */
+function starts(frames: Frame[], above: (f: Frame) => boolean): (b: Bout) => number {
+  const upTo: number[] = []
+  let n = 0
+  frames.forEach((f, i) => { if (i > 0 && above(f) && !above(frames[i - 1]!)) n++; upTo.push(n) })
+  return b => upTo[b.last]! - (b.first > 0 ? upTo[b.first - 1]! : 0)
 }
 
 /** Runs of consecutive frames where `test` holds: start and end times. */
@@ -67,16 +102,37 @@ for (const sp of SPECIES) {
     // kind of bout as often as the others, so each shows up many times.
     const busy: DabblerSettings = { ...S, feeding: { share: S.feeding.share * 3, split: { surface: 1, headDip: 1, tipUp: 1 } } }
     const fine = record(busy, 9, 600, 60)
+    // each activity's mean bout, in seconds: a head-dip or tip-up bout is a pause and a dip (or a tip-up), over and over
+    const meanBout: Record<string, number> = {
+      cruise: mid(S.cruise.seconds), loaf: mid(S.loaf.seconds), preen: mid(S.preen.seconds), alert: mid(S.alert.seconds), surfaceDabble: mid(S.surface.seconds),
+      headDip: mid(S.headDip.dips) * (mid(S.headDip.seconds) + mid(S.headDip.gap)), tipUp: mid(S.tipUp.count) * (mid(S.tipUp.seconds) + mid(S.tipUp.gap)),
+    }
+    // For the number of dips and tip-ups a bout, two birds for an hour each that only dip their heads and tip up, as
+    // many bouts of one as of the other: the eight hours above hold only about 26 of the Gadwall's tip-up bouts, too few
+    // to be sure of seeing both 5 and 15.
+    const feeder: DabblerSettings = {
+      ...S, cruising: { share: 0 }, loaf: { ...S.loaf, share: 0 }, preen: { ...S.preen, share: 0 }, alert: { ...S.alert, share: 0 },
+      feeding: { share: 1, split: { surface: 0, headDip: meanBout.headDip!, tipUp: meanBout.tipUp! } },
+    }
+    const feeders = [11, 12].map(seed => record(feeder, seed, 3600, 10))
 
-    it('spends its time as the research says: each activity within 0.05 of its share', () => {
+    it('spends its time as the research says: each activity within a quarter of its share, or more where it has few bouts', () => {
       const total = S.cruising.share + S.loaf.share + S.preen.share + S.alert.share + S.feeding.share
       const want: Record<string, number> = {
         cruise: S.cruising.share / total, loaf: S.loaf.share / total, preen: S.preen.share / total, alert: S.alert.share / total,
         surfaceDabble: (S.feeding.share * S.feeding.split.surface) / total, headDip: (S.feeding.share * S.feeding.split.headDip) / total,
         tipUp: (S.feeding.share * S.feeding.split.tipUp) / total,
       }
-      for (const [state, w] of Object.entries(want)) expect(share(frames, [state]), state).toBeCloseTo(w, 1)
-      for (const [state, w] of Object.entries(want)) expect(Math.abs(share(frames, [state]) - w), state).toBeLessThan(0.05)
+      // An activity's time is the sum of its bouts, so over n bouts it wanders by about 1 / sqrt(n) of its share (0.8-1.4
+      // / sqrt(n) standard deviation, measured over 40 runs of eight bird-hours each). Each is held to a quarter of its
+      // share or, where the eight hours hold few bouts of it (n below 256), to 4 / sqrt(n) of it, 3.3 standard deviations
+      // or more: the Mallard's surface dabbling (about 90 bouts) to 0.41, the Gadwall's tip-ups (26) to 0.79, the
+      // Wigeon's (74) to 0.47, and the Mallard's and Gadwall's loafing and preening and the Wigeon's loafing and head-dips
+      // (140-200) to 0.29-0.33.
+      for (const [state, w] of Object.entries(want)) {
+        const n = (8 * 3600 * w) / meanBout[state]!
+        expect(Math.abs(share(frames, [state]) - w), state).toBeLessThan(Math.max(0.25, 4 / Math.sqrt(n)) * w)
+      }
     })
     it('splits its feeding between surface dabbling, head-dips, and tip-ups within the research ranges', () => {
       const feeding = frames.filter(f => ['surfaceDabble', 'headDip', 'tipUp'].includes(f.state))
@@ -100,15 +156,43 @@ for (const sp of SPECIES) {
     })
     it('tips up in bouts, level for the gap between tip-ups', () => {
       // inside a tip-up bout, the body is below half-way between tip-ups for its gap, give or take the tilt times
+      let spells = 0
       for (const r of long) {
         for (const bout of runs(r.frames, f => f.state === 'tipUp')) {
           const level = runs(bout.frames, f => f.lean <= S.tipUp.lean / 2).filter(l => l.from > bout.from && l.to < bout.to)
           // the level spell is the gap plus half the tilt over less half the tilt back (0.05 s), measured to 0.15 s
           for (const l of level) {
+            spells++
             expect(l.to - l.from).toBeGreaterThanOrEqual(S.tipUp.gap[0] - 0.15)
             expect(l.to - l.from).toBeLessThanOrEqual(S.tipUp.gap[1] + 0.2)
           }
         }
+      }
+      expect(spells).toBeGreaterThan(50)
+    })
+    it('tips up and dips its head as many times a bout as its settings say, from the fewest to the most', () => {
+      // a tip-up is counted as the body passes half-way up, a head-dip as the head goes half-way under
+      for (const [state, [fewest, most], above] of [
+        ['tipUp', S.tipUp.count, (f: Frame) => f.lean > S.tipUp.lean / 2],
+        ['headDip', S.headDip.dips, (f: Frame) => f.depth > S.headDip.depth / 2],
+      ] as const) {
+        const counts = [...long, ...feeders].flatMap(r => bouts(r.frames).filter(b => b.state === state).map(starts(r.frames, above)))
+        expect(counts.length, state).toBeGreaterThan(50)
+        // every bout within the range, and both ends of it turning up, so a bird that always drew the same would fail
+        expect(Math.min(...counts), state).toBe(fewest)
+        expect(Math.max(...counts), state).toBe(most)
+      }
+    })
+    it('loafs, preens, looks about, and dabbles at the surface for its settings\' lengths, from near the shortest to near the longest', () => {
+      for (const [state, [lo, hi]] of [['surfaceDabble', S.surface.seconds], ['loaf', S.loaf.seconds], ['preen', S.preen.seconds], ['alert', S.alert.seconds]] as const) {
+        const lengths = long.flatMap(r => bouts(r.frames)).filter(b => b.state === state).map(b => b.to - b.from)
+        expect(lengths.length, state).toBeGreaterThan(50)
+        // a bout lasts its drawn length, rounded up to the frame (0.1 s)
+        expect(Math.min(...lengths), state).toBeGreaterThanOrEqual(lo - 1e-6)
+        expect(Math.max(...lengths), state).toBeLessThanOrEqual(hi + 0.1 + 1e-6)
+        // and the lengths spread over the range: the shortest in its lowest tenth, the longest in its highest
+        expect(Math.min(...lengths), state).toBeLessThan(lo + (hi - lo) / 10)
+        expect(Math.max(...lengths), state).toBeGreaterThan(hi - (hi - lo) / 10)
       }
     })
     it('dips its head for the research lengths, the head and upper neck under', () => {
