@@ -48,8 +48,17 @@ export interface GrebeSettings extends SwimSettings {
   rings: { roll: number; splash: number; sink: number; up: number }
 }
 
-/** How far the grebe goes down to back-awash, to watch or to start a dive: the back from +0.028 m to -0.045 m (section 6). */
-export const AWASH = 0.073
+/**
+ * How far the grebe goes down to the periscope, to watch or to start a dive: the back from +0.028 m to about
+ * -0.017 m (research section 6.3). The research's periscope has the back 40-50 mm under (0.073 m of sink), but that
+ * assumes a live bird's raised neck (crown 106 mm up, section 6.1's alert photo). The traced bird can't raise its
+ * neck that far: its neck extension in the sink state (`NECK.sink` = 1) lifts the crown only from 82.0 to 86.5 mm, so
+ * at 0.073 m only a 13.5 mm dome of crown clears the water and the eye is 4.8 mm under - not the periscope. At
+ * 0.045 m the traced bird's head, eye, bill, and chin are all out (crown 86.5 mm, eye 68.2, bill tip 56.2, chin 48.6,
+ * the chin the closest with 3.6 mm to spare), which is as far as this model's neck can give the look; the back is
+ * then about 15-20 mm under.
+ */
+export const AWASH = 0.045
 
 /**
  * From docs/research/2026-09-25-pied-billed-grebe.md, section 11 (sections 6 and 7 for the depths and the video).
@@ -113,6 +122,14 @@ export const GREBE: GrebeSettings = {
 type State = 'cruise' | 'peer' | 'dive' | 'under' | 'resurface' | 'sink' | 'loaf'
 const NECK: Record<State, number> = { cruise: 0.8, peer: 1, dive: 1, under: 1, resurface: 0.9, sink: 1, loaf: 0.15 }
 const step = (v: number, want: number, by: number) => (v < want ? Math.min(want, v + by) : Math.max(want, v - by))
+/** cubic ease-in: slow to start, quickening toward the end (a roll-under's depth, section 7: shallow while the stern tips up, then under) */
+const easeIn = (t: number) => t * t * t
+/**
+ * Seconds a roll-under's lean takes to reach `rollLean`. Even the shortest roll (`entry.rollTime` at its 0.4 s low
+ * end) has this land by 37.5% of its own time, inside the 40% the stern-first look calls for (section 7); a longer
+ * roll reaches it sooner still, relative to its own time.
+ */
+const ROLL_LEAN_RAMP = 0.15
 
 /** A gamma draw with this mean and standard deviation (Marsaglia and Tsang's method), kept to the range. */
 export function gamma(rng: Rng, mean: number, sd: number, [lo, hi]: Range): number {
@@ -149,8 +166,9 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
   let start: Start = 'roll'
   // a dive's entry, or a sink-and-watch, goes in stages; how long it has been on this one
   let stage = 0, onStage = 0
-  // how far down the bird is (0 afloat, AWASH at the periscope, entry.depth under), easing from `from` to `to`
-  let depth = 0, from = 0, to = 0, over = 0, moved = 0
+  // how far down the bird is (0 afloat, AWASH at the periscope, entry.depth under), easing from `from` to `to` along
+  // `curve` (smoothstep, unless a roll-under asks for cubic ease-in instead)
+  let depth = 0, from = 0, to = 0, over = 0, moved = 0, curve: (t: number) => number = ease
   let [ux, uz] = [0, 0]
   let face = 0, puff = 0, roll = 0, kick = 0, preen = 0
   let sinceRing = 0, paddlePhase = 0
@@ -165,8 +183,10 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
   // after a bout, a rest: it cruises or loafs before the next
   const REST = { cruise: TABLE.cruise, loaf: TABLE.loaf }
   const ring = (size: number) => ctx.onRipple?.(b.x, b.z, size)
-  /** Go from the depth it is at to `target` over `seconds`, eased. */
-  function sinkTo(target: number, seconds: number): void { from = depth; to = target; over = seconds; moved = 0 }
+  /** Go from the depth it is at to `target` over `seconds`, along `shape` (smoothstep, unless told otherwise). */
+  function sinkTo(target: number, seconds: number, shape: (t: number) => number = ease): void {
+    from = depth; to = target; over = seconds; moved = 0; curve = shape
+  }
   const settled = () => moved >= over
   const toStage = (n: number) => { stage = n; onStage = 0 }
   const boutLength = () => Math.floor(between(ctx.rng, [S.bouts.dives[0], S.bouts.dives[1] + 1]))
@@ -220,7 +240,9 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
     const r = ctx.rng()
     start = r < S.start.roll ? 'roll' : r < S.start.roll + S.start.splash ? 'splash' : 'sink'
     toStage(0)
-    if (start === 'roll') { sinkTo(S.entry.depth, between(ctx.rng, S.entry.rollTime)); ring(S.rings.roll) }
+    // the roll's own curve: cubic ease-in, so the body stays near the surface while the stern tips up, then goes
+    // under quickly at the end (research section 7: "gone in 0.4-0.65 s, stern tipping up, no spring")
+    if (start === 'roll') { sinkTo(S.entry.depth, between(ctx.rng, S.entry.rollTime), easeIn); ring(S.rings.roll) }
     else if (start === 'splash') timer = between(ctx.rng, S.entry.puff)
     else sinkTo(AWASH, S.entry.sinkDown)
   }
@@ -313,7 +335,7 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
       sinceRing += dt
       moved += dt
       watchIn -= dt
-      depth = settled() ? to : from + (to - from) * ease(moved / over)
+      depth = settled() ? to : from + (to - from) * curve(moved / over)
 
       // a sink-and-watch comes when it is due, if the bird is cruising or loafing; in a bout, it waits for the end
       if (state === 'cruise') {
@@ -370,7 +392,9 @@ export function createGrebe(ctx: BehaviorContext, startX: number, startZ: number
       const rolling = state === 'dive' && start === 'roll'
       face = step(face, state === 'peer' || rolling ? 1 : 0, dt / 0.2)
       puff = step(puff, (state === 'dive' && start === 'splash') || state === 'loaf' ? 1 : 0, dt / 0.2)
-      roll = step(roll, rolling ? 1 : 0, dt / 0.3)
+      // the lean leads the sinking: it ramps up fast (`ROLL_LEAN_RAMP`), well ahead of the depth's slower cubic
+      // ease-in, so the stern shows up while the body is still shallow; it settles back over 0.3 s once under
+      roll = step(roll, rolling ? 1 : 0, dt / (rolling ? ROLL_LEAN_RAMP : 0.3))
       kick = step(kick, rolling && onStage > 0.15 ? 1 : 0, dt / 0.2)
       const kFace = ease(face), kPuff = ease(puff), kRoll = ease(roll)
       pose.reach = kFace

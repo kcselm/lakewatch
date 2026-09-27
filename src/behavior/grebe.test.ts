@@ -174,6 +174,30 @@ describe('grebe', () => {
     expect(rolls).toBeGreaterThan(20)
     expect(splashes).toBeGreaterThan(2)
   })
+  it('a roll-under tips the stern up while still shallow: the lean leads, the depth follows (research section 7)', () => {
+    // several seeds of 60 fps simulation, fine enough to catch the lean and the depth in the same frame
+    const seeds = [21, 22, 23]
+    let checked = 0
+    for (const seed of seeds) {
+      const { frames: f } = three(seed, 300, 60)
+      for (const r of runs(f, x => x.states[0] === 'dive')) {
+        const gone = f.slice(r.start).findIndex(underwater(0))
+        if (gone < 0 || r.start + gone + 1 >= f.length) continue
+        const entry = f.slice(r.start, r.start + gone + 1)
+        // told apart from a splash or a sink by the lean, as the entry-timing test above does
+        if (Math.max(...entry.map(x => x.lean)) <= 0.3) continue
+        checked++
+        const stern = entry.find(x => x.lean >= 0.9 * GREBE.entry.rollLean && -x.ys[0]! < 0.03)
+        if (!stern) {
+          const peak = entry.reduce((a, b) => (b.lean > a.lean ? b : a))
+          expect.fail(`seed ${seed} at ${f[r.start]!.t.toFixed(2)} s: never showed the stern up while shallow (peak lean ${peak.lean.toFixed(3)} at depth ${(-peak.ys[0]!).toFixed(3)} m)`)
+        }
+        // under (at least 0.1 m) by this roll's own rollTime, one frame's grace
+        expect(-f[r.start + gone + 1]!.ys[0]!).toBeGreaterThanOrEqual(0.1)
+      }
+    }
+    expect(checked).toBeGreaterThan(20)
+  })
   it('sinks to watch with only its head and neck out, the back 45 mm under, for 5-30 s, every few minutes', () => {
     let watches = 0
     for (const h of hours) {
