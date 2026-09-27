@@ -24,7 +24,7 @@ describe('parseSpeciesSpec', () => {
 
 describe('resolvePlumage', () => {
   it('overlays a variant onto the base plumage', () => {
-    const spec = parseSpeciesSpec({ ...coot, variants: { pale: { crown: '#ffffff' } } })
+    const spec = parseSpeciesSpec({ ...coot, variants: { ...coot.variants, pale: { crown: '#ffffff' } } })
     expect(resolvePlumage(spec, 'pale').crown).toBe('#ffffff')
     expect(resolvePlumage(spec, 'pale').bill).toBe(coot.plumage.bill)
     expect(resolvePlumage(spec).crown).toBe(coot.plumage.crown)
