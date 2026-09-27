@@ -1,6 +1,10 @@
+import * as THREE from 'three'
 import { SPEC as GREBE } from './pibgre'
 import { parseSpeciesSpec } from '../spec'
 import { billWidthAt, billDepthAt } from '../detail/measure'
+import { eyePlacement } from '../detail/bill'
+import { defaultPose } from '../model'
+import { AWASH } from '../../behavior/grebe'
 import { built, atlas, within, draftShare } from './swimmer.testkit'
 
 // Bounds from docs/research/2026-09-25-pied-billed-grebe.md, section 10 (Cramp & Simmons in Johnsgard 1987; Baird,
@@ -37,6 +41,43 @@ describe('Pied-billed Grebe: structure', () => {
     within(B.M.tailTipAbove, 0, 20)
     within(B.M.crownAbove, 70, 95)
     within(draftShare(B.M), 0.55, 0.7)
+  })
+  // Added in review, beyond the brief's file: the grebe style sinks the bird by AWASH to watch (and to start a sink
+  // dive), with its neck at the sink state's extension (NECK.sink, 1, in src/behavior/grebe.ts)
+  it('at the periscope, the head and upper neck show: the eye and the chin above the water, the back below it', () => {
+    const { model: m } = built(GREBE, 'basic')
+    const p = defaultPose()
+    p.neckExtend = 1
+    m.pose(p)
+    // the game lowers the whole bird: the style's y is minus its depth
+    m.group.position.y = -AWASH
+    m.group.updateMatrixWorld(true)
+    const { bones, boneInverses } = m.mesh.skeleton
+    const skinning = (name: string) => {
+      const k = bones.findIndex(b => b.name === name)
+      return { k, M: new THREE.Matrix4().multiplyMatrices(bones[k]!.matrixWorld, boneInverses[k]!) }
+    }
+    const g = m.mesh.geometry
+    const pos = g.getAttribute('position'), index = g.getAttribute('skinIndex'), weight = g.getAttribute('skinWeight')
+    /** Where the vertices skinned wholly to one bone are now, in the world (the water at y = 0). */
+    const wholly = (name: string) => {
+      const { k, M } = skinning(name)
+      const out: THREE.Vector3[] = []
+      for (let i = 0; i < pos.count; i++) {
+        if (index.getX(i) === k && weight.getX(i) > 0.999) out.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(M))
+      }
+      return out
+    }
+    // the eye's centre, from the profile frame to the group's frame at rest, then carried by the head
+    const end = m.profile.sampleAt(1).point
+    const eye = eyePlacement(GREBE.detail!, m.profile).center
+      .add(m.anatomy.billBase.clone().sub(new THREE.Vector3(end.x, end.y, 0)))
+      .applyMatrix4(skinning('head').M)
+    const chin = Math.min(...wholly('head').map(v => v.y))
+    const back = Math.max(...wholly('body').map(v => v.y))
+    expect(eye.y - GREBE.detail!.eye.radius, 'the whole eye above the water').toBeGreaterThan(0)
+    expect(chin, 'the chin above the water').toBeGreaterThan(0)
+    expect(back, 'the back below the water').toBeLessThan(0)
   })
 })
 
