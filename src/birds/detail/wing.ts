@@ -13,9 +13,10 @@ const FOLD_T = 5
 const SPREAD_S = 10
 const SPREAD_T = 4
 /**
- * The least the body's skin ever comes to the folded wing, along the wing's normal, metres. The game's camera (near
- * 0.1 m, a 24-bit depth buffer) tells depths apart to about 0.7 mm at the telescope's 35 m: at 1 mm the skin still
- * flickered through a Mallard's wing there; at 1.5 mm it no longer does (Task 19b)
+ * The least the body's skin ever comes to the folded wing, along the wing's normal, metres. At the telescope's 35 m, a
+ * 24-bit depth buffer tells depths apart to about 0.07 mm with the optics' near plane (1 m, player/optics.ts), and to
+ * about 0.7 mm with the eye's (0.1 m); with the eye's, at 1 mm the skin still flickered through a Mallard's wing there,
+ * at 1.5 mm it no longer did (Task 19b). The optics' raised near plane now leaves room to spare; GAP stays for the eye.
  */
 export const GAP = 0.0015
 /** half the spacing between the two folded wings where they cross over the rump and tail, metres */

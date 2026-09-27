@@ -143,16 +143,14 @@ function paintAtlasPanel(): void {
 }
 
 // --- camera --------------------------------------------------------------------------------------
-/** what a field view looks at (an orbiting camera looks at its controls' target) */
-const focus = new THREE.Vector3()
-
 /**
- * The near plane follows the camera's distance to what it looks at, so the viewer resolves depth no more coarsely than
- * the game does at that range: a fixed 0.01 m left its depth steps about 7 mm at 35 m, where the game's (near 0.1 m)
- * are about 0.7 mm, and showed z-fighting the game never would.
+ * The near plane: a field view's is its optics' (player/optics.ts), as in the game; an orbiting camera's follows its
+ * distance to its target, a 200th of it and at least 1 cm (a fixed 0.01 m left depth steps of about 7 mm at 35 m, and
+ * showed z-fighting the game never would).
  */
 function fitNear(): void {
-  const near = Math.max(0.01, camera.position.distanceTo(controls.enabled ? controls.target : focus) / 200)
+  const field = state.field ? FIELD_VIEWS[state.field] : null
+  const near = field ? field.near : Math.max(0.01, camera.position.distanceTo(controls.target) / 200)
   if (near === camera.near) return
   camera.near = near
   camera.updateProjectionMatrix()
@@ -168,7 +166,6 @@ function place(): void {
     camera.fov = field.fov
     camera.position.set(mid.x, 1.6, field.distance)
     camera.lookAt(mid)
-    focus.copy(mid)
     controls.enabled = false
   } else {
     camera.fov = 20
