@@ -146,10 +146,15 @@ export function paintAtlas({ code, detail, layers, profile }: PaintInput): Uint8
   for (let i = 0, j = 0; i < buf.length; i += 3, j += 4) {
     rgba[j] = buf[i]! * 255; rgba[j + 1] = buf[i + 1]! * 255; rgba[j + 2] = buf[i + 2]! * 255; rgba[j + 3] = 255
   }
-  paintStats.atlases++
-  paintStats.ms += performance.now() - t0
-  paintStats.bytes += Math.round(rgba.length * 4 / 3)     // with mipmaps
+  tally(performance.now() - t0, rgba)
   return rgba
+}
+
+/** Count one atlas's paint for the dev overlay, wherever it was painted. */
+function tally(ms: number, pixels: Uint8ClampedArray): void {
+  paintStats.atlases++
+  paintStats.ms += ms
+  paintStats.bytes += Math.round(pixels.length * 4 / 3)     // with mipmaps
 }
 
 export function atlasTexture(pixels: Uint8ClampedArray): THREE.DataTexture {
@@ -163,17 +168,46 @@ export function atlasTexture(pixels: Uint8ClampedArray): THREE.DataTexture {
   return tex
 }
 
-const materials = new Map<string, THREE.MeshStandardMaterial>()
+/** One atlas: a species, and one of its versions (none: the species' own plumage). */
+export interface AtlasJob { code: string; variant?: string }
 
-/** One material (and one painted atlas) per species and plumage, shared by every bird of that kind. */
+/** An atlas painted off the main thread: its RGBA pixels, and how long the painting took in ms. */
+export interface PaintedAtlas extends AtlasJob { pixels: Uint8ClampedArray; ms: number }
+
+/** Paint one species' atlas for one version, here and now. */
+export function paintSpecies(spec: SpeciesSpec, variant?: string): Uint8ClampedArray {
+  const detail = spec.detail
+  if (!detail) throw new Error(`${spec.code}: no detail block to paint`)
+  return paintAtlas({ code: spec.code, detail, layers: layersFor(detail, variant), profile: createProfile(detail.profile) })
+}
+
+/** The key an atlas is cached under: one per species and version. */
+export const atlasKey = ({ code, variant }: AtlasJob): string => `${code}:${variant ?? ''}`
+
+const materials = new Map<string, THREE.MeshStandardMaterial>()
+const material = (pixels: Uint8ClampedArray) => new THREE.MeshStandardMaterial({ map: atlasTexture(pixels), roughness: 0.85, metalness: 0 })
+
+/** True once this species and version has its atlas, so materialFor won't paint it. */
+export function atlasReady(job: AtlasJob): boolean {
+  return materials.has(atlasKey(job))
+}
+
+/** Keep an atlas painted elsewhere (the paint worker) for materialFor, and count its paint time for the dev overlay. */
+export function storeAtlas(a: PaintedAtlas): void {
+  if (atlasReady(a)) return
+  materials.set(atlasKey(a), material(a.pixels))
+  tally(a.ms, a.pixels)
+}
+
+/**
+ * One material (and one painted atlas) per species and plumage, shared by every bird of that kind. At startup
+ * `prepaint` has painted every atlas the cast needs; anything else (the viewer, tests) is painted here on first use.
+ */
 export function materialFor(spec: SpeciesSpec, variant?: string): THREE.MeshStandardMaterial {
-  const key = `${spec.code}:${variant ?? ''}`
+  const key = atlasKey({ code: spec.code, variant })
   let mat = materials.get(key)
   if (!mat) {
-    const detail = spec.detail
-    if (!detail) throw new Error(`${spec.code}: no detail block to paint`)
-    const pixels = paintAtlas({ code: spec.code, detail, layers: layersFor(detail, variant), profile: createProfile(detail.profile) })
-    mat = new THREE.MeshStandardMaterial({ map: atlasTexture(pixels), roughness: 0.85, metalness: 0 })
+    mat = material(paintSpecies(spec, variant))
     materials.set(key, mat)
   }
   return mat
