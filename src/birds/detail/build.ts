@@ -14,7 +14,7 @@ import { neckSwing, firstRoot, headPitchToGround } from './reach'
 import type { DetailSpec } from './spec'
 
 type NeckShapes = NonNullable<DetailSpec['neckShapes']>
-import { buildCurl } from './extras'
+import { buildCurl, buildPlume } from './extras'
 import { materialFor } from '../paint/painter'
 
 /** Key points of the built bird in group space at rest pose, for measurement and the viewer. */
@@ -90,7 +90,11 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const tail = buildTail(m, detail, profile)
   const feet = buildLegs(m, layout, { kind: detail.feet, lobeWidth: detail.lobeWidth })
   // built on every bird of the species; shown only on the versions that have them
-  const extras = (detail.parts ?? []).map(p => ({ ...buildCurl(m, p, profile), shown: !!variant && p.versions.includes(variant) }))
+  const extras = (detail.parts ?? []).map(p => ({
+    ...(p.kind === 'curl' ? buildCurl(m, p, profile) : buildPlume(m, p, profile)),
+    shown: !!variant && p.versions.includes(variant),
+  }))
+  const extra = (kind: string) => extras.find(e => e.kind === kind)
 
   // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Swimming: the traced waterline on
   // y = 0, and the middle of the body at the water (midway between where the water meets it at the stern and at the
@@ -136,7 +140,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     wingR: at(shoulder), wingL: mirror(at(shoulder)),
     tibiaR: hipR, tarsusR: kneeR, toesR: footR,
     tibiaL: mirror(hipR), tarsusL: mirror(kneeR), toesL: mirror(footR),
-    curl: extras[0] ? at(extras[0].base) : pivot.clone(),
+    curl: extra('curl') ? at(extra('curl')!.base) : pivot.clone(),
+    plume: extra('plume') ? at(extra('plume')!.base) : spineAt(detail.rig.head),
     ...neckJoints,
   }
   const { bones, list } = createBones(joints)
@@ -151,7 +156,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   group.updateMatrixWorld(true)
   mesh.bind(new THREE.Skeleton(list))
   // a version-only part stays hidden on the versions without it (set after binding, so the bind pose is the whole bird)
-  bones.curl.scale.setScalar(extras[0]?.shown ? 1 : HIDDEN)
+  bones.curl.scale.setScalar(extra('curl')?.shown ? 1 : HIDDEN)
+  bones.plume.scale.setScalar(extra('plume')?.shown ? 1 : HIDDEN)
 
   const parts: BirdParts = {
     body: bones.body, neck: bones.neck, head: bones.head, bill: bones.bill,

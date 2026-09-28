@@ -24,6 +24,7 @@ export const REGIONS: Record<Part, Rect> = {
   // free space until now, so no shipped bird's atlas moves
   shield:     { x: 448, y: 384, w: 64,  h: 32 },
   curl:       { x: 256, y: 416, w: 64,  h: 32 },
+  plume:      { x: 320, y: 416, w: 64,  h: 32 },
 }
 
 /** Texture coordinates for part-local (s, t), both 0..1: s runs along the region's width, t up its height. */

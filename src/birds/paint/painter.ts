@@ -6,7 +6,7 @@ import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../det
 import { SPAN, ROOT_CHORD, outlineAt } from '../detail/wing'
 import { ROOT_WIDTH, TIP_SPREAD } from '../detail/tail'
 import { billScale } from '../detail/bill'
-import { CURL_LENGTH, CURL_RADIUS } from '../detail/extras'
+import { CURL_LENGTH, CURL_RADIUS, PLUME_RADIUS } from '../detail/extras'
 import type { SpeciesSpec } from '../spec'
 
 /** Running totals for the dev overlay. */
@@ -29,6 +29,7 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
   const spread = flat(SPAN * m.wingChord * 1000, s => ROOT_CHORD * m.wingChord * 1000 * (1 - 0.85 * s ** 1.3))
   const tailRoot = profile.sampleAt(profile.uOf(detail.rig.tailBase)).halfWidth * 2 * ROOT_WIDTH * 1000
   const tail = flat(m.tail * 1000, s => tailRoot * (1 + (TIP_SPREAD - 1) * s))
+  const curl = detail.parts?.find(p => p.kind === 'curl'), plume = detail.parts?.find(p => p.kind === 'plume')
   return {
     skin: { lengthMm: profile.length * 1000, widthMm: skinWidth, uOf: l => profile.uOf(l) },
     // the folded wing's t spans its outline height at s (wing.ts), so its frame does too
@@ -44,7 +45,8 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     legs: flat(10, () => 10),
     eye: flat(detail.eye.radius * 2000, () => detail.eye.radius * 2000),
     shield: detail.bill.shield ? flat(detail.bill.shield.length * 1000, () => detail.bill.shield!.width * 1000) : flat(1, () => 1),
-    curl: flat(CURL_LENGTH * (detail.parts?.find(p => p.kind === 'curl')?.height ?? 0.001) * 1000, () => 2 * Math.PI * CURL_RADIUS * 1000),
+    curl: flat(CURL_LENGTH * (curl?.height ?? 0.001) * 1000, () => 2 * Math.PI * CURL_RADIUS * 1000),
+    plume: flat((plume?.length ?? 0.001) * 1000, () => 2 * Math.PI * PLUME_RADIUS * 1000),
   }
 }
 

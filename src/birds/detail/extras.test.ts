@@ -5,7 +5,7 @@ import { loftWeights } from './loft'
 import { createProfile } from './profile'
 import { signedVolume } from './mesher'
 import { detailSchema, type Part } from './spec'
-import { TEST_SPEC, TEST_SWIM_SPEC, TEST_SWIM_DETAIL } from './fixture'
+import { TEST_SPEC, TEST_SWIM_SPEC, TEST_SWIM_DETAIL, TEST_HERON_SPEC, TEST_HERON_DETAIL } from './fixture'
 import { parseSpeciesSpec } from '../spec'
 import { defaultPose } from '../model'
 import { REGIONS, ATLAS_SIZE } from '../paint/atlas'
@@ -139,5 +139,65 @@ describe('version-only parts', () => {
     expect(() => detailSchema.parse({ ...detail, parts: [{ ...CURL, versions: ['eclipse'] }] })).toThrow(/part version eclipse/)
     expect(() => detailSchema.parse({ ...detail, parts: [{ ...CURL, at: 'uppertail' }] })).toThrow(/label: uppertail/)
     expect(() => detailSchema.parse({ ...detail, parts: [CURL, CURL] })).toThrow(/more than one curl/)
+  })
+})
+
+describe('a part hung from the head', () => {
+  // an adult heron's occipital plumes: two strands trailing back from the top of the head, on the adult only
+  const PLUME = { kind: 'plume' as const, at: 'occiput', length: 0.12, droop: 15, versions: ['adult'] }
+  const detail = { ...TEST_HERON_DETAIL, parts: [PLUME], variants: { adult: TEST_HERON_DETAIL.plumage, juvenile: TEST_HERON_DETAIL.plumage } }
+  const spec = parseSpeciesSpec({ ...TEST_HERON_SPEC, variants: { adult: {}, juvenile: {} }, detail })
+  const plumeBone = (m: DetailedBirdModel) => m.mesh.skeleton.bones.find(b => b.name === 'plume')!
+  const headBone = (m: DetailedBirdModel) => m.mesh.skeleton.bones.find(b => b.name === 'head')!
+  it('is built on every bird of the species and shown only on the versions it names', () => {
+    for (const v of [undefined, 'adult', 'juvenile']) expect(inRegion(buildDetailedBird(spec, v), 'plume').length, `${v}`).toBeGreaterThan(100)
+    expect(inRegion(buildDetailedBird(TEST_HERON_SPEC), 'plume')).toHaveLength(0)
+    const adult = buildDetailedBird(spec, 'adult'), juvenile = buildDetailedBird(spec, 'juvenile')
+    expect(plumeBone(adult).scale.x).toBe(1)
+    expect(adult.anatomy.parts[0]).toMatchObject({ kind: 'plume', shown: true })
+    expect(plumeBone(juvenile).scale.x).toBeLessThan(0.01)
+    expect(juvenile.anatomy.parts[0]!.shown).toBe(false)
+  })
+  it('leaves the top of the head at its station and trails back its length, drooping', () => {
+    const m = buildDetailedBird(spec, 'adult')
+    const { base } = m.anatomy.parts[0]!
+    const occiput = m.anatomy.stations.find(s => s.label === 'occiput')!.position
+    expect(base.distanceTo(occiput)).toBeLessThan(0.03)
+    expect(base.y).toBeGreaterThan(occiput.y)
+    const far = skinnedAt(m, inRegion(m, 'plume')).reduce((a, v) => (v.distanceTo(base) > a.distanceTo(base) ? v : a))
+    expect(far.distanceTo(base)).toBeGreaterThan(PLUME.length * 0.95)
+    expect(far.distanceTo(base)).toBeLessThan(PLUME.length * 1.02)
+    expect(far.x).toBeLessThan(base.x - PLUME.length * 0.8)       // straight back, drooping
+    expect(far.y).toBeLessThan(base.y - PLUME.length * 0.2)       // and below where it leaves it
+  })
+  it('goes wherever the head goes', () => {
+    const m = buildDetailedBird(spec, 'adult')
+    const inHead = () => {
+      m.group.updateMatrixWorld(true)
+      const toHead = headBone(m).matrixWorld.clone().invert()
+      return skinnedAt(m, inRegion(m, 'plume')).map(v => v.applyMatrix4(m.group.matrixWorld).applyMatrix4(toHead))
+    }
+    const rest = inHead(), world = skinnedAt(m, inRegion(m, 'plume'))
+    for (const patch of [{ neckExtend: 0 }, { neckExtend: 1, headPitch: 0.8 }, { reach: 1 }]) {
+      const p = { ...defaultPose(), ...patch }; p.lean.x = 0.4
+      m.pose(p)
+      const moved = skinnedAt(m, inRegion(m, 'plume'))
+      expect(Math.max(...moved.map((v, i) => v.distanceTo(world[i]!)))).toBeGreaterThan(0.01)
+      inHead().forEach((v, i) => expect(v.distanceTo(rest[i]!), JSON.stringify(patch)).toBeLessThan(1e-9))
+    }
+  })
+  it('is a closed mesh, painted as its own part', () => {
+    const m = buildDetailedBird(spec, 'adult')
+    const c = m.anatomy.closed.find(x => x.name === 'plume')!
+    expect(signedVolume(m.mesh.geometry, c.indexFirst, c.indexCount)).toBeGreaterThan(0)
+    const px = paintAtlas({ code: 'testheron', detail, layers: [{ kind: 'fill', where: { part: 'plume' }, color: '#101010' }], profile: createProfile(detail.profile) })
+    expect(regionStats(px, 'plume', [0, 1], [0, 1]).mean).toBeLessThan(0.1)
+    expect(regionStats(px, 'curl', [0, 1], [0, 1]).mean).toBeCloseTo(0.5, 1)
+  })
+  it('names versions the species paints, a station it has, and a droop in range', () => {
+    expect(() => detailSchema.parse({ ...detail, parts: [{ ...PLUME, versions: ['breeding'] }] })).toThrow(/part version breeding/)
+    expect(() => detailSchema.parse({ ...detail, parts: [{ ...PLUME, at: 'crest' }] })).toThrow(/label: crest/)
+    expect(() => detailSchema.parse({ ...detail, parts: [PLUME, PLUME] })).toThrow(/more than one plume/)
+    expect(() => detailSchema.parse({ ...detail, parts: [{ ...PLUME, droop: 120 }] })).toThrow()
   })
 })

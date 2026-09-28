@@ -5,7 +5,7 @@ const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -30,7 +30,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -130,16 +130,20 @@ export const detailSchema = z.object({
   /**
    * Parts some plumage versions have and others don't. Each is built on every bird of the species, on a bone of its
    * own that is hidden on the versions it doesn't name. 'curl': the Mallard drake's two curled central tail coverts,
-   * loops `height` metres high rising from the back midline at the station `at`, `dx` metres forward along the spine.
-   * Painted as the part 'curl'. One part of each kind.
+   * loops `height` metres high rising from the back midline at the station `at`, `dx` metres forward along the spine,
+   * on a bone that hangs from the body. 'plume': an adult heron's occipital plumes, two thin strands `length` metres
+   * long trailing back from the top of the head at the station `at`, `droop` degrees below the horizontal in the
+   * traced side view and sagging a little further toward their tips, on a bone that hangs from the head, so they go
+   * wherever the head goes.
+   * Painted as the parts 'curl' and 'plume'. One part of each kind.
    */
-  parts: z.array(z.object({
-    kind: z.literal('curl'),
-    at: z.string(),
-    dx: z.number().optional(),
-    height: pos,
-    versions: z.array(z.string().min(1)).min(1),
-  })).optional(),
+  parts: z.array(z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('curl'), at: z.string(), dx: z.number().optional(), height: pos, versions: z.array(z.string().min(1)).min(1) }),
+    z.object({
+      kind: z.literal('plume'), at: z.string(), dx: z.number().optional(), length: pos,
+      droop: z.number().min(-30).max(90), versions: z.array(z.string().min(1)).min(1),
+    }),
+  ])).optional(),
   stepLength: pos.optional(),
   /** how far below the ground the bill tip goes at the bottom of a reach, metres; a prober pushes its bill into the mud */
   probeDepth: z.number().min(0).optional(),

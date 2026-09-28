@@ -11,6 +11,13 @@ export const CURL_LENGTH = CURL_SWEEP / 2
 export const CURL_RADIUS = 0.0012
 const CURL_GAP = 0.0016
 
+/** a plume strand's radius where it leaves the head, and at its tip, and the two strands' distance apart, metres */
+export const PLUME_RADIUS = 0.0015
+const PLUME_TIP_RADIUS = 0.0003
+const PLUME_GAP = 0.002
+/** how much further than its droop a plume sags by its tip, degrees */
+const PLUME_SAG = 20
+
 export type PartSpec = NonNullable<DetailSpec['parts']>[number]
 
 export interface PartResult {
@@ -28,7 +35,7 @@ export interface PartResult {
  * midline, turn back and over, and come down in front (docs/research/2026-09-25-mallard.md, sections 4.1, 5, and 9:
  * two black loops about 20 mm high on the rump). Two closed tubes side by side, on the curl bone.
  */
-export function buildCurl(m: Mesher, part: PartSpec, profile: Profile): PartResult {
+export function buildCurl(m: Mesher, part: Extract<PartSpec, { kind: 'curl' }>, profile: Profile): PartResult {
   const indexFirst = m.indexCount
   const s = profile.sampleAt(profile.uOf(part.at) + (part.dx ?? 0) / profile.length)
   // the section's own up and forward, so a tilted station's back still carries it
@@ -48,6 +55,38 @@ export function buildCurl(m: Mesher, part: PartSpec, profile: Profile): PartResu
       if (p.clone().sub(base).dot(up) > top.clone().sub(base).dot(up)) top = p.clone().setZ(0)
     }
     sweep(m, points, radius, 'curl', [['curl', 1]])
+  }
+  return { kind: part.kind, base, top, indexFirst, indexCount: m.indexCount - indexFirst }
+}
+
+/**
+ * An adult heron's occipital plumes: two thin strands side by side, from just inside the top of the head at the
+ * station `at`, trailing straight back `length`, `droop` degrees below the horizontal in the traced side view, and
+ * sagging PLUME_SAG further by their tips. Closed tubes on the plume bone, which hangs from the head, so posed they
+ * turn with it.
+ */
+export function buildPlume(m: Mesher, part: Extract<PartSpec, { kind: 'plume' }>, profile: Profile): PartResult {
+  const indexFirst = m.indexCount
+  const s = profile.sampleAt(profile.uOf(part.at) + (part.dx ?? 0) / profile.length)
+  const up = new THREE.Vector3(s.axis.x, s.axis.y, 0), back = new THREE.Vector3(-1, 0, 0)
+  const base = new THREE.Vector3(s.point.x, s.point.y, 0).addScaledVector(up, s.up - PLUME_RADIUS)
+  const z = new THREE.Vector3(0, 0, 1)
+  let top = base.clone()
+  const STEPS = 16
+  for (const side of [1, -1]) {
+    const points: THREE.Vector3[] = [], radius: number[] = []
+    const p = base.clone()
+    for (let k = 0; k <= STEPS; k++) {
+      if (k > 0) {
+        // a positive turn about +z swings a line pointing back down: by the droop, and the sag so far
+        const a = THREE.MathUtils.degToRad(part.droop + (PLUME_SAG * (k - 0.5)) / STEPS)
+        p.addScaledVector(back.clone().applyAxisAngle(z, a), part.length / STEPS)
+      }
+      points.push(p.clone().setZ((side * PLUME_GAP) / 2))
+      radius.push(PLUME_RADIUS + (PLUME_TIP_RADIUS - PLUME_RADIUS) * (k / STEPS))
+      if (p.y > top.y) top = p.clone().setZ(0)
+    }
+    sweep(m, points, radius, 'plume', [['plume', 1]])
   }
   return { kind: part.kind, base, top, indexFirst, indexCount: m.indexCount - indexFirst }
 }
