@@ -4,7 +4,7 @@ import { buildDetailedBird, type DetailedBirdModel } from './build'
 import { loftWeights, RINGS, RADIAL } from './loft'
 import { createProfile } from './profile'
 import { chainBones, NECK_BONES } from './rig'
-import { billTipNow, billAngleNow } from './measure'
+import { billTipNow, billAngleNow, crownNow, measure } from './measure'
 import { posedFold, passThrough } from './neck.testkit'
 import { TEST_HERON_DETAIL, TEST_HERON_SPEC, TEST_SPEC } from './fixture'
 import { defaultPose, type PoseState } from '../model'
@@ -180,4 +180,17 @@ describe('headPitch', () => {
       })
     })
   }
+})
+
+describe('crownNow', () => {
+  it('is the top of the head as posed: the crown at rest where the bird stands, lower hunched, higher erect', () => {
+    const m = buildDetailedBird(TEST_HERON_SPEC)
+    m.pose(posed())
+    const rest = crownNow(m)
+    expect(rest).toBeCloseTo(measure(m).crownAbove, 6)
+    m.pose(posed({ neckExtend: 0 }))
+    expect(crownNow(m)).toBeLessThan(rest - 0.03)
+    m.pose(posed({ neckExtend: 1 }))
+    expect(crownNow(m)).toBeGreaterThan(rest + 0.03)
+  })
 })

@@ -6,7 +6,7 @@ import { SPECIES, getSpec, hasSpec } from '../birds/species'
 import { createBirdModel } from '../birds/factory'
 import { defaultPose, type BirdModel } from '../birds/model'
 import type { DetailedBirdModel } from '../birds/detail/build'
-import { measure } from '../birds/detail/measure'
+import { measure, crownNow } from '../birds/detail/measure'
 import { createProfile } from '../birds/detail/profile'
 import { layersFor } from '../birds/detail/spec'
 import { paintAtlas } from '../birds/paint/painter'
@@ -17,7 +17,7 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
-  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0,
+  neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
@@ -253,17 +253,26 @@ const cam = group('Camera')
 select(cam, 'view', VIEWS.map(v => [v, v] as [string, string]), state.view, v => set({ view: v as ViewerState['view'] }))
 select(cam, 'field view', [['', 'off (orbit)'], ...Object.entries(FIELD_VIEWS).map(([k, f]) => [k, f.label] as [string, string])], state.field,
   v => set({ field: v as ViewerState['field'] }))
-slider(cam, 'water depth, cm', state.water * 100, v => set({ water: v / 100 }), 0, 10, 0.5)
+slider(cam, 'water depth, cm', state.water * 100, v => set({ water: v / 100 }), 0, 40, 0.5)
 check(cam, 'float (the lake)', state.float, v => set({ float: v }))
 check(cam, 'see-through water', state.see, v => set({ see: v }))
 const pose = group('Pose')
+// a chained neck's shapes, to set each against its photo: the hunch, the trace, erect, and the bottom of a strike
+const SHAPES: Record<string, Partial<ViewerState>> = {
+  hunch: { neck: 0, reach: 0, pitch: 0 }, trace: { neck: 0.5, reach: 0, pitch: 0 }, erect: { neck: 1, reach: 0, pitch: 0 },
+  swallow: { neck: 1, reach: 0, pitch: 0.9 }, strike: { neck: 0.5, reach: 1, lean: 0.5, pitch: 0 },
+}
+select(pose, 'neck shape', [['', '(sliders)'], ...Object.keys(SHAPES).map(k => [k, k] as [string, string])], '', v => {
+  if (SHAPES[v]) { set(SHAPES[v]!); location.reload() }
+})
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
+slider(pose, 'head pitch, deg', THREE.MathUtils.radToDeg(state.pitch), v => set({ pitch: THREE.MathUtils.degToRad(v) }), -30, 80, 1)
 slider(pose, 'lean (tip-up 1.5)', state.lean, v => set({ lean: v }), 0, 1.6, 0.01)
 slider(pose, 'tail up', state.tail, v => set({ tail: v }), -0.5, 1, 0.01)
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
 slider(pose, 'reach', state.reach, v => set({ reach: v }))
-slider(pose, 'reach depth, cm', state.depth * 100, v => set({ depth: v / 100 }), 0, 30, 0.5)
+slider(pose, 'reach depth, cm (negative: above the ground)', state.depth * 100, v => set({ depth: v / 100 }), -40, 30, 0.5)
 slider(pose, 'bill angle, deg', THREE.MathUtils.radToDeg(state.angle), v => set({ angle: THREE.MathUtils.degToRad(v) }), 0, 90, 1)
 slider(pose, 'paddle', state.paddle, v => set({ paddle: v }))
 slider(pose, 'sink, cm', state.sink * 100, v => set({ sink: v / 100 }), 0, 15, 0.5)
@@ -310,6 +319,7 @@ function frame(): void {
   const p = {
     ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
     reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
+    headPitch: state.pitch,
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
   p.lean.x = state.lean
@@ -342,7 +352,8 @@ function frame(): void {
     const floating = m.waterlineLength > 0
       ? `\n  above water: back ${f(m.backAbove)}  crown ${f(m.crownAbove)}  tail tip ${f(m.tailTipAbove)}\n  wingtip ${f(m.wingTipAbove)}  breast ${f(m.breastFrontAbove)}  draft ${f(m.draft)}  waterline ${f(m.waterlineLength)}`
       : ''
-    return `${name}\n  length ${f(m.length)}  culmen ${f(m.culmen)}  head ${f(m.head)}\n  culmen/head ${(m.culmen / m.head).toFixed(2)}  culmen/tarsus ${(m.culmen / m.tarsus).toFixed(2)}\n  bill depth ${f(m.billDepth)}  tip rise ${f(m.billTipRise)}  widest ${m.billWidestAt.toFixed(2)} x${m.billWidestRatio.toFixed(2)}\n  tarsus ${f(m.tarsus)}  bare tibia ${f(m.tibia)}\n  wing ${f(m.wingChord)}  tail ${f(m.tail)}  projection ${f(m.projection)}${floating}`
+    const crown = `\n  crown now ${f(crownNow(s.model as DetailedBirdModel))}  at rest ${f(m.crownAbove)}`
+    return `${name}${crown}\n  length ${f(m.length)}  culmen ${f(m.culmen)}  head ${f(m.head)}\n  culmen/head ${(m.culmen / m.head).toFixed(2)}  culmen/tarsus ${(m.culmen / m.tarsus).toFixed(2)}\n  bill depth ${f(m.billDepth)}  tip rise ${f(m.billTipRise)}  widest ${m.billWidestAt.toFixed(2)} x${m.billWidestRatio.toFixed(2)}\n  tarsus ${f(m.tarsus)}  bare tibia ${f(m.tibia)}\n  wing ${f(m.wingChord)}  tail ${f(m.tail)}  projection ${f(m.projection)}${floating}`
   }).join('\n')
   requestAnimationFrame(frame)
 }

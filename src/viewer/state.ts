@@ -22,8 +22,13 @@ export interface ViewerState {
   field: FieldView
   /** lean is the body's pitch, radians: a peck's 0.8, a dabbler's tip-up about 1.5 */
   neck: number; lean: number; spread: number; phase: number; reach: number
-  /** a reach's aim below the ground or water, metres, and the steepest its bill may point, radians below level */
+  /**
+   * a reach's aim below the ground or water, metres (negative aims above it: a heron's strike into the water over the
+   * bed), and the steepest its bill may point, radians below level
+   */
   depth: number; angle: number
+  /** the head turned after the neck, radians; positive raises the bill (a heron swallowing) */
+  pitch: number
   /** 0 legs hidden .. 1 shown and paddling (a swimmer's) */
   paddle: number
   /** how far the birds sink below the surface, metres (a grebe's periscope) */
@@ -33,7 +38,7 @@ export interface ViewerState {
   walk: boolean
   /** walking speed, m/s */
   speed: number
-  /** depth of the water over the ground, metres; 0 hides it */
+  /** depth of the water over the ground, metres (a heron wades to about 30 cm); 0 hides it */
   water: number
   /** the lake, as in the game: opaque water at y = 0 (a swimmer's waterline) and no ground; `see` makes it see-through */
   float: boolean; see: boolean
@@ -42,8 +47,9 @@ export interface ViewerState {
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
-  neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.1],
-  depth: [0, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
+  neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
+  depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
+  pitch: [-0.5, 1.4],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
 const FLAGS = ['walk', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
