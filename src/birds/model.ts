@@ -23,16 +23,21 @@ export interface PoseState {
   paddle: number
   /** 0..1 paddle stroke cycle, advanced by the behaviour like wingPhase */
   paddlePhase: number
-  /** metres below the ground or water surface a reach aims, added to the species' probeDepth; 0 = the surface itself */
+  /**
+   * metres below the ground or water surface a reach aims, added to the species' probeDepth; 0 = the surface itself.
+   * Negative aims above it: a heron standing on the bed strikes into the water over it
+   */
   reachDepth: number
   /** the steepest the bill may point during a reach, radians below level; PI/2 = straight down (every existing peck) */
   reachAngle: number
+  /** radians the head turns after the neck and any reach; positive raises the bill (a heron swallowing) */
+  headPitch: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
-    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0,
   }
 }
 

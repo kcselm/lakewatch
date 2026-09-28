@@ -8,9 +8,12 @@ import { buildBill, buildEyes, buildShield, type BillResult } from './bill'
 import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
-import { createBones, type Joints } from './rig'
+import { createBones, chainBones, type Joints, type NeckBone } from './rig'
 import { legOffsets, solveLeg, smooth, STANCE } from './gait'
-import { neckSwing, headPitchToGround } from './reach'
+import { neckSwing, firstRoot, headPitchToGround } from './reach'
+import type { DetailSpec } from './spec'
+
+type NeckShapes = NonNullable<DetailSpec['neckShapes']>
 import { buildCurl } from './extras'
 import { materialFor } from '../paint/painter'
 
@@ -103,6 +106,16 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const at = (v: THREE.Vector3 | THREE.Vector2) => new THREE.Vector3(v.x, v.y, 'z' in v ? v.z : 0).add(offset)
   const spineAt = (label: string) => at(profile.sampleAt(profile.uOf(label)).point)
   const mirror = (v: THREE.Vector3) => new THREE.Vector3(v.x, v.y, -v.z)
+  // A chained neck's joints sit at its labels, and the joints it doesn't use at its last joint before the head, with no
+  // length. An unchained neck's spare joints sit at neckMid, so the head hangs from them exactly as it did from neckMid.
+  const chain = detail.rig.neck
+  const chainNames = chain ? chainBones(chain.length) : null
+  const spare = spineAt(chain ? chain[chain.length - 2]! : detail.rig.neckMid)
+  const neckJoints = { neck3: spare.clone(), neck4: spare.clone(), neck5: spare.clone(), neck6: spare.clone() }
+  chain?.forEach((label, i) => {
+    const b = chainNames![i]!
+    if (b in neckJoints) neckJoints[b as keyof typeof neckJoints] = spineAt(label)
+  })
 
   // no tail: its tip is the rearmost point of the body, which the tail bone moves
   let tailTip = at(tail.tip)
@@ -124,6 +137,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     tibiaR: hipR, tarsusR: kneeR, toesR: footR,
     tibiaL: mirror(hipR), tarsusL: mirror(kneeR), toesL: mirror(footR),
     curl: extras[0] ? at(extras[0].base) : pivot.clone(),
+    ...neckJoints,
   }
   const { bones, list } = createBones(joints)
 
@@ -260,11 +274,45 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.tibiaL.rotation.z = -stroke; bones.tarsusL.rotation.z = -stroke
   }
 
-  function pose(st: PoseState) {
-    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
-    bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
-    // neck: 0.5 is the traced rest posture. Tucking draws the head down into the shoulders; extending
-    // lengthens the neck a little and tips it forward, so a strike reaches out and down.
+  /**
+   * A chained neck, bent into its shapes: neckExtend blends each joint's bend from the hunch (0) through the trace (0.5)
+   * to erect (1), and a reach blends it on toward the strike, then swings the whole neck about its base just far
+   * enough for the bill to reach its mark and tips the head onto it, as reachDown does for a neck of two joints. The
+   * joints only turn, so the neck keeps its length.
+   */
+  function poseChain(st: PoseState, names: readonly (NeckBone | 'head')[], shapes: NeckShapes) {
+    const e = THREE.MathUtils.clamp(st.neckExtend, 0, 1)
+    const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
+    const w = smooth(reach)
+    names.forEach((name, i) => {
+      const bend = e < 0.5 ? shapes.hunch[i]! * (1 - e / 0.5) : shapes.erect[i]! * ((e - 0.5) / 0.5)
+      bones[name].rotation.z = THREE.MathUtils.degToRad(bend + (shapes.strike[i]! - bend) * w)
+    })
+    if (reach > 0) reachChain(w, probeDepth + st.reachDepth, THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
+  }
+
+  /** reachDown for a chained neck: the swing turns the base joint alone, so everything past it turns about the base. */
+  function reachChain(w: number, depth: number, reachAngle: number) {
+    const floor = -reachAngle + tipOffAxis
+    group.updateMatrixWorld(true)
+    toGroup.copy(group.matrixWorld).invert()
+    inGroup(bones.neck, pN); inGroup(bones.head, pH)
+    const vx = pH.x - pN.x, vy = pH.y - pN.y
+    // the tip's lowest reach for a swing s: the head joint turned s about the base, the bill tipped as far as it may
+    const swing = firstRoot(s => pN.y + depth - vx * Math.sin(s) + vy * Math.cos(s) + tipReach * Math.sin(floor))
+    bones.neck.rotation.z -= w * swing
+    group.updateMatrixWorld(true)
+    inGroup(bones.head, pH)
+    pT.copy(headToTip).applyMatrix4(bones.head.matrixWorld).applyMatrix4(toGroup)
+    const tipLine = Math.atan2(pT.y - pH.y, pT.x - pH.x)
+    const pitch = headPitchToGround({ x: pH.x, y: pH.y + depth }, { x: pT.x, y: pT.y + depth }, floor)
+    bones.head.rotation.z -= Math.min(w * pitch, tipLine - floor)
+  }
+
+  /** A neck of two joints: 0.5 is the traced rest posture; it tucks and stretches, and reaches with reachDown. */
+  function poseNeck(st: PoseState) {
+    // Tucking draws the head down into the shoulders; extending lengthens the neck a little and tips it forward, so a
+    // strike reaches out and down.
     const ext = THREE.MathUtils.clamp(st.neckExtend, 0, 1)
     const k = ext < 0.5 ? 0.6 + 0.8 * ext : 1 + 0.3 * (ext - 0.5)
     const tip = -0.5 * (ext - 0.5)
@@ -278,7 +326,16 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.head.position.y += 0.5 * st.headBob * bodyLength
     bones.neckMid.rotation.z = 0
     const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
-    if (reach > 0) reachDown(smooth(reach), probeDepth + Math.max(0, st.reachDepth), THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
+    if (reach > 0) reachDown(smooth(reach), probeDepth + st.reachDepth, THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
+  }
+
+  function pose(st: PoseState) {
+    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
+    bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
+    if (chainNames) poseChain(st, chainNames, detail!.neckShapes!)
+    else poseNeck(st)
+    // positive raises the bill: the head turns last, after the neck's shape and any reach
+    bones.head.rotation.z += st.headPitch
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
     bones.tail.rotation.z = -st.tailTilt
     // wings: folded shell at rest, the spread planform once the wings open

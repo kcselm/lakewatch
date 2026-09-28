@@ -122,7 +122,7 @@ describe('buildDetailedBird, swimming', () => {
   it('keeps out-of-range swimming values to their ranges', () => {
     const m = buildDetailedBird(TEST_SWIM_SPEC)
     const bones = () => m.mesh.skeleton.bones.map(b => [...b.position.toArray(), ...b.quaternion.toArray(), ...b.scale.toArray()])
-    m.pose(posed({ paddle: 3, paddlePhase: 0.2, reach: 1, reachDepth: -1, reachAngle: 4 }))
+    m.pose(posed({ paddle: 3, paddlePhase: 0.2, reach: 1, reachDepth: 0, reachAngle: 4 }))
     const wild = bones()
     m.pose(posed({ paddle: 1, paddlePhase: 0.2, reach: 1, reachDepth: 0, reachAngle: Math.PI / 2 }))
     const tame = bones()

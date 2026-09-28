@@ -20,7 +20,14 @@ export interface Neck {
  * already reaches the ground, and `max` if even the full swing leaves it above.
  */
 export function neckSwing(n: Neck, max = MAX_NECK_SWING): number {
-  const y = (s: number) => n.base.y + n.l1 * Math.sin(n.a1 - s / 2) + n.l2 * Math.sin(n.a2 - s) + n.reach * Math.sin(n.tipAngle)
+  return firstRoot(s => n.base.y + n.l1 * Math.sin(n.a1 - s / 2) + n.l2 * Math.sin(n.a2 - s) + n.reach * Math.sin(n.tipAngle), max)
+}
+
+/**
+ * The least swing in [0, max] at which `y` (the bill tip's lowest reach, above the ground, for a swing) falls to 0
+ * or below: 0 if it already does, and `max` if it never does.
+ */
+export function firstRoot(y: (s: number) => number, max = MAX_NECK_SWING): number {
   if (y(0) <= 0) return 0
   // the first swing that gets there: scan for the sign change, then halve the bracket
   const steps = 24

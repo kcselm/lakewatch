@@ -109,3 +109,61 @@ export const TEST_SWIM_DETAIL: DetailSpec = {
 export const TEST_SWIM_SPEC: SpeciesSpec = parseSpeciesSpec({
   ...TEST_SPEC, code: 'testduck', commonName: 'Test Duck', posture: 'swimming', draft: 0.4, detail: TEST_SWIM_DETAIL,
 })
+
+/**
+ * A test heron for the chained neck: about a Great Blue Heron's size, standing with its neck in a hunting S, jointed
+ * at six stations from the neck base to the occiput. Its shapes are set by eye for the builder's tests, not traced:
+ * the real heron's own tracing never breaks them.
+ */
+export const TEST_HERON_DETAIL: DetailSpec = {
+  measurements: {
+    length: 0.8, culmen: 0.135, billDepth: 0.03, billWidth: 0.02,
+    tarsus: 0.18, tibia: 0.1, toe: 0.11, wingChord: 0.46, tail: 0.17,
+  },
+  profile: [
+    { label: 'rear',     x: -0.240, y: -0.060, up: 0.012, down: 0.012, halfWidth: 0.020 },
+    { label: 'rump',     x: -0.200, y: -0.045, up: 0.035, down: 0.035, halfWidth: 0.050 },
+    { label: 'tailBase', x: -0.160, y: -0.030, up: 0.055, down: 0.055, halfWidth: 0.070 },
+    { label: 'hip',      x: 0,      y: 0,      up: 0.085, down: 0.085, halfWidth: 0.090 },
+    { label: 'flank',    x: 0.070,  y: 0.030,  up: 0.085, down: 0.090, halfWidth: 0.090 },
+    { label: 'breast',   x: 0.140,  y: 0.070,  up: 0.070, down: 0.080, halfWidth: 0.080 },
+    { label: 'neckBase', x: 0.180,  y: 0.120,  up: 0.040, down: 0.045, halfWidth: 0.045 },
+    { label: 'neckLow',  x: 0.210,  y: 0.200,  up: 0.030, down: 0.032, halfWidth: 0.032 },
+    { label: 'kink',     x: 0.200,  y: 0.300,  up: 0.026, down: 0.030, halfWidth: 0.028 },
+    { label: 'neckUp',   x: 0.220,  y: 0.390,  up: 0.024, down: 0.026, halfWidth: 0.026 },
+    { label: 'nape',     x: 0.270,  y: 0.450,  up: 0.024, down: 0.024, halfWidth: 0.025 },
+    { label: 'occiput',  x: 0.310,  y: 0.470,  up: 0.028, down: 0.026, halfWidth: 0.028 },
+    { label: 'crown',    x: 0.335,  y: 0.475,  up: 0.030, down: 0.026, halfWidth: 0.028 },
+    { label: 'eye',      x: 0.355,  y: 0.472,  up: 0.026, down: 0.024, halfWidth: 0.026 },
+    { label: 'lores',    x: 0.380,  y: 0.466,  up: 0.018, down: 0.016, halfWidth: 0.018 },
+    { label: 'billBase', x: 0.390,  y: 0.462,  up: 0.014, down: 0.014, halfWidth: 0.012 },
+  ],
+  rig: {
+    neckBase: 'neckBase', neckMid: 'neckLow', head: 'occiput', hip: 'hip', tailBase: 'tailBase',
+    neck: ['neckBase', 'neckLow', 'kink', 'neckUp', 'nape', 'occiput'],
+  },
+  neckShapes: {
+    hunch: [36, -86, 98, -58, -1, 12],
+    erect: [11, -19, 19, 24, 18, -53],
+    strike: [-39, -46, 8, 17, 19, 12],
+  },
+  bill: { taper: 1.5, curve: 0 },
+  eye: { radius: 0.006, t: 0.4, iris: '#e8d24a' },
+  wing: {
+    wrist: [0.1, 0.05], droop: 12,
+    outline: [[0, 0.05], [0.16, 0.17], [0.36, 0.18], [0.55, 0.16], [0.74, 0.094], [0.93, 0.036], [1, 0.01]],
+  },
+  tail: { shape: 'square' },
+  plumage: [
+    { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5f6b7c', side: '#8a8e96', bottom: '#d8d6cc' },
+    { kind: 'fill', where: { part: 'wingFold' }, color: '#566273' },
+    { kind: 'fill', where: { part: 'bill' }, color: '#d9b23a' },
+    { kind: 'fill', where: { part: 'legs' }, color: '#6b6650' },
+  ],
+  variants: {},
+  sources: ['test fixture'],
+}
+
+export const TEST_HERON_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, code: 'testheron', commonName: 'Test Heron', length: 0.8, detail: TEST_HERON_DETAIL,
+})

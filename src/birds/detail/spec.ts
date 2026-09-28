@@ -72,7 +72,23 @@ export const detailSchema = z.object({
     tarsus: pos, tibia: pos, toe: pos, wingChord: pos, tail: pos,
   }),
   profile: z.array(stationSchema).min(4),
-  rig: z.object({ neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string() }),
+  rig: z.object({
+    neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string(),
+    /**
+     * A long neck's joints: station labels from the neck base to the head, in order along the spine, 3 to 7 of them,
+     * starting at `neckBase`, then `neckMid`, and ending at `head`. The neck then bends at every one of them into the
+     * shapes `neckShapes` names, keeping its length. Without it the neck has three joints (neckBase, neckMid, head)
+     * and stretches and tucks as it always has.
+     */
+    neck: z.array(z.string()).min(3).max(7).optional(),
+  }),
+  /**
+   * A chained neck's shapes: one bend per joint of `rig.neck`, degrees, relative to the traced posture; positive turns
+   * what lies ahead of the joint up (counter-clockwise in the side view, the bird facing +x). The last joint's bend is
+   * the head's. `hunch` at neckExtend 0 (the neck folded, the head on the shoulders), the trace at 0.5, `erect` at 1;
+   * `strike` at the bottom of a reach. Required with `rig.neck`, and only with it.
+   */
+  neckShapes: z.object({ hunch: z.array(z.number()), erect: z.array(z.number()), strike: z.array(z.number()) }).optional(),
   bill: z.object({
     /** width and depth fall to 1 − 0.85 σ^taper of the base's at σ along the bill; a higher taper keeps it deep longer */
     taper: pos.optional(),
@@ -153,7 +169,20 @@ export const detailSchema = z.object({
       if (!(v in d.variants)) ctx.addIssue({ code: 'custom', message: `part version ${v} is not one of detail.variants`, path: ['parts', i, 'versions'] })
     }
   })
-  for (const [k, v] of Object.entries(d.rig)) need(v, ['rig', k])
+  for (const [k, v] of Object.entries(d.rig)) if (typeof v === 'string') need(v, ['rig', k])
+  const chain = d.rig.neck
+  if (chain) {
+    chain.forEach((l, i) => need(l, ['rig', 'neck', i]))
+    if (chain[0] !== d.rig.neckBase || chain[1] !== d.rig.neckMid || chain.at(-1) !== d.rig.head) {
+      ctx.addIssue({ code: 'custom', message: 'rig.neck runs neckBase, neckMid, ..., head', path: ['rig', 'neck'] })
+    }
+    const order = chain.map(l => d.profile.findIndex(s => s.label === l))
+    if (order.some((k, i) => i > 0 && k <= order[i - 1]!)) ctx.addIssue({ code: 'custom', message: 'rig.neck labels must run along the spine', path: ['rig', 'neck'] })
+    if (!d.neckShapes) ctx.addIssue({ code: 'custom', message: 'a chained neck needs neckShapes', path: ['neckShapes'] })
+    else for (const [k, v] of Object.entries(d.neckShapes)) {
+      if (v.length !== chain.length) ctx.addIssue({ code: 'custom', message: `neckShapes.${k} needs one bend per joint (${chain.length})`, path: ['neckShapes', k] })
+    }
+  } else if (d.neckShapes) ctx.addIssue({ code: 'custom', message: 'neckShapes needs rig.neck', path: ['neckShapes'] })
   const layers = (list: Layer[], path: (string | number)[]) => list.forEach((l, i) => {
     if ('where' in l && l.where.part === 'skin') { need(l.where.from, [...path, i, 'where', 'from']); need(l.where.to, [...path, i, 'where', 'to']) }
     if (l.kind === 'stripe') { need(l.from.at, [...path, i, 'from']); need(l.to.at, [...path, i, 'to']) }
