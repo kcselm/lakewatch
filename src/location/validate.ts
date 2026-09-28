@@ -1,7 +1,7 @@
 import type { Location } from './schema'
 import type { Bird } from '../catalog/types'
 import { isConvexPolygon } from './zones'
-import { isProbeStyle, isSwimStyle, type SpeciesSpec } from '../birds/spec'
+import { isProbeStyle, isSwimStyle, isWadeStyle, type SpeciesSpec } from '../birds/spec'
 import { SPECIES } from '../birds/species'
 
 /** What validateCast reads from each species' spec: its plumage versions, and how it feeds. */
@@ -29,9 +29,13 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
     }
     const spec = Object.hasOwn(specs, entry.species) ? specs[entry.species] : undefined
     if (typeof entry.plumage === 'object') errors.push(...checkCounts(entry, i, spec))
+    // a feeding style belongs to one of swim, probe, and wade, and a species cast on another of them can't use it
     const style = spec?.foraging
-    if (entry.behavior === 'swim' && isProbeStyle(style)) errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a probing style, so it cannot swim`)
-    if (entry.behavior === 'probe' && isSwimStyle(style)) errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a swimming style, so it cannot probe`)
+    const home = isProbeStyle(style) ? 'probe' : isSwimStyle(style) ? 'swim' : isWadeStyle(style) ? 'wade' : undefined
+    const kind = { probe: 'probing', swim: 'swimming', wade: 'wading' } as const
+    if (home && entry.behavior !== home && (entry.behavior === 'swim' || entry.behavior === 'probe' || entry.behavior === 'wade')) {
+      errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a ${kind[home]} style, so it cannot ${entry.behavior}`)
+    }
     const zone = loc.zones[entry.zone]
     if (!zone) {
       errors.push(`cast[${i}]: zone ${entry.zone} does not exist`)

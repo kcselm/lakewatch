@@ -6,6 +6,7 @@ import { randomPointInPolygon } from '../location/zones'
 import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
+import { heronStart, heronFor } from '../behavior/heron'
 import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
@@ -123,6 +124,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
    * and open water do), and each bird still swims only in its own
    */
   const swimmers: BehaviorController[] = []
+  /** every heron in the cast, which each keeps its distance from */
+  const herons: BehaviorController[] = []
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
 
@@ -136,6 +139,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const swim = ind.behavior === 'swim' && zone.kind === 'polygon'
     const traits = speciesTraits(ind.species)
     const company = swim ? companyOf(traits.foraging, ind.species) : undefined
+    const heron = ind.behavior === 'wade' && traits.foraging === 'heron' && zone.kind === 'polygon'
     if (!groups.has(ind.groupKey)) {
       // A probing flock's target starts at the vantage and goes straight to its patch. A swimming flock starts formed,
       // round a point in its zone, and works that patch before it drifts on: otherwise every duck would spend the first
@@ -150,16 +154,19 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
-      group: ind.behavior === 'probe' || swim ? group : undefined,
+      // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
+      group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
-      neighbours: swim ? () => swimmers : undefined,
+      neighbours: swim ? () => swimmers : heron ? () => herons : undefined,
       ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
     const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, swimmers)
+      : heron && zone.kind === 'polygon' ? heronStart(zone, rng, group, heronFor(ind.species).spacing, herons)
       : zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [perch![0], perch![2]]
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
     if (swim) swimmers.push(controller)
+    if (heron) herons.push(controller)
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
     object.add(model.group)
     birds.push({ controller, pose: defaultPose(), model })

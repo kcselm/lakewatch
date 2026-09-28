@@ -7,6 +7,7 @@ import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
 import { MALLARD } from '../behavior/dabbler'
 import { companyOf } from '../behavior/swim'
+import { heronFor } from '../behavior/heron'
 import { BEHAVIORS, type BehaviorController } from '../behavior'
 
 const loc = (cast: Location['cast']): Location => ({
@@ -236,6 +237,37 @@ describe('spawnCast swimmers', () => {
       expect(gap, `seed ${seed}`).toBeGreaterThan(-0.01)
     }
   }, 60_000)   // two seeds x 120 s of ten swimmers: about 6 s alone, and a busy full run can take three times as long
+})
+
+describe('spawnCast herons', () => {
+  const shallows: Location = {
+    ...loc([{ species: 'grbher3', behavior: 'wade', zone: 'w', count: 2 }, { species: 'greegr', behavior: 'wade', zone: 'w', count: 3 }]),
+    zones: { w: { kind: 'polygon', points: [[0, 0], [50, 0], [50, 4], [0, 4]] } },
+  }
+  const deps = (seed: number) => ({ registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -0.1, ripples: new RippleBuffer(), seed })
+  /** the closest any two herons come, less what they keep: their own species' spacing, or the larger of two species' */
+  function shortestGap(birds: readonly BirdInstance[]): number {
+    let gap = Infinity
+    for (let a = 0; a < birds.length; a++) for (let c = a + 1; c < birds.length; c++) {
+      const A = birds[a]!, C = birds[c]!
+      const keep = A.species === C.species ? heronFor(A.species).spacing.same
+        : Math.max(heronFor(A.species).spacing.other, heronFor(C.species).spacing.other)
+      gap = Math.min(gap, Math.hypot(A.position.x - C.position.x, A.position.z - C.position.z) - keep)
+    }
+    return gap
+  }
+  it('starts every heron clear of the others, and lets each see them all, whatever its species', () => {
+    for (let seed = 1; seed <= 3; seed++) {
+      const d = deps(seed)
+      const world = spawnCast(shallows, d)
+      world.update(1e-6, d.wind)
+      expect(d.registry.all()).toHaveLength(5)
+      let gap = shortestGap(d.registry.all())
+      expect(gap, `seed ${seed}`).toBeGreaterThanOrEqual(0)
+      for (let i = 0; i < 600 * 10; i++) { world.update(1 / 10, d.wind); gap = Math.min(gap, shortestGap(d.registry.all())) }
+      expect(gap, `seed ${seed}`).toBeGreaterThan(-1e-6)
+    }
+  }, 60_000)
 })
 
 describe('spawnCast divers', () => {

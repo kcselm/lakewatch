@@ -2,6 +2,7 @@ import type { BehaviorContext, BehaviorController } from './types'
 import { turnToward, approach, polygonOf } from './types'
 import { randomPointInPolygon, clampToPolygon } from '../location/zones'
 import type { PoseState } from '../birds/model'
+import { createHeron } from './heron'
 
 type State = 'still' | 'step' | 'strike'
 
@@ -16,7 +17,9 @@ const smoothstep = (w: number) => w * w * (3 - 2 * w)
 /** the bottom of a strike: the body tipped `lean` forward, the neck stretched, the bill down at the water */
 export const STRIKE = { lean: 0.5, neckExtend: 1, reach: 1 } as const
 
+/** Wade in the species' style: a heron as a heron; with no style, step, stand, and strike as `wade` always has. */
 export function createWade(ctx: BehaviorContext, startX: number, startZ: number): BehaviorController {
+  if (ctx.foraging === 'heron') return createHeron(ctx, startX, startZ)
   const zone = polygonOf(ctx)
   let x = startX, z = startZ, heading = ctx.rng() * Math.PI * 2
   let state: State = 'still'

@@ -26,5 +26,6 @@ export const SPEC: SpeciesSpec = {
     body: 'blue-grey body and wings, held still for long stretches',
     legs: 'very long dull legs, wading',
   },
+  foraging: 'heron',
   wingbeatHz: 2.2,
 }

@@ -12,12 +12,16 @@ export const plumageSchema = z.object({
 export const PROBE_STYLES = ['plover', 'sandpiper', 'dowitcher'] as const
 /** how a species feeds when the cast puts it on `swim` */
 export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe'] as const
-export const FORAGING = [...PROBE_STYLES, ...SWIM_STYLES] as const
+/** how a species feeds when the cast puts it on `wade` (with none, it steps, stands, and strikes as `wade` always has) */
+export const WADE_STYLES = ['heron'] as const
+export const FORAGING = [...PROBE_STYLES, ...SWIM_STYLES, ...WADE_STYLES] as const
 export type ProbeStyle = (typeof PROBE_STYLES)[number]
 export type SwimStyle = (typeof SWIM_STYLES)[number]
+export type WadeStyle = (typeof WADE_STYLES)[number]
 export type Foraging = (typeof FORAGING)[number]
 export const isProbeStyle = (f: Foraging | undefined): f is ProbeStyle => (PROBE_STYLES as readonly (string | undefined)[]).includes(f)
 export const isSwimStyle = (f: Foraging | undefined): f is SwimStyle => (SWIM_STYLES as readonly (string | undefined)[]).includes(f)
+export const isWadeStyle = (f: Foraging | undefined): f is WadeStyle => (WADE_STYLES as readonly (string | undefined)[]).includes(f)
 
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const
 export type MarkKey = (typeof MARK_KEYS)[number]

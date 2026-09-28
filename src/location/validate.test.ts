@@ -51,6 +51,17 @@ describe('validateCast', () => {
     expect(validateCast(one('killde', 'probe'), catalog, specs)).toEqual([])
     expect(validateCast(one('pibgre', 'swim'), catalog, specs)).toEqual([])
   })
+  it('rejects a wading style anywhere but wade, and a probing or swimming style on wade', () => {
+    const specs = { grbher3: { variants: {}, foraging: 'heron' as const }, killde: { variants: {}, foraging: 'plover' as const }, greyel: { variants: {} } }
+    const catalog = [bird('grbher3', ['wetland']), bird('killde', ['wetland']), bird('greyel', ['wetland'])]
+    const one = (species: string, behavior: 'swim' | 'probe' | 'wade'): Location => ({ ...loc, cast: [{ species, behavior, zone: 'water', count: 1 }] })
+    expect(validateCast(one('grbher3', 'swim'), catalog, specs)).toEqual(['cast[0]: grbher3 feeds as a heron, a wading style, so it cannot swim'])
+    expect(validateCast(one('grbher3', 'probe'), catalog, specs)).toEqual(['cast[0]: grbher3 feeds as a heron, a wading style, so it cannot probe'])
+    expect(validateCast(one('killde', 'wade'), catalog, specs)).toEqual(['cast[0]: killde feeds as a plover, a probing style, so it cannot wade'])
+    expect(validateCast(one('grbher3', 'wade'), catalog, specs)).toEqual([])
+    // a wader with no style wades as wade always has
+    expect(validateCast(one('greyel', 'wade'), catalog, specs)).toEqual([])
+  })
   describe('plumage counts', () => {
     const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('amwpel', ['wetland'])]
     const one = (entry: Partial<CastEntry>): Location => ({
