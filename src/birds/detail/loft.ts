@@ -31,12 +31,12 @@ export function ringT(theta: number): number {
  * bone at the rear end to the body at the tail base, so cocking the tail cocks the stern.
  */
 export function loftWeights(u: number, profile: Profile, rig: LoftRig, rearToTail = false): Weights {
-  if (rig.neck) return chainWeights(u, profile, rig.neck)
   if (rearToTail && rig.tailBase) {
     const kT = profile.uOf(rig.tailBase)
     if (u <= 0) return [['tail', 1]]
     if (u < kT) return [['tail', 1 - u / kT], ['body', u / kT]]
   }
+  if (rig.neck) return chainWeights(u, profile, rig.neck)
   const kNB = profile.uOf(rig.neckBase), kNM = profile.uOf(rig.neckMid), kH = profile.uOf(rig.head)
   const kB = Math.max(0, kNB - 0.08)
   const blend = (a: 'body' | 'neck' | 'neckMid', b: 'neck' | 'neckMid' | 'head', lo: number, hi: number): Weights => {
