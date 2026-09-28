@@ -7,11 +7,11 @@ import { targetCandidates } from '../player/candidates'
 
 /**
  * Everything on the lake that rings the water: the 24 swimmers, each in the style its species file names, the six
- * dowitchers, and the Kingfisher, whose dives ring too.
+ * dowitchers, the Kingfisher, whose dives ring too, and the herons' strikes.
  */
 function ringers() {
   const lake = loadLocation()
-  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1']
+  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr']
   return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species)) }
 }
 

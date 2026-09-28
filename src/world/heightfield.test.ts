@@ -1,4 +1,4 @@
-import { lakeHeightfield, terrainColor, valueNoise2, BENCH } from './heightfield'
+import { lakeHeightfield, terrainColor, valueNoise2, BENCH, SHELF } from './heightfield'
 
 describe('lakeHeightfield', () => {
   const hf = lakeHeightfield(1)
@@ -21,6 +21,20 @@ describe('lakeHeightfield', () => {
     const around: [number, number][] = [[22, BENCH.z[1] + 2], [22, BENCH.z[0] - 2], [BENCH.x[0] - 2, -13], [BENCH.x[1] + 2, -13]]
     for (const [x, z] of around) expect(hf.sample(x, z), `(${x}, ${z})`).toBe(bed.sample(x, z))
     expect(hf.sample(22, BENCH.z[1] + 0.5)).not.toBe(bed.sample(22, BENCH.z[1] + 0.5))
+  })
+  it('lays a shelf along the far waterline, sloping evenly from ankle-deep at the shore to knee-deep, where the herons wade', () => {
+    const plane = (z: number) => -(SHELF.depth[0] + ((SHELF.depth[1] - SHELF.depth[0]) * (z - SHELF.z[0])) / (SHELF.z[1] - SHELF.z[0]))
+    for (let x = SHELF.x[0]; x <= SHELF.x[1]; x += 0.5) {
+      for (let z = SHELF.z[0]; z <= SHELF.z[1]; z += 0.25) expect(hf.sample(x, z), `(${x}, ${z})`).toBeCloseTo(plane(z), 9)
+    }
+    // it eases back into the ground within a metre: 2 m out on every side the ground is exactly what it is without the
+    // shelf (the far bank behind, the lake bed in front, either end), while half a metre out it is not
+    const without = lakeHeightfield(1, { shelf: false })
+    const around: [number, number][] = [[2, SHELF.z[0] - 2], [2, SHELF.z[1] + 2], [SHELF.x[0] - 2, -62], [SHELF.x[1] + 2, -62]]
+    for (const [x, z] of around) expect(hf.sample(x, z), `(${x}, ${z})`).toBe(without.sample(x, z))
+    expect(hf.sample(2, SHELF.z[1] + 0.5)).not.toBe(without.sample(2, SHELF.z[1] + 0.5))
+    // the bank still rises behind it
+    expect(hf.sample(2, SHELF.z[0] - 2)).toBeGreaterThan(0.5)
   })
   it('rises on the far shore', () => {
     expect(hf.sample(0, -66)).toBeGreaterThan(0.5)

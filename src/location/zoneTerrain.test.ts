@@ -3,6 +3,7 @@ import { lakeHeightfield } from '../world/heightfield'
 import { terrainSurface } from '../world/terrain'
 import { getSpec, hasSpec } from '../birds/species'
 import { STYLES } from '../behavior/probe'
+import { HERON_WATER } from '../behavior/heron'
 import { pointInPolygon } from './zones'
 import type { Vec2 } from './schema'
 
@@ -36,11 +37,12 @@ const GROUND_OK: Record<string, (y: number) => boolean> = {
   swim: y => y < -0.2,
   probe: y => y >= -0.03 && y <= 0.5,
   'probe:dowitcher': y => y >= -DOWITCHER_WATER[1] && y <= -DOWITCHER_WATER[0],
+  'wade:heron': y => y >= -HERON_WATER[1] && y <= -HERON_WATER[0],
   wade: y => y > -0.3,
 }
 const styleOf = (species: string) => (hasSpec(species) ? getSpec(species).foraging : undefined)
 const checkFor = (behavior: string, species: string) => {
-  const style = behavior === 'probe' ? styleOf(species) : undefined
+  const style = behavior === 'probe' || behavior === 'wade' ? styleOf(species) : undefined
   return GROUND_OK[`${behavior}:${style}`] ?? GROUND_OK[behavior]
 }
 
@@ -55,7 +57,7 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
     const zone = loc.zones[entry.zone]
     const check = checkFor(entry.behavior, entry.species)
     if (!zone || zone.kind !== 'polygon' || !check) continue
-    const style = entry.behavior === 'probe' ? styleOf(entry.species) : undefined
+    const style = entry.behavior === 'probe' || entry.behavior === 'wade' ? styleOf(entry.species) : undefined
     const key = `${entry.zone}:${entry.behavior}:${style}`
     if (seen.has(key)) continue
     seen.add(key)
@@ -83,6 +85,18 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
     }
   })
 
+  it('keeps the far shallows ankle- to knee-deep for the herons, all over', () => {
+    const shallows = loc.zones['far-shallows']
+    expect(shallows?.kind).toBe('polygon')
+    if (shallows?.kind !== 'polygon') return
+    const samples = samplePolygon(shallows.points, 0.25)
+    expect(samples.length).toBeGreaterThan(1000)
+    for (const [x, z] of samples) {
+      const y = heightfield.sample(x, z)
+      expect(y, `(${x}, ${z})`).toBeLessThanOrEqual(-HERON_WATER[0])
+      expect(y, `(${x}, ${z})`).toBeGreaterThanOrEqual(-HERON_WATER[1])
+    }
+  })
   it('keeps the bench belly-deep for a dowitcher, all over', () => {
     const bench = loc.zones['bench']
     expect(bench?.kind).toBe('polygon')

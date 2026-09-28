@@ -13,6 +13,20 @@ function smooth(t: number) { return t * t * (3 - 2 * t) }
  */
 export const BENCH = { depth: 0.045, x: [18, 26], z: [-14, -12] } as const
 
+/**
+ * A shelf of lake bed along the far waterline, where the herons wade: over [x0, x1] it slopes evenly from `depth[0]`
+ * metres under the water at its shore edge (z0) to `depth[1]` at its lake edge (z1), and eases back into the ground
+ * within a metre. Its edges sit on the terrain mesh's 2 m grid, and a slope in one direction is what the mesh draws
+ * between its vertices, so the rendered shelf is this same plane.
+ */
+export const SHELF = { x: [-16, 20], z: [-64, -60], depth: [0.05, 0.22] } as const
+
+/** the shelf's surface at z: its plane, held beyond its edges */
+function shelfAt(z: number): number {
+  const t = Math.min(1, Math.max(0, (z - SHELF.z[0]) / (SHELF.z[1] - SHELF.z[0])))
+  return -(SHELF.depth[0] + (SHELF.depth[1] - SHELF.depth[0]) * t)
+}
+
 /** 1 over [a, b], easing to 0 within `margin` outside it */
 function plateau(v: number, a: number, b: number, margin = 1): number {
   const rise = Math.min(1, Math.max(0, (v - (a - margin)) / margin))
@@ -34,8 +48,11 @@ function fbm(x: number, z: number, seed: number): number {
   return 0.6 * valueNoise2(x, z, seed) + 0.3 * valueNoise2(x * 2.1, z * 2.1, seed + 1) + 0.1 * valueNoise2(x * 4.3, z * 4.3, seed + 2)
 }
 
-/** The lake's ground; `bench: false` leaves out the dowitchers' bench, to compare the lake bed around it. */
-export function lakeHeightfield(seed: number, { bench: withBench = true }: { bench?: boolean } = {}): Heightfield {
+/**
+ * The lake's ground; `bench: false` leaves out the dowitchers' bench and `shelf: false` the herons' shelf, to compare the
+ * ground around them.
+ */
+export function lakeHeightfield(seed: number, { bench: withBench = true, shelf: withShelf = true }: { bench?: boolean; shelf?: boolean } = {}): Heightfield {
   return {
     sample(x, z) {
       // Basin: an ellipse centred at (2, -36), radii 44 x 32. Inside is below water.
@@ -56,6 +73,9 @@ export function lakeHeightfield(seed: number, { bench: withBench = true }: { ben
       y = y * (1 - bench) - BENCH.depth * bench
       // Far shore: rise beyond z = -62
       if (z < -62) y += Math.min(3, (-62 - z) * 0.35)
+      // Shelf: blended last, over the far shore's rise, so its slope stays a plane
+      const shelf = withShelf ? plateau(x, SHELF.x[0], SHELF.x[1]) * plateau(z, SHELF.z[0], SHELF.z[1]) : 0
+      y = y * (1 - shelf) + shelfAt(z) * shelf
       return y
     },
   }

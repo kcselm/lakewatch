@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { lakeHeightfield, BENCH } from './heightfield'
+import { lakeHeightfield, BENCH, SHELF } from './heightfield'
 import { createTerrain, terrainSurface } from './terrain'
 
 describe('terrainSurface', () => {
@@ -23,6 +23,11 @@ describe('terrainSurface', () => {
   it('renders the dowitcher bench flat: its top covers whole cells of the mesh', () => {
     for (let x = BENCH.x[0]; x <= BENCH.x[1]; x += 0.25) {
       for (let z = BENCH.z[0]; z <= BENCH.z[1]; z += 0.25) expect(surface.sample(x, z), `(${x}, ${z})`).toBeCloseTo(-BENCH.depth, 6)
+    }
+  })
+  it('renders the herons\' shelf as the same plane: its edges on the mesh\'s grid, its slope what the mesh draws', () => {
+    for (let x = SHELF.x[0]; x <= SHELF.x[1]; x += 0.25) {
+      for (let z = SHELF.z[0]; z <= SHELF.z[1]; z += 0.25) expect(surface.sample(x, z), `(${x}, ${z})`).toBeCloseTo(hf.sample(x, z), 6)
     }
   })
   it('matches the smooth field at the mesh vertices', () => {
