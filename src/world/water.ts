@@ -34,53 +34,88 @@ varying vec4 vMirrorUv;
 ${RING_GLSL}
 ${FRESNEL_GLSL}
 
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+// a hash without sine, which holds up at the large coordinates the fine octaves reach (Hoskins)
+float hash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+// value noise and its gradient
+vec3 noised(vec2 x) {
+  vec2 i = floor(x), f = fract(x);
+  vec2 u = f * f * (3.0 - 2.0 * f), du = 6.0 * f * (1.0 - f);
+  float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
+  return vec3(a + (b - a) * u.x + (c - a) * u.y + (a - b - c + d) * u.x * u.y, du * (vec2(b - a, c - a) + (a - b - c + d) * u.yx));
 }
 
+// The ripples (research sections 3.4 and 6.2): four octaves, from the 0.9 m grouping to the 17 mm capillaries, each
+// running downwind at its own wave speed and stretched across the wind as wind waves are. Together they tilt the surface
+// by about 0.07 rad rms per axis in rough water. An octave finer than a pixel fades out rather than alias, and the tilt it
+// took with it smears the reflection instead: a rough patch far off shows smeared colour, not a mirror
+const float LAMBDA[4] = float[4](0.9, 0.18, 0.06, 0.017);
+const float STRETCH[4] = float[4](1.5, 1.5, 1.2, 1.0);
+const float SPEED[4] = float[4](1.19, 0.53, 0.32, 0.23);
+const float WEIGHT[4] = float[4](0.3, 0.5, 0.4, 0.25);
+const float SLOPE = 0.19;
+
 void main() {
-  float wind = uWindStrength * (0.6 + 0.4 * uWindGust);
   vec2 p = vWorld.xz;
-  // Two ripple layers scrolling downwind
-  vec2 flow = uWindDir * uTime * (0.6 + 1.4 * wind);
-  float n1 = noise(p * 0.9 + flow);
-  float n2 = noise(p * 2.3 - flow * 1.7 + 13.0);
-  float h = (n1 * 0.7 + n2 * 0.3);
-  // Wind streaks: elongated along the wind during gusts
-  vec2 along = vec2(-uWindDir.y, uWindDir.x);
-  float streak = noise(vec2(dot(p, uWindDir) * 0.15 + uTime * 0.8, dot(p, along) * 1.6)) * uWindGust * 0.35;
-  // Ripple rings from birds
-  float ring = 0.0;
+  // how rough the water is: glassy below the ripples' onset, about 1.5 m/s, rough by 3 (8 m/s of wind a unit of strength)
+  float windSpeed = 8.0 * uWindStrength * (0.6 + 0.4 * uWindGust);
+  float rough = mix(0.005, 1.0, smoothstep(1.0, 3.0, windSpeed));
+  vec2 along = uWindDir, across = vec2(-uWindDir.y, uWindDir.x);
+  vec2 q = vec2(dot(p, along), dot(p, across));
+  // the pixel's footprint on the water, its longer side: long at grazing angles
+  float fp = max(length(dFdx(p)), length(dFdy(p)));
+  vec2 slope = vec2(0.0);
+  float lost = 0.0, fine = 0.5;
+  for (int i = 0; i < 4; i++) {
+    float l = LAMBDA[i];
+    vec2 u = vec2((q.x - SPEED[i] * uTime) / l, q.y / (l * STRETCH[i])) + float(i) * 17.3;
+    vec3 nd = noised(u);
+    float keep = 1.0 - smoothstep(0.5 * l, l, fp);
+    float w = WEIGHT[i] * SLOPE * rough;
+    // the height's gradient in the world: its slope along the wind and across it
+    slope += (along * nd.y + across * nd.z / STRETCH[i]) * w * keep;
+    lost += (w * (1.0 - keep)) * (w * (1.0 - keep));
+    if (i == 2) fine = nd.x;
+  }
+  // Rings (research section 4): a train of crests between the calm inner edge, running out at c_g,min, and the leading
+  // crest, each bending the surface, fainter as the ring spreads and ending smoothly
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     vec4 r = uRipples[i];
-    // w is the ring's size: a small one (a bill going in) spreads slower, fades sooner, and is fainter
     float life = ringLife(r.w);
-    if (r.z > life) continue;
-    float d = distance(p, r.xy);
-    float radius = r.z * ringSpeed(r.w);
-    float fade = 1.0 - r.z / life;
-    ring += smoothstep(0.12 * r.w, 0.0, abs(d - radius)) * fade * 0.6 * r.w;
+    if (r.z >= life) continue;
+    vec2 d = p - r.xy;
+    float dist = length(d);
+    float inner = r.z * 0.178, outer = r.z * ringSpeed(r.w);
+    if (dist <= inner || dist >= outer) continue;
+    float width = outer - inner, crests = ringCrests(r.w);
+    float t = (dist - inner) / width;
+    // crests closer than two pixels blur into the rest of the water
+    float resolved = 1.0 - smoothstep(1.0, 2.0, fp * crests / width);
+    float a = 0.12 * (0.4 + 0.6 * r.w) / (1.0 + r.z / 0.5) * (1.0 - smoothstep(0.8 * life, life, r.z)) * resolved;
+    float window = smoothstep(0.0, 0.15, t) * smoothstep(1.0, 0.7, t);
+    slope += (d / dist) * a * window * cos(6.2832 * crests * t);
   }
-  // Perturbed normal from the height field
-  float e = 0.15;
-  float hx = noise((p + vec2(e, 0)) * 0.9 + flow) * 0.7 + noise((p + vec2(e, 0)) * 2.3 - flow * 1.7 + 13.0) * 0.3;
-  float hz = noise((p + vec2(0, e)) * 0.9 + flow) * 0.7 + noise((p + vec2(0, e)) * 2.3 - flow * 1.7 + 13.0) * 0.3;
-  float amp = 0.06 + 0.25 * wind;
-  vec3 n = normalize(vec3(-(hx - h) * amp / e, 1.0, -(hz - h) * amp / e));
+  vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
   // What the water reflects: the mirror's render of the scene, shifted by the ripples' tilt (research 6.3: along the
-  // view by 2 s / vFOV, across it by only 2 s sin(g) / hFOV, so reflections smear into columns), falling back to a sky
-  // gradient where the shift runs off it, or when reflections are off
+  // view by 2 s / vFOV, across it by only 2 s sin(g) / hFOV, so reflections smear into columns) and smeared up and down
+  // by the tilt the unresolved ripples took with them; a sky gradient where the smear runs off the mirror, or when
+  // reflections are off
   vec3 v = normalize(uCamera - vWorld);
   vec3 refl = reflect(-v, n);
   vec3 sky = mix(uSkyHorizon, uSkyTop, pow(clamp(refl.y, 0.0, 1.0), 0.6));
   vec2 look = normalize(vWorld.xz - uCamera.xz);
-  float sAlong = dot(n.xz, look), sAcross = dot(n.xz, vec2(-look.y, look.x));
+  float sAlong = dot(slope, look), sAcross = dot(slope, vec2(-look.y, look.x));
   vec2 off = clamp(vec2(2.0 * sAcross * v.y / (uFov * uAspect), 2.0 * sAlong / uFov), -${REFLECT.clampUV.toFixed(2)}, ${REFLECT.clampUV.toFixed(2)});
-  vec3 mirrored = texture2D(uMirror, vMirrorUv.xy / vMirrorUv.w + off).rgb;
-  float fall = smoothstep(${REFLECT.fadeFromUV.toFixed(2)}, ${REFLECT.clampUV.toFixed(2)}, max(abs(off.x), abs(off.y)));
-  sky = mix(sky, mix(mirrored, sky, fall), uReflect);
+  float smear = min(2.0 * sqrt(lost * 0.5) / uFov, ${REFLECT.clampUV.toFixed(2)});
+  vec2 uv = vMirrorUv.xy / vMirrorUv.w + off;
+  vec3 mirrored = vec3(0.0);
+  for (int k = -2; k <= 2; k++) mirrored += texture2D(uMirror, clamp(uv + vec2(0.0, float(k) * 0.5 * smear), 0.0, 1.0)).rgb;
+  mirrored /= 5.0;
+  float offMirror = smoothstep(0.0, 0.05, max(max(-uv.x, uv.x - 1.0), max(-uv.y, uv.y - 1.0)));
+  sky = mix(sky, mix(mirrored, sky, offMirror), uReflect);
   float fres = fresnel(dot(v, n));
   // Depth, baked from the terrain: the water's own colour builds with it, so the bed shows through the shallows and
   // is gone by 30 cm; its tint goes from the shallows' olive to the open water's by 2 m
@@ -95,14 +130,12 @@ void main() {
   float alpha = 1.0 - (1.0 - body) * (1.0 - fres);
   vec3 col = (tint * body * (1.0 - fres) + sky * fres) / max(alpha, 1e-4);
   // the waterline: the meniscus catching the sky over the last centimetre, broken up by the ripples
-  float edge = (1.0 - edgeFade) * step(0.0005, depth) * (0.5 + 0.5 * n2);
+  float edge = (1.0 - edgeFade) * step(0.0005, depth) * (0.5 + 0.5 * fine);
   col = mix(col, uSkyHorizon, edge * 0.5 / max(alpha + edge * 0.6, 1e-4));
   alpha = max(alpha, edge * 0.6);
   // Sun glitter
-  float spec = pow(max(dot(refl, uSunDir), 0.0), 180.0) * (0.4 + wind);
+  float spec = pow(max(dot(refl, uSunDir), 0.0), 180.0) * (0.4 + 0.6 * rough);
   col += uSun * spec;
-  col += vec3(streak) * 0.6;
-  col += vec3(ring);
   gl_FragColor = vec4(col, alpha);
   #include <fog_fragment>
 }`
