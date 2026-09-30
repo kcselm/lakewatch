@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { ScatterPoint } from './scatter'
-import type { Wind } from './wind'
+import { GUST_FRONT_GLSL, type Wind } from './wind'
 import type { WorldModule } from './scene'
 
 const swayChunk = /* glsl */ `
@@ -8,6 +8,7 @@ const swayChunk = /* glsl */ `
   attribute float aPhase;
   attribute float aTint;
   varying float vTint;
+${GUST_FRONT_GLSL}
 `
 
 const swayVertex = /* glsl */ `
@@ -16,8 +17,7 @@ const swayVertex = /* glsl */ `
   float t = clamp(position.y / 1.0, 0.0, 1.0);           // 0 at root, 1 at tip (blade height is 1 before instance scale)
   float bend = t * t;
   // Gust front travels downwind across the bed
-  float along = dot(worldPos.xz, uWindDir);
-  float front = 0.5 + 0.5 * sin(along * 0.35 - uTime * 2.2 + aPhase * 0.3);
+  float front = gustFront(worldPos.xz, aPhase);
   float wind = uWindStrength * (0.5 + 0.5 * uWindGust * front);
   float flutter = sin(uTime * 3.0 + aPhase) * 0.05 * (0.3 + wind);
   vec2 lean = uWindDir * (wind * 0.9 * bend) + vec2(flutter * bend);

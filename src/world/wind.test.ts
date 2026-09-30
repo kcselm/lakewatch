@@ -1,4 +1,4 @@
-import { Wind, gustAt } from './wind'
+import { Wind, gustAt, gustFront, GUST_FRONT, WIND_SPEED } from './wind'
 
 describe('gustAt', () => {
   it('is deterministic for a seed', () => {
@@ -29,5 +29,17 @@ describe('Wind', () => {
     expect(w.state.time).toBeCloseTo(0.5)
     expect(w.uniforms.uTime.value).toBeCloseTo(0.5)
     expect(w.uniforms.uWindGust.value).toBe(w.state.gust)
+  })
+})
+
+describe('gustFront', () => {
+  it('runs downwind at the speed of the lake breeze itself, about 2.8 m/s at a strength of 0.35', () => {
+    const speed = GUST_FRONT.omega / GUST_FRONT.k
+    expect(speed).toBeGreaterThan(WIND_SPEED * 0.35 * 0.9)
+    expect(speed).toBeLessThan(WIND_SPEED * 0.35 * 1.1)
+    // a crest at 0 now is a crest `speed` metres downwind a second later
+    const t = 3.2, crest = (Math.PI / 2 + t * GUST_FRONT.omega) / GUST_FRONT.k
+    expect(gustFront(crest, t)).toBeCloseTo(1, 6)
+    expect(gustFront(crest + speed, t + 1)).toBeCloseTo(1, 6)
   })
 })

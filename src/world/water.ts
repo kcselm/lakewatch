@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { Wind } from './wind'
+import { GUST_FRONT_GLSL, WIND_SPEED, type Wind } from './wind'
 import type { ScenePalette } from './palette'
 import type { WorldModule } from './scene'
 import { RippleBuffer, MAX_RIPPLES, RING_GLSL } from './ripples'
@@ -33,6 +33,7 @@ varying vec3 vWorld;
 varying vec4 vMirrorUv;
 ${RING_GLSL}
 ${FRESNEL_GLSL}
+${GUST_FRONT_GLSL}
 
 // a hash without sine, which holds up at the large coordinates the fine octaves reach (Hoskins)
 float hash(vec2 p) {
@@ -60,11 +61,20 @@ const float SLOPE = 0.19;
 
 void main() {
   vec2 p = vWorld.xz;
-  // how rough the water is: glassy below the ripples' onset, about 1.5 m/s, rough by 3 (8 m/s of wind a unit of strength)
-  float windSpeed = 8.0 * uWindStrength * (0.6 + 0.4 * uWindGust);
-  float rough = mix(0.005, 1.0, smoothstep(1.0, 3.0, windSpeed));
   vec2 along = uWindDir, across = vec2(-uWindDir.y, uWindDir.x);
   vec2 q = vec2(dot(p, along), dot(p, across));
+  // How rough the water is (research 3.2 and 3.3): glassy below the ripples' onset, about 1.5 m/s of wind, rough by 2.5.
+  // Over that, lulls: glassy patches 15-40 m across drifting downwind at the wind's speed, about a fifth of the lake,
+  // roughened as the gust front the reeds bend in runs over them; and calmer water in the lee of the far tree line.
+  // Glassy is a rms tilt of 0.001 rad, 1.5% of rough water's 0.07
+  float drift = ${WIND_SPEED.toFixed(1)} * uWindStrength * uTime;
+  // the wind's speed now, about its mean (2.8 m/s at 0.35): a quarter below it between gusts, a quarter above in one
+  float onset = smoothstep(1.0, 2.5, ${WIND_SPEED.toFixed(1)} * uWindStrength * (0.75 + 0.5 * uWindGust));
+  vec2 lq = vec2(q.x - drift, q.y);
+  float lull = 0.7 * noised(lq / 25.0 + 91.7).x + 0.3 * noised(lq / 9.0 + 43.1).x;
+  float patchy = smoothstep(0.32, 0.62, lull) * (0.55 + 0.45 * gustFront(p, 0.0));
+  float lee = mix(1.0, 0.5, smoothstep(-52.0, -58.0, p.y));
+  float rough = mix(0.015, 1.0, onset * patchy * lee);
   // the pixel's footprint on the water, its longer side: long at grazing angles
   float fp = max(length(dFdx(p)), length(dFdy(p)));
   vec2 slope = vec2(0.0);

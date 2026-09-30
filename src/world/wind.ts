@@ -16,6 +16,29 @@ export interface WindState {
   time: number
 }
 
+/**
+ * The wind's speed in metres a second for a unit of strength (research 2026-09-30-lake-water.md section 3.1: the lake's
+ * 0.35 is a light breeze, 2.8 m/s, Beaufort 2).
+ */
+export const WIND_SPEED = 8
+
+/**
+ * A gust front: bands 18 m apart (k = 0.35 rad/m) running downwind across the reeds and the water together at the
+ * wind's own speed, ω / k = 2.9 m/s (it ran at 6.3 before the water shared it).
+ */
+export const GUST_FRONT = { k: 0.35, omega: 1.0 } as const
+
+/** the gust front, 0..1, at a world point's distance downwind and time; `phase` staggers a reed's */
+export function gustFront(along: number, time: number, phase = 0): number {
+  return 0.5 + 0.5 * Math.sin(along * GUST_FRONT.k - time * GUST_FRONT.omega + phase * 0.3)
+}
+
+/** `gustFront` in GLSL, for the reeds' and the water's shaders, which declare uWindDir and uTime */
+export const GUST_FRONT_GLSL = /* glsl */ `
+float gustFront(vec2 xz, float phase) {
+  return 0.5 + 0.5 * sin(dot(xz, uWindDir) * ${GUST_FRONT.k.toFixed(2)} - uTime * ${GUST_FRONT.omega.toFixed(2)} + phase * 0.3);
+}`
+
 /** Two octaves of value noise, scaled by gustiness, 0..1. */
 export function gustAt(t: number, gustiness: number, seed: number): number {
   const slow = valueNoise1(t * 0.08, seed)
