@@ -190,6 +190,7 @@ const POSES: Record<string, Record<string, Patch>> = {
   greyel: { strike: bottom(STRIKE) },
   lesyel: { strike: bottom(STRIKE) },
   grbher3: heron('grbher3'),
+  greegr: heron('greegr'),
 }
 
 /**

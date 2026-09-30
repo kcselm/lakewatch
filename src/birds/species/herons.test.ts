@@ -1,4 +1,5 @@
 import { SPEC as HERON } from './grbher3'
+import { SPEC as EGRET } from './greegr'
 import { built, atlas, within, hueIn } from './swimmer.testkit'
 import { crownNow, billAngleNow, billTipNow } from '../detail/measure'
 import { posedFold, passThrough, posedRings } from '../detail/neck.testkit'
@@ -148,5 +149,83 @@ describe('Great Blue Heron: plumage', () => {
     expect(hueIn(below.hue, 35, 60)).toBe(true)
     expect(top).toBeLessThan(below.lum - 0.15)
     expect(j.stats('bill', [0.1, 0.9], [0, 1]).mean).toBeLessThan(a.stats('bill', [0.1, 0.9], [0, 1]).mean)
+  })
+})
+
+describe('Great Egret: structure', () => {
+  const E = built(EGRET), H = built(HERON, 'adult')
+  it('culmen, bill depth, tarsus, bare tibia, wing chord, and length at rest', () => {
+    within(E.M.culmen, 100, 120, 'culmen')
+    within(E.M.billDepth, 16, 22, 'bill depth')
+    within(E.M.tarsus, 135, 165, 'tarsus')
+    within(E.M.tibia, 80, 115, 'bare tibia')
+    within(E.M.wingChord, 360, 405, 'wing chord')
+    within(E.M.length, 700, 820, 'length')
+  })
+  it('stands 0.52-0.68 m tall in its hunting S', () => {
+    within(E.M.crownAbove, 520, 680, 'crown above the feet')
+  })
+  it('against the Great Blue Heron: a shorter bill and a smaller bird', () => {
+    within(E.M.culmen / H.M.culmen, 0.75, 0.88, 'culmen')
+    within(E.M.crownAbove / H.M.crownAbove, 0.7, 0.9, 'standing height')
+  })
+})
+
+describe('Great Egret: the neck', () => {
+  const S = heronFor('greegr')
+  const { model } = built(EGRET)
+  it('is a chain of six joints, with the kink about a third of the neck down from the head', () => {
+    expect(EGRET.detail!.rig.neck).toHaveLength(6)
+    within(kinkShare(EGRET), 0.25, 0.45, 'kink')
+  })
+  it('lifts the crown above the back as the photos do: hunched, hunting, erect', () => {
+    within(crownAboveBack(EGRET, model, shapes(S).hunch!), 0, 60, 'hunch')
+    within(crownAboveBack(EGRET, model, shapes(S).trace!), 80, 160, 'trace')
+    within(crownAboveBack(EGRET, model, shapes(S).erect!), 300, 420, 'erect')
+  })
+  it('points the bill as the photos do: down hunting, up swallowing, steeply down at the bottom of a strike', () => {
+    pose(model, shapes(S).trace!)
+    within(-deg(billAngleNow(model)), 5, 25, 'trace, below level')
+    pose(model, shapes(S).swallow!)
+    within(deg(billAngleNow(model)), 15, 45, 'swallow, above level')
+    pose(model, shapes(S).strike!)
+    within(-deg(billAngleNow(model)), 45, 85, 'strike, below level')
+  })
+  it('strikes where its ring starts: the bill goes in S.strike.ahead in front of the feet, to 5 cm', () => {
+    pose(model, shapes(S).strike!)
+    expect(Math.abs(billTipNow(model).x - S.strike.ahead)).toBeLessThan(0.05)
+  })
+  it('folds no ring and passes no skin through skin in any of its shapes', () => {
+    for (const [name, patch] of Object.entries(shapes(S))) {
+      pose(model, patch)
+      expect(posedFold(model, 0.3) * 1000, name).toBeLessThan(0.1)
+      expect(passThrough(model, 0.3).depth * 1000, name).toBeLessThan(3)
+    }
+  })
+  it('wades no deeper than leaves 25 mm of its bare tibia above the water: the style\'s band is set by this bird', () => {
+    const m = EGRET.detail!.measurements
+    expect(HERON_WATER[1]).toBeLessThanOrEqual(m.tarsus + m.tibia - 0.025)
+  })
+})
+
+describe('Great Egret: plumage', () => {
+  const e = atlas(EGRET)
+  it('white all over the skin and the folded wing', () => {
+    expect(e.stats('skin', [0, 1], [0, 1]).mean).toBeGreaterThan(0.8)
+    expect(e.stats('wingFold', [0, 1], [0, 1]).mean).toBeGreaterThan(0.8)
+  })
+  it('a yellow-orange bill and black legs', () => {
+    const bill = e.colour('bill', [0.1, 0.8], [0.3, 1])
+    expect(hueIn(bill.hue, 30, 55)).toBe(true)
+    expect(bill.sat).toBeGreaterThan(0.5)
+    expect(e.stats('legs', [0, 1], [0, 1]).mean).toBeLessThan(0.12)
+  })
+  it('yellow lores and gape reaching back past the eye', () => {
+    // the gape ends about 9 mm behind the eye's centre and 10 mm below it (research section 5.1): the skin 4-12 mm
+    // behind the eye, from the eye's height down a fifth of the way round the head, is yellow
+    const d = EGRET.detail!, length = createProfile(d.profile).length * 1000
+    const behind = e.colour('skin', [e.u('eye') - 12 / length, e.u('eye') - 4 / length], [d.eye.t, d.eye.t + 0.2])
+    expect(hueIn(behind.hue, 35, 70)).toBe(true)
+    expect(behind.sat).toBeGreaterThan(0.35)
   })
 })
