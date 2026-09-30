@@ -3,6 +3,7 @@ import { MALLARD } from './dabbler'
 import { AVOID, DRIFT, startSpot, createSwimmer } from './swimmer'
 import { defaultPose } from '../birds/model'
 import { makeRng } from '../catalog/rng'
+import { WAKE } from '../world/wake'
 import { pointInPolygon, randomPointInPolygon } from '../location/zones'
 import type { BehaviorContext, BehaviorController, FlockGroup } from './types'
 import type { Foraging } from '../birds/spec'
@@ -180,24 +181,23 @@ describe('swim', () => {
       fastest = Math.max(fastest, b.speed)
       expect(pointInPolygon(b.x, b.z, zone.points)).toBe(true)
     }
-    expect(fastest).toBeLessThan(MALLARD.wake.above)
+    expect(fastest).toBeLessThan(WAKE.minSpeed)
   })
-  it('slides a crowded swimmer along the bank rather than freezing it: started as the spawner starts them in a small pond, no cruising bird is refused its whole step for more than 1 s, and only a bird that moves makes a wake', () => {
+  it('slides a crowded swimmer along the bank rather than freezing it: started as the spawner starts them in a small pond, no cruising bird is refused its whole step for more than 1 s', () => {
     // Flocks of four and six in a pond 6 m by 4 m, as the spawner starts them, so they keep meeting each other and the
     // bank. A step refused is one of at least 1 cm/s (a fiftieth of the cruise) that the body moves none of; anything
     // less is only what is left of a step that all closes on neighbours the bird is hemmed in by, and a hemmed-in bird
-    // waits. A wake is made only in a frame the bird moved faster than the wake's `above`.
+    // waits.
     const pond: Pt[] = [[0, 0], [6, 0], [6, 4], [0, 4]], area = { kind: 'polygon' as const, points: pond }
     for (let seed = 1; seed <= 15; seed++) {
       made.length = 0
-      const rng = makeRng(seed), birds: BehaviorController[] = [], wakes: number[] = []
+      const rng = makeRng(seed), birds: BehaviorController[] = []
       for (const count of [4, 6]) {
         const [gx, gz] = randomPointInPolygon(pond, rng)
         const group = { targetX: gx, targetZ: gz, retargetAt: MALLARD.flock.retargetSeconds }
         for (let n = 0; n < count; n++) {
           const k = birds.length, [x, z] = startSpot(area, rng, group, companyOf(), birds)
-          const onRipple = (_x: number, _z: number, size?: number) => { if (size === MALLARD.wake.size) wakes.push(k) }
-          birds.push(createSwim(ctx(seed * 100 + k, { zone: area, group, neighbours: () => birds, onRipple }), x, z))
+          birds.push(createSwim(ctx(seed * 100 + k, { zone: area, group, neighbours: () => birds }), x, z))
         }
       }
       // what each bird's style asks its body to move this frame
@@ -211,8 +211,6 @@ describe('swim', () => {
           refused[k] = b.state === 'cruise' && asked[k]! >= 0.01 / 30 && moved[k]! < 1e-9 ? refused[k]! + 1 : 0
           if (refused[k]! > 30) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: refused its whole step for 1 s at ${b.x.toFixed(3)}, ${b.z.toFixed(3)}`)
         })
-        for (const k of wakes) if (moved[k]! <= MALLARD.wake.above / 30) expect.fail(`seed ${seed}, bird ${k}, frame ${i}: a wake from a bird that moved ${moved[k]!.toFixed(4)} m`)
-        wakes.length = 0
         asked.fill(0)
         last = birds.map(b => [b.x, b.z])
       })
@@ -228,16 +226,19 @@ describe('swim', () => {
     for (let i = 0; i < 30 && c.state === 'loaf'; i++) c.update(1 / 30, pose)
     expect(c.x).toBeGreaterThan(x0)
   })
-  it('makes a wake as it swims, a full-size ring no oftener than its wake allows', () => {
-    const rings: { t: number; size?: number }[] = []
-    let t = 0
-    const c = createSwim(ctx(3, { onRipple: (_x, _z, size) => rings.push({ t, size }) }), 0, 0)
+  it('rings the water only when its bill or body goes in, not as it cruises: its wake is drawn from its speed', () => {
+    const rings: number[] = []
+    const c = createSwim(ctx(3, { onRipple: (_x, _z, size) => rings.push(size ?? 1) }), 0, 0)
     const pose = defaultPose()
-    for (let i = 0; i < 120 * 30; i++) { t = i / 30; c.update(1 / 30, pose) }
-    expect(rings.length).toBeGreaterThan(10)
-    const wake = rings.filter(r => r.size === MALLARD.wake.size)
-    expect(wake.length).toBeGreaterThan(10)
-    for (let i = 1; i < wake.length; i++) expect(wake[i]!.t - wake[i - 1]!.t).toBeGreaterThanOrEqual(MALLARD.wake.every - 1e-9)
+    let fastest = 0
+    for (let i = 0; i < 120 * 30; i++) {
+      const [x, z] = [c.x, c.z]
+      c.update(1 / 30, pose)
+      if (c.state === 'cruise') fastest = Math.max(fastest, Math.hypot(c.x - x, c.z - z) * 30)
+    }
+    expect(rings.every(size => size < 1)).toBe(true)
+    // its cruise is fast enough for a full V (the research: every duck's cruise within 0.30-0.70 m/s)
+    expect(fastest).toBeGreaterThanOrEqual(WAKE.fullSpeed)
   })
   it('takes no notice of a bird under the water: it swims straight over a diving coot, and round one afloat', () => {
     const closest = (submerged: boolean) => {

@@ -19,8 +19,6 @@ export interface SwimSettings {
   flock: FlockSettings & { drift: number; whenFarther: number; apart?: number }
   /** metres kept from a flockmate, and from any other swimmer */
   spacing: { flock: number; other: number }
-  /** a ring on the water every `every` seconds while swimming faster than `above` m/s: the wake, as `swim` always made */
-  wake: { every: number; size: number; above: number }
 }
 
 /**

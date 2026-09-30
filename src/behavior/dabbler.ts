@@ -51,9 +51,6 @@ export const MALLARD: DabblerSettings = {
   // nearest neighbour 0.3-2 m while feeding: 0.4, just over the 0.36 m traced length, so two never overlap; 0.8 from
   // birds of other flocks, as the Gadwall's unpaired birds keep 0.3-1.2 m (gadwall section 7.6)
   spacing: { flock: 0.4, other: 0.8 },
-  // a full-size ring while under way, as the old swim made, but every 1.5 s rather than 0.9: the grebe's measured wake
-  // rhythm (pied-billed-grebe section 11), and what the ring buffer holds for 24 swimmers (Task 12)
-  wake: { every: 1.5, size: 1, above: 0.3 },
   cruising: { share: 0.311 },
   loaf: { share: 0.068, seconds: [5, 20] },
   preen: { share: 0.065, seconds: [5, 15] },
@@ -164,7 +161,7 @@ export function createDabbler(ctx: BehaviorContext, startX: number, startZ: numb
   // and how far the body is tipped up, each 0..1 moving at a steady rate and shaped with smoothstep
   let bill = 0, under = 0, tilt = 0
   let preen = 0
-  let sinceWake = 0, nextDabble = 0
+  let nextDabble = 0
   let paddlePhase = 0
 
   const TABLE = {
@@ -250,9 +247,6 @@ export function createDabbler(ctx: BehaviorContext, startX: number, startZ: numb
         b.float(dt)
         if (timer <= 0) next()
       }
-      // the wake, while it is under way
-      sinceWake += dt
-      if (b.speed > S.wake.above && sinceWake >= S.wake.every) { sinceWake = 0; ctx.onRipple?.(b.x, b.z, S.wake.size) }
 
       // posture: each part moves at a steady rate toward where this moment wants it, shaped with smoothstep
       const dipping = state === 'headDip'

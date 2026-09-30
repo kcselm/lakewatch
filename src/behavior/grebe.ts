@@ -74,8 +74,6 @@ export const GREBE: GrebeSettings = {
   flock: { radius: Infinity, retargetSeconds: Infinity, drift: 0, whenFarther: Infinity, apart: 20 },
   // at least 10 m from other grebes; from any other swimmer 1.5 m, as it swims away from ducks (ours)
   spacing: { flock: 10, other: 1.5 },
-  // no duck's wake: a grebe leaves a small ring every 1.5 s as it swims (`cruising.ring`)
-  wake: { every: 0.9, size: 1, above: Infinity },
   // foraging bouts of 3-12 dives; the rest cruising and loafing (the split is ours). Bleich's feeding birds were 70%
   // submerged within a bout; here about 60% of a bout is under water (the entry, the peer, and the look about on coming
   // up take the rest), so to be under water about 35% of the time, as the spec has it, a grebe spends nearly 60% of its

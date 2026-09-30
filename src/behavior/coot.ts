@@ -60,8 +60,6 @@ export const COOT: CootSettings = {
   // six birds, nearest neighbours 0.4-0.9 m: a radius of 2 m gives about 0.7 m; spacing 0.4 m, over its 0.30-0.33 m length
   flock: { radius: 2, retargetSeconds: 60, drift: 3, whenFarther: 4 },
   spacing: { flock: 0.4, other: 0.8 },
-  // the dabbler's wake, when it travels
-  wake: { every: 1.5, size: 1, above: 0.3 },
   // feeding 0.65 (pecks 0.40, swimming to feed 0.15, head-dips and dives and tip-ups the rest), travel 0.15, loaf
   // 0.10, preen 0.10; travelling at 0.4-0.5 m/s (0.45 here) for the dabbler's cruise bouts
   travel: { share: 0.15, speed: 0.45, seconds: [4, 14] },
@@ -133,7 +131,7 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
   // eased posture: the peck (0 head at rest .. 1 pecking), the head under, the tip-up, the dive's arc over and the
   // kick of its feet, and the head pump's reach
   let pecking = 0, under = 0, tilt = 0, arc = 0, kick = 0, pumpK = 0, preen = 0
-  let sinceWake = 0, sinceRing = 0
+  let sinceRing = 0
   // the dive: its phase, how deep the bird is (0 afloat .. 1 all the way under), where it went down and comes up
   let phase: DivePhase = 'dip'
   let sink = 0
@@ -315,8 +313,6 @@ export function createCoot(ctx: BehaviorContext, startX: number, startZ: number,
         const tip = between(ctx.rng, S.tipUp.seconds) + (S.tipUp.down - S.tipUp.up) / 2
         if (!diveDue(tip)) { state = 'tipUp'; timer = tip }
       }
-      sinceWake += dt
-      if (b.speed > S.wake.above && sinceWake >= S.wake.every) { sinceWake = 0; ring(S.wake.size) }
       // the faint ring of the pump while it swims to feed (travelling, it leaves a wake instead)
       if (state === 'cruise' && b.speed > S.cruise.speed / 2 && sinceRing >= S.pump.ring.every) { sinceRing = 0; ring(S.pump.ring.size, 0.1) }
 

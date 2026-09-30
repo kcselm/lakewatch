@@ -16,11 +16,10 @@ function ringers() {
 }
 
 describe('the whole cast on the water', () => {
-  it('rings the water within the buffer: over ten minutes no ring is pushed out before it fades, about 15 alive at once', () => {
-    // 24 swimmers' wakes, dips, and dives, six dowitchers' bills, and the Kingfisher, for two seeds. The test steps at
-    // 10 frames a second to keep it quick; the game steps at the display rate. At 60 frames a second, in the scratch
-    // runs of ten minutes each (seeds 42, 7, and 11), the live rings averaged 15-16 and peaked at 28-30, with nothing
-    // pushed out.
+  it('rings the water within the buffer: over ten minutes no ring is pushed out before it fades, about 8 alive at once', () => {
+    // 24 swimmers' dips, tip-ups, and dives (their wakes are drawn from their speed, not rung), six dowitchers' bills,
+    // the Kingfisher, and the herons' strikes, for two seeds. The test steps at 10 frames a second to keep it quick; the
+    // game steps at the display rate. Without the wakes, the live rings average about 8.
     const counts: number[] = []
     let dropped = 0
     for (const seed of [42, 7]) {
@@ -37,8 +36,8 @@ describe('the whole cast on the water', () => {
     }
     expect(dropped).toBe(0)
     const mean = counts.reduce((a, b) => a + b, 0) / counts.length
-    expect(mean).toBeGreaterThan(10)
-    expect(mean).toBeLessThan(18)
+    expect(mean).toBeGreaterThan(5)
+    expect(mean).toBeLessThan(12)
   }, 120_000)   // two seeds x 600 s of the whole cast: about 20 s with the other tests running, past 80 s on a loaded machine
   it('hides each diving bird exactly while it is under the water, and never offers a hidden bird as a target', () => {
     const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
