@@ -25,7 +25,12 @@ describe('sanitizeSettings', () => {
   })
   it('keeps values already in range', () => {
     const s = sanitizeSettings({ version: 1, sensitivity: 1.5, volumes: { master: 0.2, ambience: 0.3, calls: 0.4, effects: 0.6 } })
-    expect(s).toEqual({ version: 1, sensitivity: 1.5, volumes: { master: 0.2, ambience: 0.3, calls: 0.4, effects: 0.6 } })
+    expect(s).toEqual({ version: 1, sensitivity: 1.5, volumes: { master: 0.2, ambience: 0.3, calls: 0.4, effects: 0.6 }, reflections: true })
+  })
+  it('turns reflections on for settings saved before they existed, and keeps them off once turned off', () => {
+    expect(sanitizeSettings({ version: 1, sensitivity: 1 }).reflections).toBe(true)
+    expect(sanitizeSettings({ version: 1, reflections: false }).reflections).toBe(false)
+    expect(sanitizeSettings({ version: 1, reflections: 'no' }).reflections).toBe(true)
   })
 })
 
@@ -45,12 +50,15 @@ describe('createSettingsStorage', () => {
 })
 
 describe('applySettings', () => {
-  it('scales the look sensitivity and pushes every volume to the engine', () => {
+  it('scales the look sensitivity, pushes every volume to the engine, and turns the water\'s reflections on or off', () => {
     const look = { sensitivity: 0 }
     const calls: [string, number][] = []
     const engine = { setMasterVolume: (v: number) => calls.push(['master', v]), setLayerVolume: (l: string, v: number) => calls.push([l, v]) }
-    applySettings({ version: 1, sensitivity: 2, volumes: { master: 0.5, ambience: 0.1, calls: 0.2, effects: 0.3 } }, { look, engine })
+    let reflections: boolean | undefined
+    const water = { setReflections: (on: boolean) => { reflections = on } }
+    applySettings({ version: 1, sensitivity: 2, volumes: { master: 0.5, ambience: 0.1, calls: 0.2, effects: 0.3 }, reflections: false }, { look, engine, water })
     expect(look.sensitivity).toBeCloseTo(BASE_SENSITIVITY * 2, 10)
     expect(calls).toEqual([['master', 0.5], ['ambience', 0.1], ['calls', 0.2], ['effects', 0.3]])
+    expect(reflections).toBe(false)
   })
 })

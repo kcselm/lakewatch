@@ -40,6 +40,11 @@ export function SettingsPanel({ settings, persistent, onChange, onResetLifeList,
       {volume('ambience', 'Ambience')}
       {volume('calls', 'Bird calls')}
       {volume('effects', 'Effects')}
+      <label class="row">
+        <span>Water reflections</span>
+        <input type="checkbox" checked={local.reflections} onChange={e => update({ ...local, reflections: (e.target as HTMLInputElement).checked })} />
+        <span class="val">{local.reflections ? 'On' : 'Off'}</span>
+      </label>
       <h3>Life list</h3>
       {confirmReset ? (
         <p class="reset">
