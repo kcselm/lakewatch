@@ -59,9 +59,14 @@ export const GREAT_BLUE_HERON: HeronSettings = {
   wait: { seconds: [10, 60], peer: { chance: 0.33, seconds: [1, 3], pitch: 0.25 }, turn: { chance: 0.3, rate: 0.15 } },
   next: { strike: 0.3, stalk: 0.5, alert: 0.1 },
   stalk: { metres: [0.5, 2], speed: 0.04, neck: 0.55 },
-  strike: { draw: 0.4, drawNeck: 0.35, down: 0.12, hold: 0.3, depth: 0.08, reachAngle: 1.4, lean: 0.45, ahead: 0.3, ring: 0.6 },
+  // `ahead` from the built bird: its bill tip at the bottom of a strike over a bed 15 cm down goes in 0.397 m in front
+  // of the feet, the neck looped in front of the breast (the photo's 0.24 m: the traced neck can't loop tighter without
+  // folding) (Task 6)
+  strike: { draw: 0.4, drawNeck: 0.35, down: 0.12, hold: 0.3, depth: 0.08, reachAngle: 1.4, lean: 0.45, ahead: 0.4, ring: 0.6 },
   swallow: { chance: 0.4, seconds: [1.5, 4], pitch: 0.6 },
-  alert: { seconds: [4, 15], lean: -0.2 },
+  // the research's upper estimate (0.3-0.5 rad): the traced neck, chained from the breast, reaches the erect photo's
+  // crown (about 456 mm above the shoulders) only with the body tipped as steeply as that photo's (Task 6)
+  alert: { seconds: [4, 15], lean: -0.5 },
   bout: { seconds: [600, 1500] },
   rest: { seconds: [180, 600], lean: -0.35 },
   spacing: { same: 10, other: 3 },

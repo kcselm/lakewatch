@@ -7,6 +7,7 @@ import { createProfile } from '../detail/profile'
 import { worstFold, buildLoft } from '../detail/loft'
 import { Mesher } from '../detail/mesher'
 import { DEFAULT_STEP } from '../detail/legs'
+import { NECK_BONES } from '../detail/rig'
 import { defaultPose } from '../model'
 import { loadCatalog } from '../../catalog'
 import { loadLocation } from '../../location'
@@ -126,7 +127,8 @@ describe('detailed birds move smoothly under their cast behavior', () => {
     seen.add(spec.code)
     it(`${spec.code} (${entry.behavior}): no bone turns more than 0.7 rad in a frame`, () => {
       const m = buildDetailedBird(spec)
-      const bones = ['body', 'neck', 'neckMid', 'head'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)
+      // a chained neck turns at every joint; the spares of a neck of two joints never turn
+      const bones = ['body', ...NECK_BONES, 'head'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)
       const c = BEHAVIORS[entry.behavior as keyof typeof BEHAVIORS]({
         zone: patch, rng: makeRng(3), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0,
         group: { targetX: 3, targetZ: 1.25, retargetAt: 0 }, ...speciesTraits(spec.code),

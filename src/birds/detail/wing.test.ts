@@ -11,6 +11,7 @@ import { COOT, NECK as COOT_NECK } from '../../behavior/coot'
 import { GREBE, NECK as GREBE_NECK } from '../../behavior/grebe'
 import { PECK_BOTTOM } from '../../behavior/probe'
 import { STRIKE } from '../../behavior/wade'
+import { heronFor } from '../../behavior/heron'
 
 /** how far along its normal a point on the wing looks for the loft, each way, metres */
 const REACH = 0.05
@@ -131,6 +132,20 @@ const reach = (neckExtend: number, reachAngle = Math.PI / 2, reachDepth = 0, lea
   ({ leanX, reach: 1, reachDepth, reachAngle, neckExtend })
 const bottom = (b: { lean: number; neckExtend: number; reach: number }): Patch => ({ leanX: b.lean, neckExtend: b.neckExtend, reach: b.reach })
 const probing = (code: string): Patch => bottom(PECK_BOTTOM[SPECIES[code]!.foraging as keyof typeof PECK_BOTTOM])
+/** a heron's poses, from its style's settings: the neck's shapes, the peer, the stalk, the swallow, and a strike */
+const heron = (code: string): Record<string, Patch> => {
+  const S = heronFor(code)
+  return {
+    hunch: { neckExtend: 0, leanX: S.rest.lean },
+    peer: { neckExtend: 0.5, headPitch: -S.wait.peer.pitch },
+    stalk: { neckExtend: S.stalk.neck },
+    alert: { neckExtend: 1, leanX: S.alert.lean },
+    swallow: { neckExtend: 1, headPitch: S.swallow.pitch },
+    'strike, drawn back': { neckExtend: S.strike.drawNeck },
+    // the bill into the water over a bed 15 cm down, as on the far shallows
+    'strike, the bottom': reach(0.5, S.strike.reachAngle, -(0.15 - S.strike.depth), S.strike.lean),
+  }
+}
 
 /**
  * The poses the game puts each detailed bird in, from its behaviour's own settings, at their fullest: every feeding
@@ -174,6 +189,7 @@ const POSES: Record<string, Record<string, Patch>> = {
   lobdow: { stitch: probing('lobdow') },
   greyel: { strike: bottom(STRIKE) },
   lesyel: { strike: bottom(STRIKE) },
+  grbher3: heron('grbher3'),
 }
 
 /**

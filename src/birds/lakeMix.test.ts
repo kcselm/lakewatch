@@ -26,7 +26,7 @@ describe("the lake's late-September mix", () => {
       for (const [k, n] of Object.entries(MIX)) expect(got[k], `${k}, seed ${seed}`).toBe(n)
     }
   })
-  it('paints twenty atlases: the six shorebirds and fourteen swimmer versions', () => {
-    expect(castAtlases(lake).length).toBe(20)
+  it('paints twenty-one atlases: the six shorebirds, fourteen swimmer versions, and the Great Blue Heron', () => {
+    expect(castAtlases(lake).length).toBe(21)
   })
 })

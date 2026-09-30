@@ -105,6 +105,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   norsho: { geometry: '43f8e74d', poses: '3a31c6da' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
   y00475: { geometry: '3d6eeba6', poses: 'eb57fa07' },          // the American Coot, detailed (Task 18); the chin refitted (review); were 5c786913, 6e241e2f
   gadwal: { geometry: '0ae3390b', poses: 'c200f85d' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
+  grbher3: { geometry: 'd5f4b4fb', poses: 'cf739662' },        // the Great Blue Heron, detailed (herons Task 6)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -147,6 +148,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   // 47 mm each side; the skin's girth there sets its atlas layout, so both versions' prints changed (were 423851a1 and
   // d6f3b199)
   gadwal: 'cf7aa4de', 'gadwal:male': '3fc0ff05', 'gadwal:female': 'cf7aa4de',
+  // new: the Great Blue Heron's two versions (herons Task 6); with no version it paints the adult's
+  grbher3: '9105d375', 'grbher3:adult': '9105d375', 'grbher3:juvenile': 'e21bad72',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
