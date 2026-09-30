@@ -40,10 +40,14 @@ describe('FloaterTracker', () => {
   })
   it('packs two vec4s a floater, and zeroes the slots it doesn\'t use', () => {
     const t = new FloaterTracker(2)
-    t.update([bird(1, 3, 0, -20, 'wade')], water, 1 / 60)
+    const b = bird(1, 3, 0, -20, 'wade')
+    b.model.group.rotation.y = Math.PI / 2       // facing -z, as a heading of a quarter turn does
+    t.update([b], water, 1 / 60)
     const out = new Float32Array(16).fill(7)
     t.pack(out)
-    expect(Array.from(out.slice(0, 8))).toEqual([3, -20, 0, 0, 0.30000001192092896, 1, 0, 0])
+    expect(Array.from(out.slice(0, 6))).toEqual([3, -20, 0, 0, 0.30000001192092896, 1])
+    expect(out[6]).toBeCloseTo(0, 6)
+    expect(out[7]).toBeCloseTo(-1, 6)
     expect(Array.from(out.slice(8))).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
   })
   it('holds no more than its cap', () => {

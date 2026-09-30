@@ -10,6 +10,7 @@ import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
 import { bakeWaterDepth } from './world/waterDepth'
 import { createMirror, NO_REFLECT } from './world/mirror'
+import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
@@ -184,7 +185,7 @@ addEventListener('keydown', e => {
 const ripples = new RippleBuffer()
 const depth = bakeWaterDepth(surface)
 const mirror = createMirror(world.renderer)
-const water = createWater(world.wind, world.palette, ripples, depth, mirror)
+const water = createWater(world.wind, world.palette, ripples, depth, mirror, { tracker: new FloaterTracker(), birds: () => registry.all() })
 world.camera.layers.enable(NO_REFLECT)
 world.beforeRender(() => mirror.render(world.scene, world.camera, water.object))
 water.setReflections(settings.reflections)

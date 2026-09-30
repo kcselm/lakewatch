@@ -3,8 +3,8 @@ import type { BirdInstance } from '../birds/registry'
 /** The cast has 37 birds in the water: 24 swimmers, four herons, three yellowlegs, and six dowitchers. */
 export const MAX_FLOATERS = 48
 
-/** a bird in the water: where, how fast it's going and which way, its size, and whether it floats or stands */
-export interface Floater { id: number; x: number; z: number; vx: number; vz: number; radius: number; wading: boolean }
+/** a bird in the water: where, how fast it's going and which way, which way it faces (radians about y, as its model turns), its size, and whether it floats or stands */
+export interface Floater { id: number; x: number; z: number; vx: number; vz: number; heading: number; radius: number; wading: boolean }
 
 /** how quickly a floater's velocity follows its steps: a time constant, in seconds, so a frame's jitter doesn't flicker the wake */
 export const VELOCITY_SMOOTHING = 0.3
@@ -35,16 +35,19 @@ export class FloaterTracker {
         vz = was.vz + ((p.z - was.z) / dt - was.vz) * k
       }
       next.set(b.id, { x: p.x, z: p.z, vx, vz })
-      if (this.list.length < this.max) this.list.push({ id: b.id, x: p.x, z: p.z, vx, vz, radius: b.model.radius, wading: b.behavior !== 'swim' })
+      if (this.list.length < this.max) this.list.push({ id: b.id, x: p.x, z: p.z, vx, vz, heading: b.model.group.rotation.y, radius: b.model.radius, wading: b.behavior !== 'swim' })
     }
     this.last = next
   }
 
-  /** two vec4s a floater: (x, z, vx, vz) and (radius, wading 0 or 1, 0, 0); an empty slot has radius 0 */
+  /**
+   * two vec4s a floater: (x, z, vx, vz) and (radius, wading 0 or 1, and the way it faces on the water, cos h and -sin h);
+   * an empty slot has radius 0, and the floaters come first
+   */
   pack(target: Float32Array): void {
     target.fill(0)
     this.list.forEach((f, i) => {
-      target.set([f.x, f.z, f.vx, f.vz, f.radius, f.wading ? 1 : 0, 0, 0], i * 8)
+      target.set([f.x, f.z, f.vx, f.vz, f.radius, f.wading ? 1 : 0, Math.cos(f.heading), -Math.sin(f.heading)], i * 8)
     })
   }
 }

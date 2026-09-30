@@ -6,6 +6,9 @@ import { RippleBuffer, MAX_RIPPLES, RING_GLSL } from './ripples'
 import { VISIBILITY, type WaterDepth } from './waterDepth'
 import { FRESNEL_GLSL, REFLECT } from './fresnel'
 import type { Mirror } from './mirror'
+import { MAX_FLOATERS, type FloaterTracker } from './floaters'
+import { WAKE, WAKE_GLSL } from './wake'
+import type { BirdInstance } from '../birds/registry'
 
 const vert = /* glsl */ `
 #include <fog_pars_vertex>
@@ -26,6 +29,7 @@ const frag = /* glsl */ `
 uniform vec2 uWindDir; uniform float uWindStrength; uniform float uWindGust; uniform float uTime;
 uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSkyTop; uniform vec3 uSkyHorizon; uniform vec3 uSun; uniform vec3 uSunDir;
 uniform vec4 uRipples[${MAX_RIPPLES}];
+uniform vec4 uFloaters[${MAX_FLOATERS * 2}];
 uniform vec3 uCamera;
 uniform sampler2D uDepth; uniform vec4 uDepthBounds;
 uniform sampler2D uMirror; uniform float uReflect; uniform float uFov; uniform float uAspect;
@@ -34,6 +38,7 @@ varying vec4 vMirrorUv;
 ${RING_GLSL}
 ${FRESNEL_GLSL}
 ${GUST_FRONT_GLSL}
+${WAKE_GLSL}
 
 // a hash without sine, which holds up at the large coordinates the fine octaves reach (Hoskins)
 float hash(vec2 p) {
@@ -108,6 +113,41 @@ void main() {
     float window = smoothstep(0.0, 0.15, t) * smoothstep(1.0, 0.7, t);
     slope += (d / dist) * a * window * cos(6.2832 * crests * t);
   }
+  // Birds in the water (Task 9): where each meets the water, a thin bright line and a little shade just outside it; a
+  // swimmer's body is an ellipse along the way it faces, a wader's legs a small ring. Behind a swimmer under way, the
+  // Kelvin wake (research section 5): transverse crests at the wavelength whose speed is the bird's, inside the 19.47
+  // degree wedge, the wedge's edges standing up as ridges
+  float contact = 0.0, shade = 0.0;
+  for (int i = 0; i < ${MAX_FLOATERS}; i++) {
+    vec4 fa = uFloaters[2 * i], fb = uFloaters[2 * i + 1];
+    if (fb.x <= 0.0) break;
+    vec2 d = p - fa.xy;
+    if (dot(d, d) > 30.25) continue;
+    if (fb.y > 0.5) {
+      float r = length(d);
+      contact = max(contact, 1.0 - smoothstep(0.0, 0.012, abs(r - 0.03)));
+      shade = max(shade, 1.0 - smoothstep(0.03, 0.12, r));
+      continue;
+    }
+    vec2 face = fb.zw, side = vec2(-face.y, face.x);
+    vec2 l = vec2(dot(d, face), dot(d, side));
+    // the float's waterline: about 0.75 and 0.38 of the bird's bounding radius, half its length and half its beam
+    float e = length(l / (fb.x * vec2(0.75, 0.38)));
+    float edgeWidth = max(0.025, fp / (0.38 * fb.x));
+    contact = max(contact, 1.0 - smoothstep(0.0, edgeWidth, abs(e - 1.0)));
+    shade = max(shade, smoothstep(0.95, 1.05, e) * (1.0 - smoothstep(1.05, 1.5, e)));
+    float speed = length(fa.zw);
+    if (speed <= ${WAKE.minSpeed.toFixed(2)}) continue;
+    vec2 dir = fa.zw / speed, perp = vec2(-dir.y, dir.x);
+    float behind = -dot(d, dir), acrossD = dot(d, perp);
+    float env = wakeAt(behind, acrossD, speed);
+    if (env <= 0.0) continue;
+    float lambda = 6.2832 * speed * speed / 9.81;
+    float crests = 1.0 - smoothstep(0.5 * lambda, lambda, fp);
+    slope += -dir * env * 0.06 * crests * sin(6.2832 * behind / lambda);
+    float ridge = (wakeAt(behind, acrossD + 0.05, speed) - wakeAt(behind, acrossD - 0.05, speed)) / 0.1;
+    slope += perp * ridge * 0.02;
+  }
   vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
   // What the water reflects: the mirror's render of the scene, shifted by the ripples' tilt (research 6.3: along the
   // view by 2 s / vFOV, across it by only 2 s sin(g) / hFOV, so reflections smear into columns) and smeared up and down
@@ -143,6 +183,9 @@ void main() {
   float edge = (1.0 - edgeFade) * step(0.0005, depth) * (0.5 + 0.5 * fine);
   col = mix(col, uSkyHorizon, edge * 0.5 / max(alpha + edge * 0.6, 1e-4));
   alpha = max(alpha, edge * 0.6);
+  // where the birds meet the water: the meniscus against their feathers catching the sky, and their shade just outside it
+  col *= 1.0 - 0.15 * shade;
+  col = mix(col, uSkyHorizon, 0.3 * contact);
   // Sun glitter
   float spec = pow(max(dot(refl, uSunDir), 0.0), 180.0) * (0.4 + 0.6 * rough);
   col += uSun * spec;
@@ -150,7 +193,7 @@ void main() {
   #include <fog_fragment>
 }`
 
-export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBuffer, depth: WaterDepth, mirror: Mirror): WorldModule & { object: THREE.Mesh; setReflections(on: boolean): void; follow(camera: THREE.PerspectiveCamera): void } {
+export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBuffer, depth: WaterDepth, mirror: Mirror, floaters: { tracker: FloaterTracker; birds: () => readonly BirdInstance[] }): WorldModule & { object: THREE.Mesh; setReflections(on: boolean): void; follow(camera: THREE.PerspectiveCamera): void } {
   // half floats, which WebGL 2 filters linearly without an extension
   const half = new Uint16Array(depth.data.length)
   for (let i = 0; i < half.length; i++) half[i] = THREE.DataUtils.toHalfFloat(depth.data[i]!)
@@ -160,6 +203,9 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
   const [x0, x1, z0, z1] = depth.bounds
   const packed = new Float32Array(MAX_RIPPLES * 4)
   const rippleUniform = Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4(0, 0, 99, 1))
+  const floaterPacked = new Float32Array(MAX_FLOATERS * 8)
+  const floaterUniform = Array.from({ length: MAX_FLOATERS * 2 }, () => new THREE.Vector4())
+  const depthAt = (x: number, z: number) => depth.at(x, z)
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       ...wind.uniforms,
@@ -179,6 +225,7 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
       uSun: { value: new THREE.Color(palette.sun) },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) },
       uRipples: { value: rippleUniform },
+      uFloaters: { value: floaterUniform },
       uCamera: { value: new THREE.Vector3() },
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
     },
@@ -205,6 +252,9 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
       ripples.update(dt)
       ripples.pack(packed)
       for (let i = 0; i < MAX_RIPPLES; i++) rippleUniform[i]!.set(packed[i * 4]!, packed[i * 4 + 1]!, packed[i * 4 + 2]!, packed[i * 4 + 3]!)
+      floaters.tracker.update(floaters.birds(), depthAt, dt)
+      floaters.tracker.pack(floaterPacked)
+      for (let i = 0; i < MAX_FLOATERS * 2; i++) floaterUniform[i]!.fromArray(floaterPacked, i * 4)
     },
   }
 }
