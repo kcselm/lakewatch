@@ -80,8 +80,10 @@ export const GREAT_BLUE_HERON: HeronSettings = {
  */
 export const GREAT_EGRET: HeronSettings = {
   wait: { seconds: [4, 20], peer: { chance: 0.33, seconds: [1, 3], pitch: 0.25 }, turn: { chance: 0.3, rate: 0.2 } },
-  next: { strike: 0.4, stalk: 0.5, alert: 0.05 },
-  stalk: { metres: [0.3, 1.5], speed: 0.05, neck: 0.6 },
+  // it stalks more often and further than the Great Blue Heron, short of the research's estimates (stalk 0.6, 0.5-3 m):
+  // with those its strikes fall to 0.25-0.41 a minute, below the sourced 0.4-0.9; with these, 0.49-0.72 over six seeds
+  next: { strike: 0.4, stalk: 0.55, alert: 0.05 },
+  stalk: { metres: [0.5, 2.5], speed: 0.05, neck: 0.6 },
   // `ahead` from the built bird: its bill tip at the bottom of a strike over a bed 15 cm down goes in 0.460 m in front
   // of the feet, the lower neck drawn in (the photo's 0.23 m ahead of the breast, about 0.39 m ahead of the feet) (Task 7)
   strike: { draw: 0.3, drawNeck: 0.35, down: 0.1, hold: 0.25, depth: 0.06, reachAngle: 1.2, lean: 0.45, ahead: 0.46, ring: 0.5 },

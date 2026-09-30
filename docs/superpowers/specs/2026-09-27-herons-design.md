@@ -482,6 +482,12 @@ The plan and the birds' work changed these:
 - **The style's timings are tuned to the sourced strike rates,** and a test
   holds each species' long-run rate in its range: the Great Blue Heron 0.2–0.3
   a minute, the egret 0.4–0.9.
+- **The egret stalks after 55% of its waits, 0.5–2.5 m at a time,** against the
+  Great Blue Heron's 50% and 0.5–2 m. That is more often and further, as "The
+  `heron` style" asks, but short of the research's estimates (60%, 0.5–3 m).
+  With those, its strikes fell to 0.25–0.41 a minute, below the sourced range;
+  with these, 0.49–0.72 over six seeds. The review found the plan's 0.3–1.5 m,
+  shorter than the Great Blue Heron's.
 - **The cast is two of each:** an adult and a juvenile Great Blue Heron (60:40
   in the valley's September records) and two Great Egrets, in one version (the
   ages look alike in September). Four herons striking stay inside the ring

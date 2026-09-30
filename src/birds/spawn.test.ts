@@ -268,6 +268,25 @@ describe('spawnCast herons', () => {
       expect(gap, `seed ${seed}`).toBeGreaterThan(-1e-6)
     }
   }, 60_000)
+  it("keeps a species' own spacing between its herons when they come from different cast entries", () => {
+    // a shelf 30 m long: room for two Great Blue Herons 10 m apart wherever the first starts, where kept only the 3 m
+    // between species they would often start closer
+    const split: Location = {
+      ...loc([
+        { species: 'grbher3', behavior: 'wade', zone: 'w', count: 1, plumage: { adult: 1 } },
+        { species: 'grbher3', behavior: 'wade', zone: 'w', count: 1, plumage: { juvenile: 1 } },
+      ]),
+      zones: { w: { kind: 'polygon', points: [[0, 0], [30, 0], [30, 4], [0, 4]] } },
+    }
+    for (let seed = 1; seed <= 5; seed++) {
+      const d = deps(seed)
+      const world = spawnCast(split, d)
+      world.update(1e-6, d.wind)
+      let gap = shortestGap(d.registry.all())
+      for (let i = 0; i < 600 * 10; i++) { world.update(1 / 10, d.wind); gap = Math.min(gap, shortestGap(d.registry.all())) }
+      expect(gap, `seed ${seed}`).toBeGreaterThan(-1e-6)
+    }
+  }, 60_000)
 })
 
 describe('spawnCast divers', () => {

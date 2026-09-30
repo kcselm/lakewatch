@@ -140,14 +140,16 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const traits = speciesTraits(ind.species)
     const company = swim ? companyOf(traits.foraging, ind.species) : undefined
     const heron = ind.behavior === 'wade' && traits.foraging === 'heron' && zone.kind === 'polygon'
-    if (!groups.has(ind.groupKey)) {
+    // herons share a group by species, not by cast entry, so each keeps its own species' spacing whatever entry it came from
+    const key = heron ? `heron:${ind.species}` : ind.groupKey
+    if (!groups.has(key)) {
       // A probing flock's target starts at the vantage and goes straight to its patch. A swimming flock starts formed,
       // round a point in its zone, and works that patch before it drifts on: otherwise every duck would spend the first
       // minute swimming to its flock, all of them making wakes.
       const [gx, gz] = swim && zone.kind === 'polygon' ? randomPointInPolygon(zone.points, rng) : [0, 0]
-      groups.set(ind.groupKey, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
+      groups.set(key, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
     }
-    const group = groups.get(ind.groupKey)!
+    const group = groups.get(key)!
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
