@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { lakeHeightfield, BENCH, SHELF } from './heightfield'
+import { lakeHeightfield, gravelShare, BENCH, SHELF } from './heightfield'
 import { createTerrain, terrainSurface } from './terrain'
 
 describe('terrainSurface', () => {
@@ -37,5 +37,29 @@ describe('terrainSurface', () => {
     let worst = 0
     for (let x = 17; x <= 23; x += 0.25) for (let z = -8.5; z <= -6; z += 0.25) worst = Math.max(worst, Math.abs(surface.sample(x, z) - hf.sample(x, z)))
     expect(worst).toBeGreaterThan(0.05)
+  })
+})
+
+describe('createTerrain', () => {
+  const mesh = createTerrain(lakeHeightfield(7)).object
+  it('gives every vertex its share of gravel, as its colour took it', () => {
+    const g = mesh.geometry.getAttribute('aGravel')
+    expect(g.count).toBe(mesh.geometry.getAttribute('position').count)
+    for (let i = 0; i < g.count; i++) {
+      expect(g.getX(i)).toBeGreaterThanOrEqual(0)
+      expect(g.getX(i)).toBeLessThanOrEqual(1)
+    }
+    expect(gravelShare(0.5)).toBe(1)
+  })
+  it('darkens the wet band in the fragment shader, by each fragment\'s own height', () => {
+    const shader = {
+      vertexShader: '#include <common>\nvoid main() {\n#include <begin_vertex>\n}',
+      fragmentShader: '#include <common>\nvoid main() {\n#include <color_fragment>\n}',
+    }
+    const mat = mesh.material as THREE.MeshStandardMaterial
+    mat.onBeforeCompile(shader as never, undefined as never)
+    expect(shader.vertexShader).toContain('vWorldY = (modelMatrix * vec4(transformed, 1.0)).y;')
+    expect(shader.fragmentShader).toContain('float wetDarkening(float h, float gravel)')
+    expect(shader.fragmentShader).toContain('diffuseColor.rgb *= wetDarkening(vWorldY, vGravel);')
   })
 })

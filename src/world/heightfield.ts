@@ -81,6 +81,37 @@ export function lakeHeightfield(seed: number, { bench: withBench = true, shelf: 
   }
 }
 
+/**
+ * The band of wet ground above the waterline (research 2026-09-30-lake-water.md section 6): mud darkens to 0.55 of dry
+ * at the water and dries over 0.10 m of height, where capillary rise in silt keeps it damp; gravel darkens to 0.70 and
+ * dries within 0.03 m. `gravel` is the slope's share of gravel in `terrainColor`, 0..1.
+ */
+export const WET = { mud: { height: 0.10, dark: 0.55 }, gravel: { height: 0.03, dark: 0.70 } } as const
+
+function band(h: number, height: number, dark: number): number {
+  if (h < 0 || h >= height) return 1
+  return dark + (1 - dark) * smooth(h / height)
+}
+
+/** what the colour of ground `h` metres above the water is multiplied by: 1 below the water and above the band */
+export function wetDarkening(h: number, gravel: number): number {
+  return band(h, WET.mud.height, WET.mud.dark) * (1 - gravel) + band(h, WET.gravel.height, WET.gravel.dark) * gravel
+}
+
+/** `wetDarkening` in GLSL, for the terrain's fragment shader */
+export const WET_GLSL = /* glsl */ `
+float wetBand(float h, float height, float dark) {
+  if (h < 0.0 || h >= height) return 1.0;
+  float t = h / height;
+  return dark + (1.0 - dark) * t * t * (3.0 - 2.0 * t);
+}
+float wetDarkening(float h, float gravel) {
+  return mix(wetBand(h, ${WET.mud.height.toFixed(2)}, ${WET.mud.dark.toFixed(2)}), wetBand(h, ${WET.gravel.height.toFixed(2)}, ${WET.gravel.dark.toFixed(2)}), gravel);
+}`
+
+/** how much of the ground's colour is gravel at a slope, 0..1 */
+export function gravelShare(slope: number): number { return Math.min(1, slope * 2.5) }
+
 /** rgb 0..1 by height and slope: mud at the waterline, gravel where steep, grass above. */
 export function terrainColor(y: number, slope: number): [number, number, number] {
   const mud: [number, number, number] = [0.36, 0.28, 0.20]
@@ -91,6 +122,6 @@ export function terrainColor(y: number, slope: number): [number, number, number]
   const base = mud.map((m, i) => m * (1 - t) + grass[i]! * t) as [number, number, number]
   const dry = Math.min(1, Math.max(0, (y - 1.2) / 1.0)) * 0.5
   const g = base.map((b, i) => b * (1 - dry) + dryGrass[i]! * dry) as [number, number, number]
-  const s = Math.min(1, slope * 2.5)
+  const s = gravelShare(slope)
   return g.map((c, i) => c * (1 - s) + gravel[i]! * s) as [number, number, number]
 }

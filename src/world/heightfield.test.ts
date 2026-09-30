@@ -1,4 +1,4 @@
-import { lakeHeightfield, terrainColor, valueNoise2, BENCH, SHELF } from './heightfield'
+import { lakeHeightfield, terrainColor, valueNoise2, wetDarkening, WET, BENCH, SHELF } from './heightfield'
 
 describe('lakeHeightfield', () => {
   const hf = lakeHeightfield(1)
@@ -97,5 +97,29 @@ describe('valueNoise2', () => {
   })
   it('is deterministic for the same inputs', () => {
     expect(valueNoise2(1.3, 4.2, 1)).toBe(valueNoise2(1.3, 4.2, 1))
+  })
+})
+
+describe('wetDarkening', () => {
+  // the research's thresholds (2026-09-30-lake-water.md section 9)
+  it('darkens mud at the waterline to 0.50-0.60 of dry, and leaves it at least 0.97 of dry 0.10 m up', () => {
+    expect(wetDarkening(0, 0)).toBeGreaterThanOrEqual(0.5)
+    expect(wetDarkening(0, 0)).toBeLessThanOrEqual(0.6)
+    expect(wetDarkening(0.0999, 0)).toBeGreaterThanOrEqual(0.97)
+  })
+  it('darkens gravel at the waterline to 0.65-0.75 of dry, and dries it within 3 cm', () => {
+    expect(wetDarkening(0, 1)).toBeGreaterThanOrEqual(0.65)
+    expect(wetDarkening(0, 1)).toBeLessThanOrEqual(0.75)
+    expect(wetDarkening(WET.gravel.height, 1)).toBe(1)
+  })
+  it('leaves the ground under the water and above the band unchanged', () => {
+    for (const g of [0, 0.5, 1]) {
+      expect(wetDarkening(-0.01, g)).toBe(1)
+      expect(wetDarkening(WET.mud.height, g)).toBe(1)
+      expect(wetDarkening(2, g)).toBe(1)
+    }
+  })
+  it('dries steadily with height', () => {
+    for (let h = 0; h < 0.1; h += 0.005) expect(wetDarkening(h + 0.005, 0.3)).toBeGreaterThanOrEqual(wetDarkening(h, 0.3))
   })
 })
