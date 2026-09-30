@@ -162,12 +162,19 @@ Each is a module with one job and an `update(dt, wind)` entry point.
 - **Terrain**: heightfield mesh for bank, mudflat, far shore, and a flat
   underwater bench past the shallows where the dowitchers feed. A second
   shelf slopes from 5 to 22 cm deep along the far waterline, where the
-  herons wade. Vertex color by height and slope (mud, gravel, grass).
-- **Water**: custom shader. Sky-gradient reflection, animated ripple normals
-  whose direction and amplitude follow the wind, depth-based color toward
-  shore, wind streaks during gusts, ripple rings spawned by swimming birds,
-  and small, short ones where a dowitcher's bill goes in. No reflection
-  render pass.
+  herons wade. Vertex color by height and slope (mud, gravel, grass), and a
+  band of wet ground above the waterline drawn by each fragment's height.
+- **Water**: custom shader over a water-depth texture baked from the
+  terrain. Colour and clarity by depth, so the bench, the shelf, and the rim
+  read as shallows and the bed shows through them; a soft shoreline. A
+  half-resolution planar reflection of the sky, far bank, trees, snag, reeds,
+  and birds, rendered every other frame, distorted and smeared by the ripples
+  and faded by Fresnel (off in settings falls back to a sky gradient). Ripple
+  normals in four octaves whose direction and amplitude follow the wind,
+  fading by pixel footprint; calm patches and cat's paws drifting downwind
+  with the gust front the reeds share. Rings from the birds and a Kelvin V
+  behind a swimmer bend the surface rather than brighten it, and every bird in
+  the water has a contact line. See `2026-09-30-water-design.md`.
 - **Vegetation**: instanced reed and grass blades with vertex-shader sway.
   Gusts roll across the bed as a moving front rather than in sync. Noise
   tint so the bed is not uniform.
@@ -182,7 +189,9 @@ Each is a module with one job and an `update(dt, wind)` entry point.
 ### Performance
 
 60 fps on an integrated GPU in Chrome. Fixed viewpoint means no LOD.
-Reeds and flocks are instanced. The dev overlay shows frame time.
+Reeds and flocks are instanced. The dev overlay shows frame time. The water's
+mirror is a second render of the scene every other frame; the water spec
+records what it costs, and Water reflections in settings turns it off.
 
 ## Birds
 
@@ -338,7 +347,7 @@ accuracy.
   button when opened for identification.
 - **Result cards** (Preact): correct, wrong with hint, revealed.
 - **Life list screen** (Preact).
-- **Settings**: mouse sensitivity, volume per layer, reset life list.
+- **Settings**: mouse sensitivity, volume per layer, water reflections, reset life list.
 
 ## Error handling
 

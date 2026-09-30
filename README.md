@@ -19,6 +19,9 @@ the pure logic. Design spec: `docs/superpowers/specs/2026-09-22-lakewatch-design
 
 Keys: click to look (Esc releases the mouse), scroll or B/T for optics,
 E identify, G guide, L life list, O settings, C credits, backtick dev overlay.
+Settings has Water reflections: the water's mirrored render of the scene,
+on by default; off, the water reflects only a sky gradient and the frame
+rate at eye level comes back up by 5-10 fps on an integrated GPU.
 
 ## Data
 
@@ -37,6 +40,10 @@ may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
 station labels) and `neckShapes` (the hunch, erect, and strike, in degrees
 per joint), and a `plume` part hung from the head. `PoseState.headPitch`
 tips the head. A cast entry can give exact counts per plumage version.
+The water's look is set in `src/world/`: `waterDepth.ts` (the depth bake and
+clarity), `ripples.ts` (ring speeds and lifetimes), `wake.ts`, `fresnel.ts`,
+`floaters.ts` (the birds in the water), `mirror.ts`, and `water.ts`, each
+number from `docs/research/2026-09-30-lake-water.md`.
 `npm run dev`, then `/viewer.html`, opens the model viewer: any two
 species at true scale, through the game's optics, over a reference photo.
 

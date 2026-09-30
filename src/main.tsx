@@ -193,9 +193,7 @@ addEventListener('resize', () => { const s = world.renderer.getDrawingBufferSize
 ;(water.object.material as THREE.ShaderMaterial).uniforms.uSunDir!.value.copy(sunDirection(world.palette))
 world.add(water)
 
-const reeds = createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind)
-reeds.object.layers.set(NO_REFLECT)
-world.add(reeds)
+world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
 // the near grass is out of the mirror: it stands behind the player's bank, and reflecting 12 000 blades costs a lot
 const grass = createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind)
 grass.object.layers.set(NO_REFLECT)

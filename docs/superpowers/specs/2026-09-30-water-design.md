@@ -1,7 +1,7 @@
 # Water: design spec
 
 Date: 2026-09-30
-Status: approved, 2026-09-30
+Status: implemented, 2026-09-30; awaiting the user's telescope check
 Builds on: `2026-09-27-herons-design.md` (the wading shelf, the ring budget),
 `2026-09-26-swimmers-design.md` (floating birds on a traced waterline, wakes as
 rings), and `2026-09-25-dowitcher-pectoral-design.md` (sized rings, the bench)
@@ -273,6 +273,100 @@ quarter-size target, leaving the reeds out, and reflections off by default.
   folded wings once did.
 - **`fwidth` on some integrated GPUs** is coarse (2 × 2 pixel quads), which may
   leave a faint grid in the far water.
+
+## Changed during implementation
+
+The plan's Decisions made while planning hold (the wake rings retired, the cap of
+64, the wet band drawn per fragment, half-float depth, floaters found from the
+registry, the setting under `version: 1`, grass and outlines off the mirror by
+layer, the gust front at the wind's speed). Part 2 then changed these:
+
+- **Part 2 ran in the order 7, 8, 10, 11, 9.** The old ripple slopes pushed
+  every reflection sample to its offset limit, so the rings and octaves came
+  before the birds' contact lines.
+- **`terrainSurface` samples the mesh's vertices once** (Task 7). The depth bake
+  reads the surface 625 000 times, and each read sampled the noisy heightfield
+  at four vertices: 5–11 s at startup. Cached, the bake takes 13–31 ms, and
+  every bird standing on the ground gets the same values faster.
+- **The mirror renders as three.js's XR targets do** (Task 8). three.js renders
+  into an ordinary render target in linear colour without tone mapping, and a
+  material's shader program depends on both, so every material switched
+  programs twice a frame: 12–17 fps on the Iris Xe, a sixth of the frame in
+  `getParameters` and `getProgram`. Flagged `isXRRenderTarget` with an sRGB
+  texture, the mirror takes the screen's tone mapping and colour space. The
+  programs stay put, and the mirror holds what the screen shows, the sky's
+  unconverted colour included. The water shader therefore works in display
+  colour, as the sky's does, and the research's tints are set as displayed.
+- **The mirror renders every other frame** (Task 8). Its 175 draw calls cost
+  about 12 fps on their own. A quarter-size target saved nothing; the cost is
+  per draw, not per pixel. The water reads the mirror through the texture
+  matrix it was rendered with, so a frame-old mirror still lines up as the
+  camera turns; only a moving bird's reflection lags a frame. The reeds stay in
+  the mirror: leaving them out saved nothing measurable.
+- **The world's matrices update once a frame** (Task 8), before the mirror and
+  the main render, which no longer each walk the scene to do it. Measured, it
+  saved little; it stays because the mirror would otherwise double the work.
+- **A faded octave's tilt smears the reflection** (Task 10), in five taps up
+  and down the mirror, rather than falling back to the sky gradient. The plan's
+  footprint fade alone turned distant rough water into a false mirror; the
+  research's rough far water is streaked colour. The sky gradient remains only
+  where a sample runs off the mirror's edge, and with reflections off.
+- **The wind's onset is centred on the mean breeze** (Task 11). Scaled by the
+  gust as the other wind effects are, the speed fell to 1.7 m/s between gusts
+  and nearly the whole lake went glassy. It now swings a quarter either side of
+  2.8 m/s.
+- **Floaters carry the way each bird faces** (Task 9), so a still duck's
+  contact ellipse doesn't turn with the jitter in its velocity. The ellipse is
+  0.75 and 0.38 of the bird's bounding radius (set by eye: 0.8 and 0.42 stood
+  off the body as a halo, and 0.7 and 0.34 hid behind it).
+- **The player's eye is 4.13 m above the water,** on the bank's mound, not
+  1.6 m. The capture framings in `docs/research/water-baseline/capture.js` are
+  computed from it.
+
+## Performance as built
+
+Headless Chromium on this machine's Intel Iris Xe (ANGLE, Direct3D 11), which
+is an integrated GPU of the kind the 60 fps target names. Frames a second over
+4 s after 3 s settled, from several loads each; the spread between loads is
+wide, so ranges are given.
+
+| | Eye | Binoculars | Telescope |
+|---|---|---|---|
+| Before this round (`a9f5237`) | 46–58 | 56–58 | 55–59 |
+| This round, reflections off | 46–49 | 55–60 | 57–59 |
+| This round, reflections on | 36–46 | 50–59 | 54–60 |
+
+Begin comes at 9–10 s on the dev server either way; the depth bake adds 13–31
+ms. The eye view with reflections on is the one below the build before it, and
+neither holds 60 fps there in this harness. The user's own Chrome, windowed and
+with vsync, is the acceptance.
+
+## Known soft spots
+
+- **The eye view with reflections on runs 5–10 fps below it with them off.**
+  Of the plan's fallbacks, a quarter-size mirror and leaving out the reeds
+  saved nothing measurable; the last, reflections off by default, is the
+  user's call. Untried: culling small, distant birds from the mirror, or
+  rendering it every third frame.
+- **A moving bird's reflection lags a frame,** and on a quick turn the mirror's
+  edge can show for a frame.
+- **Every water pixel loops over 64 rings and 48 floaters.** Each loop exits
+  early for anything out of reach, but the loops are still the shader's largest
+  cost after the mirror taps.
+- **A wader has one small contact ring,** not one per leg; at telescope range
+  its legs stand together.
+- **The wake is transverse crests and ridged edges.** It has no divergent waves
+  along its arms.
+- **The calm field's sizes, the lee strip's line (z < -52 m), the tints, and
+  the contact ellipse are set by eye.**
+- **Shallow water shows little of its bed at the far shore.** At 1.4–4° the
+  water reflects 66–86% of the light, as the research found, so the shelf
+  under the herons shows mostly as reflection. Up close, the bench and the
+  near rim show their beds.
+- **One existing test was slow on this machine:** `species.test.ts`'s build of
+  every spec took about 20.5 s against the suite's 20 s timeout in a full run,
+  and failed `npm run build` before this round too. It now has a 60 s timeout
+  of its own, as the other long tests do.
 
 ## Build order
 
