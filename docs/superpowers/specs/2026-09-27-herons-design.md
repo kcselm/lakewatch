@@ -429,13 +429,95 @@ little about a real GPU): the atlases' count and memory, the time to Begin, the
 longest pause, and the frame rate with the telescope on the far shallows. It
 compares them against the build before this round.
 
-## Known soft spots (expected)
+## Changed during implementation
 
-To be confirmed or corrected when the round lands:
+The plan and the birds' work changed these:
 
-- **Skin compresses inside the hunch.** The loft has no volume of its own, so the
-  throat's skin folds inward where the neck folds tightest. The pass-through
-  guard bounds it.
+- **Spare neck joints park at `neckMid`, not at the head joint.** Parked there
+  with no length, they leave the head's offset from its parent as it was, so
+  every shipped bird's prints are unchanged.
+- **A negative `reachDepth` aims above the ground.** A heron's reach aims from
+  its feet on the bed, so a strike into the water above the bed needs one.
+- **A part's kind names its bone:** a `curl` hangs from the body and a `plume`
+  from the head. A plume's droop is measured from the horizontal as traced;
+  from the head's own line, the strands lay inside the back of the upper neck.
+- **The viewer's shape picker has a fifth shape, the swallow:** erect with the
+  head pitched up, the pose the style uses after a catch.
+- **The style came before the shelf** in the build, because the shelf's zone
+  test reads the style's water band.
+- **The water band is 5–22 cm, not 5–30.** Both herons most often feed 15–25 cm
+  deep (Willard 1977), and "no deeper than the shorter-legged heron's tarsus"
+  would have held them to 14 cm. The rule is now "leave 25 mm of the egret's
+  bare tibia above the water". `herons.test.ts` checks each species' legs
+  against it.
+- **Each species keeps its own distance, and a shorter one from the other:**
+  Great Blue Herons 10 m apart, egrets 5 m, a heron and an egret 3 m. The
+  research found each defending room against its own kind, and the two species
+  feeding within 1–3 m of each other on the valley's photos. "The larger of
+  their two spacings" holds within each kind of pair; the spawner gives each
+  species' herons a group, as it does a flock.
+- **The hunch and the alert tilt the body up** (`rest.lean`, `alert.lean`), as
+  the photographed resting and erect herons do.
+- **The alert tilt is 0.5 rad for both species** (Tasks 6 and 7).
+  - For the Great Blue Heron that is the research's upper estimate: only
+    tipped that far does the traced neck lift the crown near the erect
+    photo's, 456 mm above the shoulders.
+  - The egret's is steeper than the plan's 0.2. It lifts the crown 315 mm
+    above the back, the most the traced neck reaches (the photo's 375).
+  - The alert bill isn't level, as "The `heron` style" says: erect raises it
+    21 degrees on the Great Blue Heron and 28 on the egret.
+  - `src/behavior/heron.ts`.
+- **The neck chain starts behind `neckBase`:** at the breast on the Great Blue
+  Heron and at the flank on the egret.
+  - In the hunting S the lower neck lies coiled in the breast's plumage, and
+    the erect bird draws it out.
+  - Chained from the notch, the traced Great Blue Heron lifts its crown only
+    about 300 mm above the back, against the erect photo's 456. From the
+    breast, the traced egret lifts it no more than 191 mm.
+  - Each lists six joints, the kink at 0.28 of the neck's length down from
+    the occiput.
+- **`strike.ahead` comes from the built birds:** 0.40 m in front of the feet
+  for the Great Blue Heron and 0.46 m for the egret, measured with the bill tip
+  at the bottom of a strike over a bed 15 cm down.
+- **The style's timings are tuned to the sourced strike rates,** and a test
+  holds each species' long-run rate in its range: the Great Blue Heron 0.2–0.3
+  a minute, the egret 0.4–0.9.
+- **The cast is two of each:** an adult and a juvenile Great Blue Heron (60:40
+  in the valley's September records) and two Great Egrets, in one version (the
+  ages look alike in September). Four herons striking stay inside the ring
+  budget. The lake paints 23 atlases.
+- **Performance.** The title card counts to 38: 23 atlases, 14 species, and the
+  cast's build. Measured in headless Chromium on this machine, two loads each,
+  alternating, in seconds from navigation, with the telescope on the far
+  shallows:
+
+  | | Begin | longest pause | atlases | per atlas | telescope |
+  |---|---|---|---|---|---|
+  | Before this round (`4997724`) | 2.27 | 0.28–0.29 | 20, 26.7 MB | 66 ms | 60 fps |
+  | This round | 2.40–2.83 | 0.30–0.37 | 23, 30.7 MB | 64–75 ms | 60 fps |
+
+  - Headless Chromium holds 60 fps both ways, and that says little about a
+    real GPU. The user's reading on an integrated GPU is the check.
+
+## Known soft spots
+
+What the round found:
+
+- **The plumes turn rigidly with the head** rather than hanging.
+- **The hunch doesn't fold the neck away.** The loft can't sink the neck into
+  the breast's plumage and the head into the shoulders as the photos' birds do.
+  As far as the pass-through guard allows, it lays the neck low and forward,
+  the crown 47 mm above the back on the Great Blue Heron and 35 mm on the egret.
+- **The egret's erect neck falls short:** its crown stands 315 mm above the back
+  against the photo's 375, even with the steeper tilt.
+- **The Great Blue Heron's strike loops the neck wider than the photo's.** The
+  photo's neck loops 0.24 m in front of the breast; the traced neck can't loop
+  that tightly without folding.
+- **The egret's alert tilt is the Great Blue Heron's,** steeper than planned
+  (0.5 rad against 0.2), and the alert bill is tipped up rather than level (the erect egret's
+  photo holds it 2 degrees up).
+- **Begin comes a little later:** 2.40–2.83 s against 2.27 s, with three more
+  atlases and two more species.
 - **No preening,** and no head turned to the side.
 - **One size per species,** at the mean of the sexes; male Great Blue Herons are
   larger.

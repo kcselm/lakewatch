@@ -33,7 +33,10 @@ bill goes into the mud at the bottom of a peck. A swimming species sets
 `float.waterline` (where the water meets it in its traced side view), and
 may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
 `tail.shape: 'none'`, `parts` only some plumage versions have, and a station
-`tilt`. A cast entry can give exact counts per plumage version.
+`tilt`. A heron can give `rig.neck` (its neck's joints, three to seven
+station labels) and `neckShapes` (the hunch, erect, and strike, in degrees
+per joint), and a `plume` part hung from the head. `PoseState.headPitch`
+tips the head. A cast entry can give exact counts per plumage version.
 `npm run dev`, then `/viewer.html`, opens the model viewer: any two
 species at true scale, through the game's optics, over a reference photo.
 

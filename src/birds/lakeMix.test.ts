@@ -4,7 +4,8 @@ import { castAtlases } from './paint/prepaint'
 import { makeRng } from '../catalog/rng'
 
 // The lake's swimmers in the plumages the research's late-September tallies give (each species' research document,
-// section 3): moulting and eclipse drakes, females and female-types, first-autumn coots, and striped grebes.
+// section 3): moulting and eclipse drakes, females and female-types, first-autumn coots, and striped grebes; and the
+// herons' (Great Blue Heron research, section 3): an adult and a juvenile.
 const MIX: Record<string, number> = {
   'mallar3:male': 1, 'mallar3:maleMoult': 1, 'mallar3:female': 2,
   'gadwal:male': 1, 'gadwal:female': 2,
@@ -12,6 +13,7 @@ const MIX: Record<string, number> = {
   'norsho:eclipse': 2, 'norsho:female': 1,
   'y00475:adult': 4, 'y00475:juvenile': 2,
   'pibgre:basic': 2, 'pibgre:juvenile': 1,
+  'grbher3:adult': 1, 'grbher3:juvenile': 1,
 }
 
 describe("the lake's late-September mix", () => {
@@ -26,7 +28,7 @@ describe("the lake's late-September mix", () => {
       for (const [k, n] of Object.entries(MIX)) expect(got[k], `${k}, seed ${seed}`).toBe(n)
     }
   })
-  it('paints twenty-two atlases: the six shorebirds, fourteen swimmer versions, the Great Blue Heron, and the Great Egret', () => {
-    expect(castAtlases(lake).length).toBe(22)
+  it("paints twenty-three atlases: the six shorebirds, fourteen swimmer versions, the Great Blue Heron's two, and the Great Egret", () => {
+    expect(castAtlases(lake).length).toBe(23)
   })
 })
