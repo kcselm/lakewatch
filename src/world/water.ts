@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Wind } from './wind'
 import type { ScenePalette } from './palette'
 import type { WorldModule } from './scene'
-import { RippleBuffer, MAX_RIPPLES, RIPPLE_LIFE } from './ripples'
+import { RippleBuffer, MAX_RIPPLES, RING_GLSL } from './ripples'
 
 const vert = /* glsl */ `
 #include <fog_pars_vertex>
@@ -22,6 +22,7 @@ uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSkyTop; uniform vec3 uS
 uniform vec4 uRipples[${MAX_RIPPLES}];
 uniform vec3 uCamera;
 varying vec3 vWorld;
+${RING_GLSL}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -45,10 +46,10 @@ void main() {
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     vec4 r = uRipples[i];
     // w is the ring's size: a small one (a bill going in) spreads slower, fades sooner, and is fainter
-    float life = ${RIPPLE_LIFE.toFixed(1)} * r.w;
+    float life = ringLife(r.w);
     if (r.z > life) continue;
     float d = distance(p, r.xy);
-    float radius = r.z * 1.1 * r.w;
+    float radius = r.z * ringSpeed(r.w);
     float fade = 1.0 - r.z / life;
     ring += smoothstep(0.12 * r.w, 0.0, abs(d - radius)) * fade * 0.6 * r.w;
   }
