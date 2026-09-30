@@ -16,6 +16,7 @@ export class World {
   readonly wind: Wind
   readonly palette: ScenePalette
   private modules: WorldModule[] = []
+  private beforeRenders: (() => void)[] = []
   private paused = false
   private last = 0
 
@@ -53,6 +54,11 @@ export class World {
     if (mod.object) this.scene.add(mod.object)
   }
 
+  /** called each frame after the modules update and before the scene renders: the water's mirror renders here */
+  beforeRender(fn: () => void): void {
+    this.beforeRenders.push(fn)
+  }
+
   setPaused(p: boolean): void {
     this.paused = p
   }
@@ -67,6 +73,12 @@ export class World {
         for (const m of this.modules) m.update(dt, this.wind)
         onFrame?.(dt)
       }
+      // the scene's world matrices, every bird's bones among them, once a frame: the water's mirror renders it too, and
+      // each render would otherwise walk the whole scene again
+      this.scene.matrixWorldAutoUpdate = true
+      this.scene.updateMatrixWorld()
+      this.scene.matrixWorldAutoUpdate = false
+      for (const fn of this.beforeRenders) fn()
       this.renderer.render(this.scene, this.camera)
       requestAnimationFrame(tick)
     }

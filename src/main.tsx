@@ -9,6 +9,7 @@ import { createTerrain, terrainSurface } from './world/terrain'
 import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
 import { bakeWaterDepth } from './world/waterDepth'
+import { createMirror, NO_REFLECT } from './world/mirror'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
@@ -107,7 +108,7 @@ function renderApp(unsupported: string | null) {
       onSettingsChange={s => {
         settings = s
         if (!settingsStorage.save(s)) settingsPersistent = false
-        if (!unsupported) applySettings(s, { look, engine })
+        if (!unsupported) applySettings(s, { look, engine, water })
       }}
       onResetLifeList={() => { lifeList = emptyLifeList(); lifeStorage.save(lifeList); for (const b of registry.all()) b.identified = false }}
       onCloseSettings={() => game.set({ settingsOpen: false })}
@@ -140,6 +141,7 @@ const surface = terrainSurface(heightfield)
 const [vx, , vz] = loc.vantage.position
 world.camera.position.y = heightfield.sample(vx, vz) + loc.vantage.position[1]
 const outlines = createZoneOutlines(loc, (x, z) => surface.sample(x, z))
+outlines.object.traverse(o => o.layers.set(NO_REFLECT))
 world.scene.add(outlines.object)
 const dev = createDevOverlay(document.getElementById('hud')!, v => outlines.setVisible(v))
 const hud = document.getElementById('hud')!
@@ -181,12 +183,22 @@ addEventListener('keydown', e => {
 
 const ripples = new RippleBuffer()
 const depth = bakeWaterDepth(surface)
-const water = createWater(world.wind, world.palette, ripples, depth)
+const mirror = createMirror(world.renderer)
+const water = createWater(world.wind, world.palette, ripples, depth, mirror)
+world.camera.layers.enable(NO_REFLECT)
+world.beforeRender(() => mirror.render(world.scene, world.camera, water.object))
+water.setReflections(settings.reflections)
+addEventListener('resize', () => { const s = world.renderer.getDrawingBufferSize(new THREE.Vector2()); mirror.setSize(s.x, s.y) })
 ;(water.object.material as THREE.ShaderMaterial).uniforms.uSunDir!.value.copy(sunDirection(world.palette))
 world.add(water)
 
-world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
-world.add(createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind))
+const reeds = createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind)
+reeds.object.layers.set(NO_REFLECT)
+world.add(reeds)
+// the near grass is out of the mirror: it stands behind the player's bank, and reflecting 12 000 blades costs a lot
+const grass = createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind)
+grass.object.layers.set(NO_REFLECT)
+world.add(grass)
 
 world.add(createTreeLine(heightfield, world.palette))
 for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
@@ -288,7 +300,7 @@ world.start(dt => {
 
   mask.update(optics.mode, optics.transition, optics.focusBlur)
   modeEl.textContent = optics.mode === 'eye' ? 'scroll / B / T for optics' : optics.mode
-  ;(water.object.material as THREE.ShaderMaterial).uniforms.uCamera!.value.copy(world.camera.position)
+  water.follow(world.camera)
   calls.update(dt)
   dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode, audio: engine.unlocked ? 'running' : 'locked', calls: calls.active })
 })

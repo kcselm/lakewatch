@@ -4,13 +4,18 @@ import type { ScenePalette } from './palette'
 import type { WorldModule } from './scene'
 import { RippleBuffer, MAX_RIPPLES, RING_GLSL } from './ripples'
 import { VISIBILITY, type WaterDepth } from './waterDepth'
+import { FRESNEL_GLSL, REFLECT } from './fresnel'
+import type { Mirror } from './mirror'
 
 const vert = /* glsl */ `
 #include <fog_pars_vertex>
+uniform mat4 uTextureMatrix;
 varying vec3 vWorld;
+varying vec4 vMirrorUv;
 void main() {
   vec4 wp = modelMatrix * vec4(position, 1.0);
   vWorld = wp.xyz;
+  vMirrorUv = uTextureMatrix * wp;
   vec4 mvPosition = viewMatrix * wp;
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
@@ -23,8 +28,11 @@ uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSkyTop; uniform vec3 uS
 uniform vec4 uRipples[${MAX_RIPPLES}];
 uniform vec3 uCamera;
 uniform sampler2D uDepth; uniform vec4 uDepthBounds;
+uniform sampler2D uMirror; uniform float uReflect; uniform float uFov; uniform float uAspect;
 varying vec3 vWorld;
+varying vec4 vMirrorUv;
 ${RING_GLSL}
+${FRESNEL_GLSL}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -61,11 +69,19 @@ void main() {
   float hz = noise((p + vec2(0, e)) * 0.9 + flow) * 0.7 + noise((p + vec2(0, e)) * 2.3 - flow * 1.7 + 13.0) * 0.3;
   float amp = 0.06 + 0.25 * wind;
   vec3 n = normalize(vec3(-(hx - h) * amp / e, 1.0, -(hz - h) * amp / e));
-  // Fake sky reflection by the reflected view direction's elevation
+  // What the water reflects: the mirror's render of the scene, shifted by the ripples' tilt (research 6.3: along the
+  // view by 2 s / vFOV, across it by only 2 s sin(g) / hFOV, so reflections smear into columns), falling back to a sky
+  // gradient where the shift runs off it, or when reflections are off
   vec3 v = normalize(uCamera - vWorld);
   vec3 refl = reflect(-v, n);
   vec3 sky = mix(uSkyHorizon, uSkyTop, pow(clamp(refl.y, 0.0, 1.0), 0.6));
-  float fres = pow(1.0 - max(dot(v, n), 0.0), 3.0);
+  vec2 look = normalize(vWorld.xz - uCamera.xz);
+  float sAlong = dot(n.xz, look), sAcross = dot(n.xz, vec2(-look.y, look.x));
+  vec2 off = clamp(vec2(2.0 * sAcross * v.y / (uFov * uAspect), 2.0 * sAlong / uFov), -${REFLECT.clampUV.toFixed(2)}, ${REFLECT.clampUV.toFixed(2)});
+  vec3 mirrored = texture2D(uMirror, vMirrorUv.xy / vMirrorUv.w + off).rgb;
+  float fall = smoothstep(${REFLECT.fadeFromUV.toFixed(2)}, ${REFLECT.clampUV.toFixed(2)}, max(abs(off.x), abs(off.y)));
+  sky = mix(sky, mix(mirrored, sky, fall), uReflect);
+  float fres = fresnel(dot(v, n));
   // Depth, baked from the terrain: the water's own colour builds with it, so the bed shows through the shallows and
   // is gone by 30 cm; its tint goes from the shallows' olive to the open water's by 2 m
   vec2 duv = (p - uDepthBounds.xz) / (uDepthBounds.yw - uDepthBounds.xz);
@@ -91,7 +107,7 @@ void main() {
   #include <fog_fragment>
 }`
 
-export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBuffer, depth: WaterDepth): WorldModule & { object: THREE.Mesh } {
+export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBuffer, depth: WaterDepth, mirror: Mirror): WorldModule & { object: THREE.Mesh; setReflections(on: boolean): void; follow(camera: THREE.PerspectiveCamera): void } {
   // half floats, which WebGL 2 filters linearly without an extension
   const half = new Uint16Array(depth.data.length)
   for (let i = 0; i < half.length; i++) half[i] = THREE.DataUtils.toHalfFloat(depth.data[i]!)
@@ -110,6 +126,11 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
       uShallow: { value: new THREE.Color().setStyle('#5e5c42', THREE.LinearSRGBColorSpace) },
       uDepth: { value: depthTexture },
       uDepthBounds: { value: new THREE.Vector4(x0, x1, z0, z1) },
+      uMirror: { value: mirror.texture },
+      uTextureMatrix: { value: mirror.textureMatrix },
+      uReflect: { value: 1 },
+      uFov: { value: 1 },
+      uAspect: { value: 1 },
       uSkyTop: { value: new THREE.Color(palette.skyTop) },
       uSkyHorizon: { value: new THREE.Color(palette.skyHorizon) },
       uSun: { value: new THREE.Color(palette.sun) },
@@ -125,8 +146,18 @@ export function createWater(wind: Wind, palette: ScenePalette, ripples: RippleBu
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1).rotateX(-Math.PI / 2), mat)
   mesh.position.set(0, 0, -140)
   mesh.receiveShadow = false
+  const u = mat.uniforms
   return {
     object: mesh,
+    setReflections(on) {
+      u.uReflect!.value = on ? 1 : 0
+      mirror.enabled = on
+    },
+    follow(camera) {
+      u.uCamera!.value.copy(camera.position)
+      u.uFov!.value = THREE.MathUtils.degToRad(camera.fov)
+      u.uAspect!.value = camera.aspect
+    },
     update(dt) {
       ripples.update(dt)
       ripples.pack(packed)
