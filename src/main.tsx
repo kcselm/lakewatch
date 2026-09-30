@@ -8,6 +8,7 @@ import { lakeHeightfield } from './world/heightfield'
 import { createTerrain, terrainSurface } from './world/terrain'
 import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
+import { bakeWaterDepth } from './world/waterDepth'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
@@ -179,7 +180,8 @@ addEventListener('keydown', e => {
 })
 
 const ripples = new RippleBuffer()
-const water = createWater(world.wind, world.palette, ripples)
+const depth = bakeWaterDepth(surface)
+const water = createWater(world.wind, world.palette, ripples, depth)
 ;(water.object.material as THREE.ShaderMaterial).uniforms.uSunDir!.value.copy(sunDirection(world.palette))
 world.add(water)
 

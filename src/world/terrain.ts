@@ -54,7 +54,14 @@ export function createTerrain(hf: Heightfield): WorldModule & { object: THREE.Me
  */
 export function terrainSurface(hf: Heightfield): Heightfield {
   const x0 = -SIZE / 2, z0 = -SIZE / 2 + Z_SHIFT
-  const h = (ix: number, iz: number) => hf.sample(x0 + ix * STEP, z0 + iz * STEP)
+  // the mesh's vertex heights, sampled once: the water's depth bake reads the surface 625 000 times
+  const heights = new Float64Array((SEGMENTS + 1) * (SEGMENTS + 1)).fill(NaN)
+  const h = (ix: number, iz: number) => {
+    const k = iz * (SEGMENTS + 1) + ix
+    let y = heights[k]!
+    if (Number.isNaN(y)) y = heights[k] = hf.sample(x0 + ix * STEP, z0 + iz * STEP)
+    return y
+  }
   return {
     sample(x, z) {
       const gx = (x - x0) / STEP, gz = (z - z0) / STEP
