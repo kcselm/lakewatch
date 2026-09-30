@@ -38,7 +38,7 @@ describe('species specs', () => {
       expect(() => createBirdModel(spec)).not.toThrow()
       for (const v of Object.keys(spec.variants)) expect(() => createBirdModel(spec, v)).not.toThrow()
     }
-  })
+  }, 60_000)   // every version of every species, the folded wings placed for each: about 20 s beside a full run
   it('every detailed species builds to its own measurements', () => {
     for (const spec of Object.values(SPECIES)) {
       const d = spec.detail
