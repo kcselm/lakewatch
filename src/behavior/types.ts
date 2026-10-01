@@ -8,6 +8,29 @@ export interface FlockGroup {
   targetX: number; targetZ: number; retargetAt: number
   /** two shovelers of the flock spinning together, if any are */
   spin?: Spin
+  /** a flock of pelicans feeding in line, if it is */
+  drive?: Drive
+}
+
+/**
+ * A feeding bout for a whole flock, laid out once by the bird that calls it: a line abreast that gathers, sets off,
+ * and dips together. Every bird of the flock reads it, and knows from it alone where to be and when to dip.
+ */
+export interface Drive {
+  /** the birds, by their places along the line, left to right as it faces */
+  readonly birds: readonly Neighbour[]
+  /** the way the line swims, and where its middle is as it sets off */
+  readonly heading: number
+  readonly x: number
+  readonly z: number
+  /** m/s once it has set off, and the metres between birds along it */
+  readonly speed: number
+  readonly spacing: number
+  /** the calling bird's clock when the line sets off, and when the bout is over */
+  readonly startAt: number
+  readonly endAt: number
+  /** each dip: when each bird's bill starts down, seconds after the line sets off, by place; and whether that bird catches */
+  readonly dips: readonly { readonly at: readonly number[]; readonly caught: readonly boolean[] }[]
 }
 
 /**
