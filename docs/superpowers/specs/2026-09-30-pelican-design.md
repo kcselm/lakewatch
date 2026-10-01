@@ -1,7 +1,7 @@
 # American White Pelican: design spec
 
 Date: 2026-09-30
-Status: built (see "Changed during implementation" and "Known soft spots"); not yet committed
+Status: built (see "Changed during implementation" and "Known soft spots")
 Builds on: `2026-09-30-water-design.md` (reflections, the floaters, the Kelvin
 wake, rings as waves), `2026-09-27-herons-design.md` (the neck chain, neck
 shapes, `headPitch`, a part hung from the head), `2026-09-26-swimmers-design.md`
@@ -467,7 +467,9 @@ between loads is as wide as any difference between the builds.
 | Before this round (`b3f7ed0`) | 45–47 | 56–59 | 48–59 |
 | This round, pelicans on the water, no flock crossing | 43–49 | 55–56 | 46–57 |
 
-Not measured: the frame rate while the pelican flock crosses, and startup. The
+Not measured: startup, and the frame rate while the pelican flock crosses (the one
+reading taken, 38 through the binoculars, was with the test suite running beside
+it, so it says nothing). The
 whole suite's ring-budget test (two seeds, ten minutes of the whole cast) takes
 about half as long again with 29 swimmers, each minding every other.
 
@@ -494,10 +496,11 @@ about half as long again with 29 swimmers, each minding every other.
   glide, the bill's width beyond its base, and every paint colour.
 - **The model's size rests on a culmen of 315 mm** on a bird of unknown sex;
   the sexes differ by a fifth.
-- **Not checked by eye in the game:** the pelicans' reflections and wakes at
-  telescope range, a whole feeding bout from gather to swallow, and the flock
-  from start to finish of a crossing. The line on the water and the line in
-  the sky were each looked at in a few stills.
+- **Not checked by eye in the game:** a dip, a drain and a swallow (the feeding
+  line was seen gathered and under way, in stills, but no bill was caught
+  going under); the pelicans' reflections and wakes at telescope range; and a
+  crossing from start to finish. The line in the sky was seen in stills, some
+  birds flapping and some gliding.
 
 ## Future rounds (not in this spec)
 
