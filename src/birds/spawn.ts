@@ -169,9 +169,12 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
     if (swim) swimmers.push(controller)
     if (heron) herons.push(controller)
-    deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
+    // a swimmer floats until its behaviour says otherwise (a goose ashore); every other bird stands
+    const pose = defaultPose()
+    if (ind.behavior !== 'swim') pose.afloat = 0
+    deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose })
     object.add(model.group)
-    birds.push({ controller, pose: defaultPose(), model })
+    birds.push({ controller, pose, model })
   }
 
   for (const fe of flockEntries(loc, rng)) {

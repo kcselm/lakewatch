@@ -11,8 +11,9 @@ export const VELOCITY_SMOOTHING = 0.3
 
 /**
  * The birds whose feet or float are in the water, found each frame from the registry: shown, no higher than the
- * surface, and over water (`depthAt` > 0). A swimmer floats; anything else in the water (a heron, a yellowlegs, a
- * dowitcher) stands. Each one's velocity is measured from its steps and smoothed, so the water shader can draw its wake.
+ * surface, and over water (`depthAt` > 0). One that floats this frame (its pose's `afloat`: a swimmer, a goose on the
+ * water) gets a swimmer's contact line and wake; anything else in the water (a heron, a yellowlegs, a dowitcher, a goose
+ * wading out) stands. Each one's velocity is measured from its steps and smoothed, so the water shader can draw its wake.
  */
 export class FloaterTracker {
   private list: Floater[] = []
@@ -35,7 +36,7 @@ export class FloaterTracker {
         vz = was.vz + ((p.z - was.z) / dt - was.vz) * k
       }
       next.set(b.id, { x: p.x, z: p.z, vx, vz })
-      if (this.list.length < this.max) this.list.push({ id: b.id, x: p.x, z: p.z, vx, vz, heading: b.model.group.rotation.y, radius: b.model.radius, wading: b.behavior !== 'swim' })
+      if (this.list.length < this.max) this.list.push({ id: b.id, x: p.x, z: p.z, vx, vz, heading: b.model.group.rotation.y, radius: b.model.radius, wading: !b.floating })
     }
     this.last = next
   }

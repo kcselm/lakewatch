@@ -10,11 +10,11 @@ import { lakeHeightfield } from './heightfield'
 import { terrainSurface } from './terrain'
 import { bakeWaterDepth } from './waterDepth'
 
-function bird(id: number, x: number, y: number, z: number, behavior = 'swim', visible = true): BirdInstance {
+function bird(id: number, x: number, y: number, z: number, behavior = 'swim', visible = true, floating = behavior === 'swim'): BirdInstance {
   const group = new THREE.Group()
   group.position.set(x, y, z)
   group.visible = visible
-  return { id, species: 'mallar3', behavior, identified: false, model: { group, center: new THREE.Vector3(), radius: 0.3 }, position: group.position }
+  return { id, species: 'mallar3', behavior, identified: false, model: { group, center: new THREE.Vector3(), radius: 0.3 }, position: group.position, floating }
 }
 const water = () => 1
 
@@ -25,6 +25,24 @@ describe('FloaterTracker', () => {
     t.update(birds, (x, z) => (z < -10 ? 1 : 0), 1 / 60)
     expect(t.floaters.map(f => f.id)).toEqual([1, 2])
     expect(t.floaters.map(f => f.wading)).toEqual([false, true])
+  })
+  it('reads floating or wading from whether the bird floats this frame, not from its behaviour: a goose wading out stands', () => {
+    const t = new FloaterTracker()
+    // two geese cast to swim: one floating, one wading up the bank with its feet on the bed; and a heron
+    t.update([bird(1, 0, 0, -20), bird(2, 0, -0.1, -20, 'swim', true, false), bird(3, 0, -0.15, -61, 'wade')], water, 1 / 60)
+    expect(t.floaters.map(f => f.wading)).toEqual([false, true, true])
+  })
+  it('takes whether a bird floats from its pose, as its behaviour sets it each frame', () => {
+    const registry = new BirdRegistry()
+    const model = { group: new THREE.Group(), center: new THREE.Vector3(), radius: 0.4 }
+    const pose = { afloat: 1 }
+    const goose = registry.add({ species: 'cangoo', behavior: 'swim', model, pose })
+    const flyer = registry.add({ species: 'cangoo', behavior: 'flyover', model })
+    expect([goose.floating, flyer.floating]).toEqual([true, false])
+    for (const [afloat, floating] of [[0.51, true], [0.5, false], [0, false]] as const) {
+      pose.afloat = afloat
+      expect(goose.floating, `afloat ${afloat}`).toBe(floating)
+    }
   })
   it('measures a bird\'s velocity from its steps, smoothed over 0.3 s', () => {
     const t = new FloaterTracker()
