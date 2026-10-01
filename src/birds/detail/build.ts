@@ -7,7 +7,7 @@ import { buildLoft, RADIAL, type LoftResult } from './loft'
 import { buildBill, buildEyes, buildShield, type BillResult } from './bill'
 import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
-import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
+import { buildLegs, legLayout, DEFAULT_STEP, SWIM_TIBIA, SWIM_TARSUS, type LegLayout } from './legs'
 import { createBones, chainBones, type Joints, type NeckBone } from './rig'
 import { legOffsets, solveLeg, smooth, STANCE } from './gait'
 import { neckSwing, firstRoot, headPitchToGround } from './reach'
@@ -67,6 +67,11 @@ export interface DetailedBirdModel extends BirdModel {
 const HIDDEN = 1e-4
 /** how far a swimmer's leg swings each way in a paddle stroke, radians: the tibia about the hip, the tarsus about the joint */
 const PADDLE_SWING = 0.5
+/**
+ * An amphibious bird's legs, hidden afloat, grow to their full size over this much of afloat's way from 1 toward 0, so
+ * nothing jumps as they appear: still folded, under the water, as the bird starts to wade
+ */
+const LEGS_OUT = 0.25
 
 export function buildDetailedBird(spec: SpeciesSpec, variant?: string): DetailedBirdModel {
   const detail = spec.detail
@@ -75,8 +80,10 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   if (!swimming && spec.posture !== 'standing') throw new Error(`${spec.code}: the detailed builder builds standing and swimming birds only (posture ${spec.posture})`)
   if (swimming && !detail.float) throw new Error(`${spec.code}: a swimming bird needs detail.float, its waterline`)
   if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
+  // a swimmer that also stands: built floating, its legs built standing; `afloat` takes it from the one to the other
+  const amphibious = swimming && !!detail.amphibious
   const profile = createProfile(detail.profile)
-  const layout = legLayout(detail, profile, swimming)
+  const layout = legLayout(detail, profile, swimming && !amphibious)
 
   const m = new Mesher()
   const tailless = detail.tail.shape === 'none'
@@ -106,6 +113,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     if (!span) throw new Error(`${spec.code}: the waterline (y = ${wl} m) misses the body`)
     offset = new THREE.Vector3(-(span[0] + span[1]) / 2, -wl, 0)
   } else offset = new THREE.Vector3(-layout.hip.x, layout.standHeight + layout.footY - layout.hip.y, 0)
+  // An amphibious bird is built floating. Standing, its root moves by `ashore`, which puts its hips over the origin and
+  // its feet on y = 0, exactly where a standing build of the same bird puts them.
+  const ashore = new THREE.Vector3(-layout.hip.x, layout.standHeight + layout.footY - layout.hip.y, 0).sub(offset)
   m.translate(offset)
   const at = (v: THREE.Vector3 | THREE.Vector2) => new THREE.Vector3(v.x, v.y, 'z' in v ? v.z : 0).add(offset)
   const spineAt = (label: string) => at(profile.sampleAt(profile.uOf(label)).point)
@@ -207,6 +217,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const beta0 = Math.atan2(footR.y - kneeR.y, footR.x - kneeR.x)
   const stepLength = (detail.stepLength ?? DEFAULT_STEP) * (layout.tibia + layout.tarsus)
   const lift = layout.tarsus * 0.25
+  /** how far a walk rolls the body toward the planted foot, radians */
+  const waddle = THREE.MathUtils.degToRad(detail.waddle ?? 0)
   // Every walk starts from the stride phase that has the stance foot straight under the hip and the other foot
   // mid-swing above it: re-anchored while the bird stands, so easing into a stride never slides a planted foot.
   const neutral = (STANCE / 2) * 2 * stepLength
@@ -258,15 +270,69 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   }
 
   function setLeg(tibia: THREE.Bone, tarsus: THREE.Bone, toes: THREE.Bone, dx: number, dy: number) {
-    const { joint, foot } = solveLeg(hip2, { x: footR.x + dx, y: footR.y + dy }, layout.tibia, layout.tarsus)
-    const alpha = Math.atan2(joint.y - hip2.y, joint.x - hip2.x)
-    const beta = Math.atan2(foot.y - joint.y, foot.x - joint.x)
-    tibia.rotation.z = alpha - alpha0
-    tarsus.rotation.z = (beta - beta0) - (alpha - alpha0)
-    toes.rotation.z = -(beta - beta0)
+    ;[tibia.rotation.z, tarsus.rotation.z, toes.rotation.z] = legTurns(dx, dy)
   }
 
   const legsRest = bones.legs.position.clone()
+
+  /** The leg bones' turns that put a foot at (dx, dy) from where it stands: tibia, tarsus, and toes, which stay level. */
+  function legTurns(dx: number, dy: number): [number, number, number] {
+    const { joint, foot } = solveLeg(hip2, { x: footR.x + dx, y: footR.y + dy }, layout.tibia, layout.tarsus)
+    const alpha = Math.atan2(joint.y - hip2.y, joint.x - hip2.x)
+    const beta = Math.atan2(foot.y - joint.y, foot.x - joint.x)
+    return [alpha - alpha0, (beta - beta0) - (alpha - alpha0), -(beta - beta0)]
+  }
+
+  // An amphibious bird's legs folded as a swimmer's are built: the tibia straight down, the tarsus and the toes trailing
+  // back in line with it (the toes turned from lying along the ground)
+  const FOLD: [number, number, number] = [SWIM_TIBIA - alpha0, (SWIM_TARSUS - beta0) - (SWIM_TIBIA - alpha0), beta0]
+  const pivotAshore = hipMid.clone()
+  const turned = new THREE.Vector3(), follow = new THREE.Quaternion()
+
+  /**
+   * An amphibious bird's root and body, before the neck reaches: at afloat 1 as built, floating; toward 0 the root rises
+   * by `ashore` to its standing height, and the body's turns pivot over the hips rather than on the water.
+   */
+  function standUp(a: number) {
+    const s = 1 - a
+    bones.root.position.copy(ashore).multiplyScalar(s)
+    // the body turns about a point blended from its float pivot (the root) to over its hips: it sits where it turns that
+    // point to, less the turn
+    turned.copy(pivotAshore).multiplyScalar(s)
+    bones.body.position.copy(turned).sub(turned.clone().applyQuaternion(bones.body.quaternion))
+  }
+
+  /**
+   * An amphibious bird's legs: standing and walking by IK, as a standing bird's, at afloat 0; folded as a swimmer's
+   * at 1, going wherever the body goes, and paddling; each bone's turn blended between the two.
+   */
+  function amphibiousLegs(st: PoseState, a: number) {
+    const paddle = THREE.MathUtils.clamp(st.paddle, 0, 1)
+    // hidden afloat, they unfold to their full size by LEGS_OUT of the way ashore, under the water
+    bones.legs.scale.setScalar(paddle > 0 ? 1 : Math.max(HIDDEN, Math.min(1, (1 - a) / LEGS_OUT)))
+    follow.identity().slerp(bones.body.quaternion, a)
+    bones.legs.quaternion.copy(follow)
+    turned.copy(legsRest).applyQuaternion(bones.body.quaternion).add(bones.body.position)
+    bones.legs.position.copy(legsRest).lerp(turned, a)
+    const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
+    const stroke = paddle * PADDLE_SWING * Math.sin(st.paddlePhase * Math.PI * 2)
+    for (const [leg, at, sign] of [[[bones.tibiaR, bones.tarsusR, bones.toesR], right, 1], [[bones.tibiaL, bones.tarsusL, bones.toesL], left, -1]] as const) {
+      const stand = legTurns(at.x, at.y)
+      const fold = [FOLD[0] + sign * stroke, FOLD[1] + sign * stroke, FOLD[2]]
+      leg.forEach((b, k) => { b.rotation.z = stand[k]! * (1 - a) + fold[k]! * a })
+    }
+  }
+
+  /**
+   * How far a walk rolls the body toward the planted foot, radians (positive rolls it toward +z, the right foot): at a
+   * full walk the species' waddle when a foot is mid-stance, once a step; nothing standing still, or afloat.
+   */
+  function waddleRoll(st: PoseState, a: number): number {
+    const g = THREE.MathUtils.clamp(st.gait, 0, 1) * (1 - a)
+    const phase = (((st.strideDistance + anchor) / (2 * stepLength)) % 1 + 1) % 1
+    // the left foot (legOffsets' first) is mid-stance at STANCE / 2 of the stride, the right half a stride later
+    return -waddle * g * Math.cos(2 * Math.PI * (phase - STANCE / 2))
+  }
 
   /** A swimmer's legs: hidden at paddle 0; shown, folded back and going wherever the body goes, paddling alternately. */
   function paddleLegs(st: PoseState) {
@@ -336,8 +402,14 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   }
 
   function pose(st: PoseState) {
-    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
-    bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
+    // an amphibious bird: 1 afloat, 0 on its feet (every other bird is as it was built)
+    const a = amphibious ? THREE.MathUtils.clamp(st.afloat, 0, 1) : 1
+    // the stride starts over from the neutral phase whenever the bird stands still
+    if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
+    // lean.x pitches the nose down, lean.z rolls, and a walk with a waddle rolls the body toward the planted foot; the
+    // body pivots over the hips (a swimmer's on the water, mid-body)
+    bones.body.rotation.set(waddle > 0 && (!swimming || amphibious) ? st.lean.z + waddleRoll(st, swimming ? a : 0) : st.lean.z, 0, -st.lean.x)
+    if (amphibious) standUp(a)
     if (chainNames) poseChain(st, chainNames, detail!.neckShapes!)
     else poseNeck(st)
     // positive raises the bill: the head turns last, after the neck's shape and any reach
@@ -353,8 +425,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bones.wingL.rotation.x = flap
     bones.wingR.rotation.x = -flap
     // legs
+    if (amphibious) { amphibiousLegs(st, a); return }
     if (swimming) { paddleLegs(st); return }
-    if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
     const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
     setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, right.x, right.y)
     setLeg(bones.tibiaL, bones.tarsusL, bones.toesL, left.x, left.y)

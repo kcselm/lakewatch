@@ -152,6 +152,16 @@ export const detailSchema = z.object({
    * bird in the reference photo. The builder puts it at y = 0. Required for a species whose posture is 'swimming'.
    */
   float: z.object({ waterline: z.number() }).optional(),
+  /**
+   * A swimmer that also stands and walks (a goose): one bird, built floating on its waterline, with its legs built
+   * standing from `measurements`, so `PoseState.afloat` takes it from its float (1) to its feet (0). Needs `float`.
+   */
+  amphibious: z.boolean().optional(),
+  /**
+   * How far the body rolls toward the planted foot at a full walk, degrees, once a step and in time with it (a goose's
+   * waddle). Default 0: no roll.
+   */
+  waddle: z.number().min(0).max(20).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
   sources: z.array(z.string().min(1)).min(1),
@@ -187,6 +197,7 @@ export const detailSchema = z.object({
       if (v.length !== chain.length) ctx.addIssue({ code: 'custom', message: `neckShapes.${k} needs one bend per joint (${chain.length})`, path: ['neckShapes', k] })
     }
   } else if (d.neckShapes) ctx.addIssue({ code: 'custom', message: 'neckShapes needs rig.neck', path: ['neckShapes'] })
+  if (d.amphibious && !d.float) ctx.addIssue({ code: 'custom', message: 'an amphibious bird needs float, its waterline', path: ['amphibious'] })
   const layers = (list: Layer[], path: (string | number)[]) => list.forEach((l, i) => {
     if ('where' in l && l.where.part === 'skin') { need(l.where.from, [...path, i, 'where', 'from']); need(l.where.to, [...path, i, 'where', 'to']) }
     if (l.kind === 'stripe') { need(l.from.at, [...path, i, 'from']); need(l.to.at, [...path, i, 'to']) }

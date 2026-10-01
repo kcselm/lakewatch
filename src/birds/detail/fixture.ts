@@ -167,3 +167,68 @@ export const TEST_HERON_DETAIL: DetailSpec = {
 export const TEST_HERON_SPEC: SpeciesSpec = parseSpeciesSpec({
   ...TEST_SPEC, code: 'testheron', commonName: 'Test Heron', length: 0.8, detail: TEST_HERON_DETAIL,
 })
+
+/**
+ * A test goose for the amphibious builder: about a Canada Goose's size (docs/research/2026-09-30-canada-goose.md,
+ * sections 2 and 6: a 0.64 m bird floating with its back 0.13 m above the water, its crown about 0.25 m, a draft of
+ * 0.06 m; tarsus 92 mm, toe 82 mm), its neck a five-joint chain in a short S, floating on its waterline 35 mm below the
+ * traced spine and standing on webbed feet, with a waddle. Its shapes are set by eye for the builder's tests, not traced.
+ */
+export const TEST_GOOSE_DETAIL: DetailSpec = {
+  measurements: {
+    length: 0.69, culmen: 0.056, billDepth: 0.024, billWidth: 0.022,
+    tarsus: 0.092, tibia: 0.015, toe: 0.082, wingChord: 0.489, tail: 0.151,
+  },
+  profile: [
+    { label: 'rear',     x: -0.235, y: 0.050, up: 0.006, down: 0.020, halfWidth: 0.020 },
+    { label: 'rump',     x: -0.220, y: 0.045, up: 0.028, down: 0.050, halfWidth: 0.055 },
+    { label: 'tailBase', x: -0.195, y: 0.035, up: 0.050, down: 0.075, halfWidth: 0.085 },
+    { label: 'hip',      x: -0.030, y: 0.000, up: 0.100, down: 0.095, halfWidth: 0.120 },
+    { label: 'flank',    x: 0.080,  y: 0.000, up: 0.098, down: 0.095, halfWidth: 0.120 },
+    { label: 'breast',   x: 0.155,  y: 0.010, up: 0.072, down: 0.088, halfWidth: 0.100, tilt: 6 },
+    { label: 'neckBase', x: 0.215,  y: 0.062, up: 0.028, down: 0.058, halfWidth: 0.048, tilt: 10 },
+    { label: 'neckLow',  x: 0.238,  y: 0.112, up: 0.025, down: 0.030, halfWidth: 0.030 },
+    { label: 'neckUp',   x: 0.225,  y: 0.175, up: 0.024, down: 0.026, halfWidth: 0.025 },
+    { label: 'nape',     x: 0.240,  y: 0.215, up: 0.022, down: 0.023, halfWidth: 0.023 },
+    { label: 'occiput',  x: 0.262,  y: 0.226, up: 0.022, down: 0.020, halfWidth: 0.023 },
+    { label: 'crown',    x: 0.277,  y: 0.229, up: 0.024, down: 0.020, halfWidth: 0.024 },
+    { label: 'eye',      x: 0.291,  y: 0.226, up: 0.020, down: 0.020, halfWidth: 0.023 },
+    { label: 'lores',    x: 0.304,  y: 0.219, up: 0.014, down: 0.016, halfWidth: 0.016 },
+    { label: 'billBase', x: 0.312,  y: 0.215, up: 0.011, down: 0.012, halfWidth: 0.011 },
+  ],
+  rig: {
+    neckBase: 'neckBase', neckMid: 'neckLow', head: 'occiput', hip: 'hip', tailBase: 'tailBase',
+    neck: ['neckBase', 'neckLow', 'neckUp', 'nape', 'occiput'],
+  },
+  neckShapes: {
+    hunch: [-10, 20, -15, 0, 5],
+    erect: [25, -36, 32, 43, -43],
+    strike: [-20, -37, 15, 30, -20],
+  },
+  bill: { taper: 0.8, curve: -0.01 },
+  eye: { radius: 0.005, t: 0.4, iris: '#2a1c12' },
+  wing: {
+    wrist: [0.1, 0.05], droop: 8,
+    outline: [[0, 0], [0.25, 0.05], [0.4, 0.09], [0.6, 0.09], [0.8, 0.06], [0.95, 0.02], [1, 0.005]],
+  },
+  tail: { shape: 'rounded', angle: 5 },
+  feet: 'webbed',
+  float: { waterline: -0.035 },
+  amphibious: true,
+  waddle: 5,
+  // the longest step this leg (0.17 m from hip to foot) takes without its stance foot sliding: 0.11 m
+  stepLength: 0.65,
+  plumage: [
+    { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#6b5d4c', side: '#8a7b66', bottom: '#d9d2c4' },
+    { kind: 'fill', where: { part: 'skin', from: 'neckBase', to: 'billBase' }, color: '#161616' },
+    { kind: 'fill', where: { part: 'wingFold' }, color: '#6a5e4e' },
+    { kind: 'fill', where: { part: 'bill' }, color: '#141414' },
+    { kind: 'fill', where: { part: 'legs' }, color: '#1a1a1a' },
+  ],
+  variants: {},
+  sources: ['test fixture'],
+}
+
+export const TEST_GOOSE_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, code: 'testgoose', commonName: 'Test Goose', length: 0.69, posture: 'swimming', draft: 0.3, detail: TEST_GOOSE_DETAIL,
+})

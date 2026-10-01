@@ -32,12 +32,18 @@ export interface PoseState {
   reachAngle: number
   /** radians the head turns after the neck and any reach; positive raises the bill (a heron swallowing) */
   headPitch: number
+  /**
+   * an amphibious bird (a goose): 1 floating, its waterline on the origin and its legs folded away (paddling if
+   * `paddle` says so); 0 standing on its feet on the origin's ground, walking with `gait`; between, the body's height
+   * and the legs blend from the one to the other. Every other bird ignores it
+   */
+  afloat: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
-    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, afloat: 1,
   }
 }
 
