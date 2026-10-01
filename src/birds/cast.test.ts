@@ -6,13 +6,15 @@ import { loadLocation } from '../location'
 import { targetCandidates } from '../player/candidates'
 
 /**
- * Everything on the lake that rings the water: the 24 swimmers, each in the style its species file names, the six
- * dowitchers, the Kingfisher, whose dives ring too, and the herons' strikes.
+ * Everything on the lake that rings the water: the 29 swimmers, each in the style its species file names (the
+ * pelicans' bills ring it as they dip), the six dowitchers, the Kingfisher, whose dives ring too, and the herons'
+ * strikes.
  */
 function ringers() {
   const lake = loadLocation()
-  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr']
-  return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species)) }
+  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr', 'amwpel']
+  // not the flock in the sky, which rings nothing
+  return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species) && e.behavior !== 'flyover') }
 }
 
 describe('the whole cast on the water', () => {
@@ -39,7 +41,7 @@ describe('the whole cast on the water', () => {
     const mean = counts.reduce((a, b) => a + b, 0) / counts.length
     expect(mean).toBeGreaterThan(20)
     expect(mean).toBeLessThan(36)
-  }, 120_000)   // two seeds x 600 s of the whole cast: about 20 s with the other tests running, past 80 s on a loaded machine
+  }, 240_000)   // two seeds x 600 s of the whole cast: about 30 s alone with 29 swimmers (each minds every other), past 120 s on a loaded machine
   it('hides each diving bird exactly while it is under the water, and never offers a hidden bird as a target', () => {
     const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
     const registry = new BirdRegistry()

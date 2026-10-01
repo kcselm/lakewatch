@@ -25,10 +25,15 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
   cangoo:  { every: [15, 45], prefer: 'call' },
   leasan:  { every: [20, 60], prefer: 'call' },
   greyel:  { every: [30, 90], prefer: 'call' },
-  amwpel:  { every: [200, 600], prefer: 'call' },
   lobdow:  { every: [20, 60], prefer: 'call' },
   pecsan:  { every: [30, 90], prefer: 'call' },
 }
+
+/**
+ * Species that never call here. An American White Pelican is silent away from its colony
+ * (docs/research/2026-09-30-american-white-pelican.md, section 7.6).
+ */
+export const SILENT: ReadonlySet<string> = new Set(['amwpel'])
 
 export const MAX_SIMULTANEOUS_CALLS = 3
 
@@ -40,9 +45,10 @@ export interface CallScheduler {
   tick(now: number, birds: readonly CallCandidate[], active: number): CallRequest[]
 }
 
-export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: Record<string, CallSchedule> } = {}): CallScheduler {
+export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: Record<string, CallSchedule>; silent?: ReadonlySet<string> } = {}): CallScheduler {
   const max = opts.max ?? MAX_SIMULTANEOUS_CALLS
   const schedules = opts.schedules ?? CALL_SCHEDULES
+  const silent = opts.silent ?? SILENT
   const nextAt = new Map<number, number>()
   const scheduleFor = (species: string) => schedules[species] ?? DEFAULT_SCHEDULE
   const between = ([lo, hi]: [number, number]) => lo + rng() * (hi - lo)
@@ -52,6 +58,7 @@ export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: 
       const due: CallCandidate[] = []
       const present = new Set<number>()
       for (const b of birds) {
+        if (silent.has(b.species)) continue
         present.add(b.id)
         let t = nextAt.get(b.id)
         if (t === undefined) {

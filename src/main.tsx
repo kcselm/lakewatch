@@ -42,6 +42,7 @@ import { createAmbience } from './audio/ambience'
 import { loadAmbience } from './audio/ambienceManifest'
 import { createCallPlayer } from './audio/callPlayer'
 import { pickClip } from './audio/clips'
+import { SILENT } from './audio/calls'
 import { createEffects, opticEvent, overlayEvents, type Effects } from './audio/effects'
 import { makeRng } from './catalog/rng'
 
@@ -216,6 +217,8 @@ const flockVoices = new Map<string, Voice>()
 const flockPositions = new Map<string, THREE.Vector3>()
 const spawnEvents: SpawnEvents = {
   flockStart(key, species) {
+    // a flock of a species that never calls here (pelicans) crosses in silence
+    if (SILENT.has(species)) return
     const clip = pickClip(findBird(species), 'call', flockRng)
     if (!clip || !engine.unlocked) return
     engine.load('/' + clip.file).then(buffer => {
@@ -303,3 +306,17 @@ world.start(dt => {
   calls.update(dt)
   dev.update(dt, { birds: registry.size, gust: world.wind.state.gust, mode: optics.mode, audio: engine.unlocked ? 'running' : 'locked', calls: calls.active })
 })
+
+// Dev only: lets a capture script (Playwright) find a bird and aim the view at it, where a drag can only guess.
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __lakewatch: unknown }).__lakewatch = {
+    /** every bird now in the scene: its species, version, behaviour, and where it is */
+    birds: () => registry.all().map(b => ({ id: b.id, species: b.species, variant: b.variant, behavior: b.behavior, x: b.position.x, y: b.position.y, z: b.position.z })),
+    /** turn the view to look at a point of the world */
+    lookAt: (x: number, y: number, z: number) => {
+      const c = world.camera.position
+      look.state.yaw = Math.atan2(x - c.x, -(z - c.z))
+      look.state.pitch = Math.atan2(y - c.y, Math.hypot(x - c.x, z - c.z))
+    },
+  }
+}

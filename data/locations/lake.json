@@ -9,6 +9,7 @@
   "wind": { "direction": 240, "strength": 0.35, "gustiness": 0.5 },
   "zones": {
     "open-water": { "kind": "polygon", "points": [[-22, -15], [26, -15], [32, -52], [-28, -52]] },
+    "far-water":  { "kind": "polygon", "points": [[-25, -34], [29, -34], [32, -52], [-28, -52]] },
     "near-water": { "kind": "polygon", "points": [[-9, -10.5], [12, -10.5], [14, -21], [-11, -21]] },
     "reeds":      { "kind": "polygon", "points": [[-16, -2], [-3, -2], [-3, -14], [-16, -14]] },
     "mudflat":    { "kind": "polygon", "points": [[17, -6], [23, -6], [23, -8.5], [17, -8.5]] },
@@ -39,7 +40,8 @@
     { "species": "lesyel",  "behavior": "wade",    "zone": "shallows",  "count": 1 },
     { "species": "lobdow",  "behavior": "probe",   "zone": "bench",     "count": 6 },
     { "species": "pecsan",  "behavior": "probe",   "zone": "mudflat",   "count": 2 },
-    { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line" }
+    { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line", "plumage": { "adult": 9 } },
+    { "species": "amwpel",  "behavior": "swim",    "zone": "far-water", "count": 5, "plumage": { "adult": 4, "juvenile": 1 } }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
 }

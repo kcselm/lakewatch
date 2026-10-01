@@ -39,13 +39,22 @@ may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
 `tilt`. A heron can give `rig.neck` (its neck's joints, three to seven
 station labels) and `neckShapes` (the hunch, erect, and strike, in degrees
 per joint), and a `plume` part hung from the head. `PoseState.headPitch`
-tips the head. A cast entry can give exact counts per plumage version.
+tips the head. A pelican gives `bill.pouch` (the pouch's lower outline, slack
+and full; `PoseState.pouch` fills it) and `flight` (a wing to fly on: its
+span, planform, wrist, fingered tips, wingbeat and glide; `PoseState.glide`
+holds it still). A flyover flock of a detailed species is one skinned bird a
+member, all on one mesh; its settings (speed, spacing, flap-and-glide bouts)
+are in `src/behavior/flyover.ts`. A cast entry can give exact counts per
+plumage version, for a flock of a detailed species too.
 The water's look is set in `src/world/`: `waterDepth.ts` (the depth bake and
 clarity), `ripples.ts` (ring speeds and lifetimes), `wake.ts`, `fresnel.ts`,
 `floaters.ts` (the birds in the water), `mirror.ts`, and `water.ts`, each
 number from `docs/research/2026-09-30-lake-water.md`.
 `npm run dev`, then `/viewer.html`, opens the model viewer: any two
 species at true scale, through the game's optics, over a reference photo.
+On the dev server only, `window.__lakewatch` lists the birds in the scene
+(`birds()`) and turns the view to a point (`lookAt(x, y, z)`), so a capture
+script can aim at a bird.
 
 ### Harvest
 

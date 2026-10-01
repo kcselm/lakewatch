@@ -63,7 +63,7 @@ describe('validateCast', () => {
     expect(validateCast(one('greyel', 'wade'), catalog, specs)).toEqual([])
   })
   describe('plumage counts', () => {
-    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('amwpel', ['wetland'])]
+    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('cangoo', ['wetland'])]
     const one = (entry: Partial<CastEntry>): Location => ({
       ...loc,
       zones: { ...loc.zones, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
@@ -78,14 +78,19 @@ describe('validateCast', () => {
     it('names counts that do not add up to the count', () => {
       expect(validateCast(one({ plumage: { male: 1, female: 1 } }), catalog)).toEqual(['cast[0]: plumage counts add up to 2, not the count of 3'])
     })
-    it('rejects counts on a flyover: a flock is one version', () => {
-      expect(validateCast(one({ behavior: 'flyover', zone: 'sky', plumage: { male: 1, female: 2 } }), catalog)).toEqual([
-        'cast[0]: a flyover flock is one version; give plumage as a single version, not counts',
+    it('rejects counts on a flyover of block birds: that flock is instances of one bird, in one version', () => {
+      const block = { mallar3: { variants: { male: {}, female: {} } } }
+      expect(validateCast(one({ behavior: 'flyover', zone: 'sky', plumage: { male: 1, female: 2 } }), catalog, block)).toEqual([
+        'cast[0]: a flyover flock of block birds is one version; give plumage as a single version, not counts',
       ])
+    })
+    it('takes counts on a flyover of a detailed species, whose flock is a bird a member, and checks them as any others', () => {
+      expect(validateCast(one({ behavior: 'flyover', zone: 'sky', plumage: { male: 1, female: 2 } }), catalog)).toEqual([])
+      expect(validateCast(one({ behavior: 'flyover', zone: 'sky', plumage: { male: 1, female: 1 } }), catalog)).toEqual(['cast[0]: plumage counts add up to 2, not the count of 3'])
     })
     it('reports a malformed record without throwing: no versions, a species with none, a count that is not a number', () => {
       expect(validateCast(one({ plumage: {} }), catalog)).toEqual(['cast[0]: plumage counts add up to 0, not the count of 3'])
-      expect(validateCast(one({ species: 'amwpel', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: amwpel has no plumage version adult'])
+      expect(validateCast(one({ species: 'cangoo', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: cangoo has no plumage version adult'])
       expect(validateCast(one({ species: 'nosuchbird', plumage: { male: 3 } }), catalog)).toEqual([
         'cast[0]: species nosuchbird is not in the catalog',
         'cast[0]: nosuchbird has no plumage version male',

@@ -113,7 +113,8 @@ normalized, short fades, a gentle high-pass to reduce recording hiss.
     { "species": "grbher3", "behavior": "wade",    "zone": "far-shore",  "count": 1 },
     { "species": "leasan",  "behavior": "probe",   "zone": "mudflat",    "count": 5 },
     { "species": "belkin1", "behavior": "hover",   "zone": "snag",       "count": 1 },
-    { "species": "amwpel",  "behavior": "flyover", "zone": "sky",        "count": 9, "everySeconds": [120, 240] },
+    { "species": "amwpel",  "behavior": "flyover", "zone": "sky",        "count": 9, "everySeconds": [120, 240], "plumage": { "adult": 9 } },
+    { "species": "amwpel",  "behavior": "swim",    "zone": "far-water",  "count": 5, "plumage": { "adult": 4, "juvenile": 1 } },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky",        "count": 14, "everySeconds": [180, 360] }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
@@ -230,7 +231,9 @@ Three implementations:
   marks. See `2026-09-24-detailed-birds-design.md`. The six swimmers float
   on a traced waterline; see `2026-09-26-swimmers-design.md`. The two
   herons bend a six-joint neck between named shapes; see
-  `2026-09-27-herons-design.md`.
+  `2026-09-27-herons-design.md`. The American White Pelican is detailed on
+  the water and in flight, with a pouch under its bill and a wing to fly on;
+  see `2026-09-30-pelican-design.md`.
 - **GLTF**: loads a Blender export whose node names follow the part
   convention. The species file points at the file; nothing else changes.
 
@@ -241,17 +244,18 @@ coot head-pump, heron stalk, strike, swallow, and hunch, plover
 run-stop-look-peck,
 sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
 shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
+pelican bill-dip, drain, and swallow, flap and glide,
 preen and wing-stretch idles.
 
 ### Behaviors
 
 | Behavior | What it does |
 |---|---|
-| swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows. Swimmers keep their distance from each other |
+| swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows; a pelican loafs with its neck in an S or its head sunk on its shoulders, and the group swims abreast and dips their bills together. Swimmers keep their distance from each other |
 | wade | Forage in the species' style: a heron stands in the shallows with its neck coiled, waits, stalks a slow step at a time, strikes, swallows with its head tipped up, and hunches between feeding bouts; herons keep their distance from each other. Other waders take slow steps along a shore zone, stand still for long stretches, and strike |
 | probe | Forage in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together; a dowitcher stands belly-deep in a tight flock and stitches, its bill going down and up and its head dipping into the water |
 | perch | Sit on the snag, shuffle, stretch, short loop flight and return |
-| flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. Instanced, per-bird wingbeat phase |
+| flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. A detailed species flies as skinned birds that flap and glide, the flapping passing down the line; a block species is instanced, per-bird wingbeat phase |
 | hover | Hold over water, dive, return to perch |
 
 Each behavior is a small state machine with a seeded random source so it
@@ -274,7 +278,9 @@ the sound.
 - **Bird calls**: each species has a call schedule (interval range, call
   versus song preference). Clips play positionally from the registry
   position. A cap on simultaneous calls, nearer birds win.
-- **Flock audio**: one moving source per flyover flock.
+- **Flock audio**: one moving source per flyover flock. A flock of a
+  species that never calls here (the pelicans, silent away from their
+  colonies) crosses in silence, and its birds are never scheduled to call.
 - **Event sounds**: optics raise and lower, guide open and page turn,
   correct and incorrect, kingfisher splash, nearby wing flaps.
 
@@ -339,7 +345,7 @@ accuracy.
 - **Title card**: name, click to begin (unlocks audio), credits link.
   Begin waits while the birds' plumage atlases paint in a Web Worker, the
   folded wings are placed a species at a time, and the cast is built. One
-  count covers all three: "Getting the birds ready… N of 38".
+  count covers all three: "Getting the birds ready… N of 41".
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel
