@@ -3,7 +3,7 @@ import { parseState, stateHash, type ViewerState } from './state'
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: 'lesyel', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
-  walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  afloat: 1, walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 
 describe('viewer state', () => {
@@ -55,6 +55,12 @@ describe('viewer state', () => {
     expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
     const wild = parseState('#pitch=3&depth=-2', DEFAULTS)
     expect([wild.pitch, wild.depth]).toEqual([1.4, -0.4])
+  })
+  it('round-trips the goose controls: half afloat, walking, through the binoculars at the flat; afloat held to 0..1', () => {
+    const s: ViewerState = { ...DEFAULTS, a: 'cangoo', b: 'mallar3', field: 'bino35', afloat: 0.3, walk: true, speed: 0.4, reach: 1, depth: 0.25 }
+    expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
+    expect(parseState('#afloat=2', DEFAULTS).afloat).toBe(1)
+    expect(parseState('#afloat=-1', DEFAULTS).afloat).toBe(0)
   })
   it('reads a hand-kept link from before the swimmers exactly as it read then, the new controls at rest', () => {
     const old = '#a=greyel&av=&b=lesyel&bv=&view=three&field=scope22&neck=0.8&lean=0.8&spread=0&phase=0&reach=1&speed=0.35&water=0.045&walk=0&wire=1&skel=0&uv=0&atlas=0&stations=1'
