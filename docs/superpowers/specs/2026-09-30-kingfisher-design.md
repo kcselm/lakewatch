@@ -453,7 +453,7 @@ Traced side-on on a perch from a photo, with the crest lowered. The spread wing
 is traced top-down from a flying or hovering photo, upper and under: a span of
 0.53 m, a half-span of 1.47 × the wing chord, the wrist at 0.37 of it, and the
 outer four or five primaries separated. The generic spread wing, which birds without a flight block still get (1.78 and
-0.42 × the wing chord) is too long and narrow for this bird. Both sexes are
+0.42 × the wing chord), is too long and narrow for this bird. Both sexes are
 blue-grey above with a white collar and a blue-grey breast band. The female adds
 a rusty band and flanks, and rusty underwing coverts where the male's are white.
 The white spot before the eye, the crest, and the wing's white patch (0.64–0.88
