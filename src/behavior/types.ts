@@ -2,6 +2,7 @@ import type { Zone, PolygonZone, Vec3 } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import type { PoseState } from '../birds/model'
 import type { Foraging } from '../birds/spec'
+import type { GooseUnit } from './goose'
 
 /** A flock's shared record: its target, and when the target next moves on. Flockmates hold the same object. */
 export interface FlockGroup {
@@ -60,6 +61,10 @@ export interface BehaviorContext {
    * knows itself by that); the spawner fills it
    */
   neighbours?: () => readonly Neighbour[]
+  /** the goose style: the zone its family walks out to graze, across the shore from its own (the cast's `ashore`) */
+  ashore?: Zone
+  /** the goose style: its unit (a family, or a loose unit of adults, from the cast's `groups`) and its place in it */
+  unit?: { unit: GooseUnit; place: number }
   onEvent?: (name: 'splash' | 'flap', x: number, y: number, z: number) => void
 }
 

@@ -36,6 +36,7 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
     if (home && entry.behavior !== home && (entry.behavior === 'swim' || entry.behavior === 'probe' || entry.behavior === 'wade')) {
       errors.push(`cast[${i}]: ${entry.species} feeds as a ${style}, a ${kind[home]} style, so it cannot ${entry.behavior}`)
     }
+    errors.push(...checkGoose(loc, entry, i, style === 'goose' && entry.behavior === 'swim'))
     const zone = loc.zones[entry.zone]
     if (!zone) {
       errors.push(`cast[${i}]: zone ${entry.zone} does not exist`)
@@ -62,6 +63,31 @@ function checkCounts(entry: Location['cast'][number], i: number, spec: CastSpecs
     else sum += n
   }
   if (errors.length === 0 && sum !== entry.count) errors.push(`cast[${i}]: plumage counts add up to ${sum}, not the count of ${entry.count}`)
+  return errors
+}
+
+/**
+ * The goose style's fields: a goose entry names a polygon zone its family walks out to (`ashore`), and only a goose
+ * entry names one or gives `groups`, which add up to its count, the first (the family) a pair and at least one young.
+ */
+function checkGoose(loc: Location, entry: Location['cast'][number], i: number, goose: boolean): string[] {
+  const errors: string[] = []
+  if (!goose) {
+    if (entry.ashore !== undefined) errors.push(`cast[${i}]: only the goose style goes ashore; ${entry.species} has no use for ${entry.ashore}`)
+    if (entry.groups !== undefined) errors.push(`cast[${i}]: only the goose style keeps groups; ${entry.species} swims in one flock`)
+    return errors
+  }
+  if (entry.ashore === undefined) errors.push(`cast[${i}]: ${entry.species} feeds as a goose, so it needs an ashore zone to walk out to`)
+  else {
+    const zone = loc.zones[entry.ashore]
+    if (!zone) errors.push(`cast[${i}]: ashore zone ${entry.ashore} does not exist`)
+    else if (zone.kind !== 'polygon') errors.push(`cast[${i}]: ashore needs a polygon zone, ${entry.ashore} is ${zone.kind}`)
+  }
+  if (entry.groups) {
+    const sum = entry.groups.reduce((a, b) => a + b, 0)
+    if (sum !== entry.count) errors.push(`cast[${i}]: groups add up to ${sum}, not the count of ${entry.count}`)
+    if (entry.groups[0]! < 3) errors.push(`cast[${i}]: the first group is a family, a pair and at least one young, not ${entry.groups[0]}`)
+  }
   return errors
 }
 

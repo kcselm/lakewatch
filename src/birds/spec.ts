@@ -11,7 +11,7 @@ export const plumageSchema = z.object({
 /** how a species feeds when the cast puts it on `probe` */
 export const PROBE_STYLES = ['plover', 'sandpiper', 'dowitcher'] as const
 /** how a species feeds when the cast puts it on `swim` */
-export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe'] as const
+export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe', 'goose'] as const
 /** how a species feeds when the cast puts it on `wade` (with none, it steps, stands, and strikes as `wade` always has) */
 export const WADE_STYLES = ['heron'] as const
 export const FORAGING = [...PROBE_STYLES, ...SWIM_STYLES, ...WADE_STYLES] as const

@@ -27,4 +27,5 @@ export const SPEC: SpeciesSpec = {
     legs: 'black legs',
   },
   wingbeatHz: 2.6,
+  foraging: 'goose',
 }

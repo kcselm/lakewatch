@@ -7,6 +7,7 @@ import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../beh
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
+import { gooseUnits, placeIn, type GooseUnit } from '../behavior/goose'
 import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
@@ -37,7 +38,14 @@ export interface SpawnDeps {
   perches?: Record<string, Vec3>
 }
 
-export interface Individual { species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string }
+/**
+ * One bird of the cast. A goose entry's birds also carry its `ashore` zone and its `groups` (without them, one family of
+ * the whole entry), and each its `index` in the entry, which places it in its unit.
+ */
+export interface Individual {
+  species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string
+  ashore?: string; groups?: number[]; index?: number
+}
 export interface FlockEntry { species: string; variant?: string; zone: string; count: number; everySeconds: [number, number]; formation: Formation; groupKey: string }
 
 export const DEFAULT_FLOCK_EVERY: [number, number] = [120, 300]
@@ -75,9 +83,10 @@ export function expandCast(loc: Location, rng: Rng): Individual[] {
       console.warn(`cast[${i}] ${entry.species}: behavior ${entry.behavior} is not implemented yet; skipped`)
       return
     }
-    for (const variant of versionsFor(entry, rng)) {
-      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}` })
-    }
+    versionsFor(entry, rng).forEach((variant, index) => {
+      const goose = entry.groups || entry.ashore ? { ashore: entry.ashore, groups: entry.groups ?? [entry.count], index } : {}
+      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}`, ...goose })
+    })
   })
   return out
 }
@@ -126,6 +135,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const swimmers: BehaviorController[] = []
   /** every heron in the cast, which each keeps its distance from */
   const herons: BehaviorController[] = []
+  /** each goose entry's units, by its group key: its family and its loose units */
+  const units = new Map<string, GooseUnit[]>()
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
 
@@ -160,6 +171,9 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
       neighbours: swim ? () => swimmers : heron ? () => herons : undefined,
+      // a goose: the zone its family walks out to, and its unit and place in it
+      ashore: swim && ind.ashore ? loc.zones[ind.ashore] : undefined,
+      unit: swim && ind.index !== undefined ? unitOf(ind) : undefined,
       ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
     }
@@ -175,6 +189,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose })
     object.add(model.group)
     birds.push({ controller, pose, model })
+  }
+
+  function unitOf(ind: Individual): { unit: GooseUnit; place: number } {
+    if (!units.has(ind.groupKey)) units.set(ind.groupKey, gooseUnits(ind.groups!))
+    return placeIn(units.get(ind.groupKey)!, ind.index!)
   }
 
   for (const fe of flockEntries(loc, rng)) {
