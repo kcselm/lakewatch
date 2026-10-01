@@ -2,6 +2,8 @@ import { hash1 } from './noise'
 
 export interface Heightfield {
   sample(x: number, z: number): number
+  /** how much of the ground at (x, z) is lawn, 0..1, whatever its height: the geese's grazed flat. Unset, none */
+  lawn?(x: number, z: number): number
 }
 
 function smooth(t: number) { return t * t * (3 - 2 * t) }
@@ -21,16 +23,40 @@ export const BENCH = { depth: 0.045, x: [18, 26], z: [-14, -12] } as const
  */
 export const SHELF = { x: [-16, 20], z: [-64, -60], depth: [0.05, 0.22] } as const
 
+/**
+ * A low grassy flat on the right shore past the mudflat, where the geese graze: over [x0, x1] by [z0, z1] its top is
+ * `top` metres above the water, gently uneven by up to half `rough` either way, and on its lake side it slopes into the
+ * water at `slope` (1 in 4) square to its shoreline, the line through `shore`'s two points (the basin's rim, where the
+ * old bank stood a metre high), until it meets the lake bed. Its edges sit on the terrain mesh's 2 m grid. It eases
+ * back into the ground within a metre on its lake sides (x0, z0), and within `back` metres on its land sides (x1, z1),
+ * where the ground behind it stands a metre higher, so the bank there rises as a slope and not a wall.
+ */
+export const FLAT = { x: [30, 44], z: [-24, -8], shore: [[27.6, -10], [43.8, -26]], slope: 0.25, top: 0.3, rough: 0.08, back: 4 } as const
+
+/** how far (x, z) lies landward of the flat's shoreline, metres (negative: out in the lake) */
+export function flatShoreDistance(x: number, z: number): number {
+  const [[ax, az], [bx, bz]] = FLAT.shore
+  const [dx, dz] = [bx - ax, bz - az], len = Math.hypot(dx, dz)
+  // the landward normal: +x, +z of the shore's line
+  return ((x - ax) * -dz + (z - az) * dx) / len
+}
+
+/** the flat's surface: its gently uneven top, its slope down into the lake, and the lake bed where that lies higher */
+function flatAt(x: number, z: number, under: number, seed: number): number {
+  const top = FLAT.top + (valueNoise2(x * 0.25, z * 0.25, seed + 31) - 0.5) * FLAT.rough
+  return Math.min(top, Math.max(flatShoreDistance(x, z) * FLAT.slope, Math.min(under, 0)))
+}
+
 /** the shelf's surface at z: its plane, held beyond its edges */
 function shelfAt(z: number): number {
   const t = Math.min(1, Math.max(0, (z - SHELF.z[0]) / (SHELF.z[1] - SHELF.z[0])))
   return -(SHELF.depth[0] + (SHELF.depth[1] - SHELF.depth[0]) * t)
 }
 
-/** 1 over [a, b], easing to 0 within `margin` outside it */
-function plateau(v: number, a: number, b: number, margin = 1): number {
+/** 1 over [a, b], easing to 0 within `margin` outside it below a and `beyond` outside it above b */
+function plateau(v: number, a: number, b: number, margin = 1, beyond = margin): number {
   const rise = Math.min(1, Math.max(0, (v - (a - margin)) / margin))
-  const fall = Math.min(1, Math.max(0, (b + margin - v) / margin))
+  const fall = Math.min(1, Math.max(0, (b + beyond - v) / beyond))
   return smooth(rise) * smooth(fall)
 }
 
@@ -49,11 +75,14 @@ function fbm(x: number, z: number, seed: number): number {
 }
 
 /**
- * The lake's ground; `bench: false` leaves out the dowitchers' bench and `shelf: false` the herons' shelf, to compare the
- * ground around them.
+ * The lake's ground; `bench: false` leaves out the dowitchers' bench, `shelf: false` the herons' shelf, and `flat:
+ * false` the geese's flat, to compare the ground around them.
  */
-export function lakeHeightfield(seed: number, { bench: withBench = true, shelf: withShelf = true }: { bench?: boolean; shelf?: boolean } = {}): Heightfield {
+export function lakeHeightfield(seed: number, { bench: withBench = true, shelf: withShelf = true, flat: withFlat = true }: { bench?: boolean; shelf?: boolean; flat?: boolean } = {}): Heightfield {
+  const flatShare = (x: number, z: number) => (withFlat ? plateau(x, FLAT.x[0], FLAT.x[1], 1, FLAT.back) * plateau(z, FLAT.z[0], FLAT.z[1], 1, FLAT.back) : 0)
   return {
+    // the flat's dry ground is lawn
+    lawn(x, z) { return flatShare(x, z) * Math.min(1, Math.max(0, flatShoreDistance(x, z) / 0.5)) },
     sample(x, z) {
       // Basin: an ellipse centred at (2, -36), radii 44 x 32. Inside is below water.
       const ex = (x - 2) / 44, ez = (z + 36) / 32
@@ -71,6 +100,9 @@ export function lakeHeightfield(seed: number, { bench: withBench = true, shelf: 
       // Bench: blended the same way, so its top stays flat
       const bench = withBench ? plateau(x, BENCH.x[0], BENCH.x[1]) * plateau(z, BENCH.z[0], BENCH.z[1]) : 0
       y = y * (1 - bench) - BENCH.depth * bench
+      // Flat: blended the same way, over the basin's rim and the bank behind it
+      const flat = flatShare(x, z)
+      if (flat > 0) y = y * (1 - flat) + flatAt(x, z, y, seed) * flat
       // Far shore: rise beyond z = -62
       if (z < -62) y += Math.min(3, (-62 - z) * 0.35)
       // Shelf: blended last, over the far shore's rise, so its slope stays a plane
@@ -112,13 +144,13 @@ float wetDarkening(float h, float gravel) {
 /** how much of the ground's colour is gravel at a slope, 0..1 */
 export function gravelShare(slope: number): number { return Math.min(1, slope * 2.5) }
 
-/** rgb 0..1 by height and slope: mud at the waterline, gravel where steep, grass above. */
-export function terrainColor(y: number, slope: number): [number, number, number] {
+/** rgb 0..1 by height and slope: mud at the waterline, gravel where steep, grass above, and grass on a lawn's share. */
+export function terrainColor(y: number, slope: number, lawn = 0): [number, number, number] {
   const mud: [number, number, number] = [0.36, 0.28, 0.20]
   const gravel: [number, number, number] = [0.52, 0.50, 0.46]
   const grass: [number, number, number] = [0.33, 0.42, 0.20]
   const dryGrass: [number, number, number] = [0.55, 0.50, 0.28]
-  const t = Math.min(1, Math.max(0, (y - 0.15) / 0.9))
+  const t = Math.max(lawn, Math.min(1, Math.max(0, (y - 0.15) / 0.9)))
   const base = mud.map((m, i) => m * (1 - t) + grass[i]! * t) as [number, number, number]
   const dry = Math.min(1, Math.max(0, (y - 1.2) / 1.0)) * 0.5
   const g = base.map((b, i) => b * (1 - dry) + dryGrass[i]! * dry) as [number, number, number]

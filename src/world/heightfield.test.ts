@@ -1,4 +1,4 @@
-import { lakeHeightfield, terrainColor, valueNoise2, wetDarkening, WET, BENCH, SHELF } from './heightfield'
+import { lakeHeightfield, terrainColor, valueNoise2, wetDarkening, flatShoreDistance, WET, BENCH, SHELF, FLAT } from './heightfield'
 
 describe('lakeHeightfield', () => {
   const hf = lakeHeightfield(1)
@@ -36,6 +36,50 @@ describe('lakeHeightfield', () => {
     // the bank still rises behind it
     expect(hf.sample(2, SHELF.z[0] - 2)).toBeGreaterThan(0.5)
   })
+  it('lays a grassy flat on the right shore past the mudflat: its top a few tens of centimetres up, gently uneven', () => {
+    const top: number[] = []
+    for (let x = FLAT.x[0]; x <= FLAT.x[1]; x += 0.5) {
+      for (let z = FLAT.z[0]; z <= FLAT.z[1]; z += 0.5) {
+        if (flatShoreDistance(x, z) * FLAT.slope >= FLAT.top + FLAT.rough) top.push(hf.sample(x, z))
+      }
+    }
+    expect(top.length).toBeGreaterThan(400)
+    expect(Math.min(...top)).toBeGreaterThanOrEqual(FLAT.top - FLAT.rough / 2)
+    expect(Math.max(...top)).toBeLessThanOrEqual(FLAT.top + FLAT.rough / 2)
+    expect(Math.max(...top) - Math.min(...top)).toBeGreaterThan(FLAT.rough / 4)
+  })
+  it('slopes the flat into the water at 1 in 4 square to its shore, where the old bank stood a metre high', () => {
+    const without = lakeHeightfield(1, { flat: false })
+    let ramp = 0
+    for (let x = FLAT.x[0]; x <= FLAT.x[1]; x += 0.25) {
+      for (let z = FLAT.z[0]; z <= FLAT.z[1]; z += 0.25) {
+        const s = flatShoreDistance(x, z)
+        // on the slope: below the top, above the lake bed it meets
+        if (s * FLAT.slope > Math.min(without.sample(x, z), 0) && s * FLAT.slope < FLAT.top - FLAT.rough / 2) {
+          ramp++
+          expect(hf.sample(x, z), `(${x}, ${z})`).toBeCloseTo(s * FLAT.slope, 9)
+        }
+      }
+    }
+    expect(ramp).toBeGreaterThan(300)
+    // the old bank: a metre's step at the basin's rim, now gone
+    expect(without.sample(38, -16) - without.sample(36, -18)).toBeGreaterThan(0.8)
+  })
+  it('eases the flat back into the ground within a metre on its lake sides and a gentler slope on its land sides, and leaves the mudflat, the bench, and the shallows as they were', () => {
+    const without = lakeHeightfield(1, { flat: false })
+    const around: [number, number][] = [[FLAT.x[0] - 2, -16], [FLAT.x[1] + FLAT.back + 1, -16], [37, FLAT.z[0] - 2], [37, FLAT.z[1] + FLAT.back + 1]]
+    for (const [x, z] of around) expect(hf.sample(x, z), `(${x}, ${z})`).toBe(without.sample(x, z))
+    expect(hf.sample(FLAT.x[1] + 0.5, -14)).not.toBe(without.sample(FLAT.x[1] + 0.5, -14))
+    // behind it, the ground rises back to the old bank's height no steeper than 1 in 2
+    for (let x = FLAT.x[1]; x < FLAT.x[1] + FLAT.back + 1; x += 0.25) expect(Math.abs(hf.sample(x + 0.25, -14) - hf.sample(x, -14)), `x ${x}`).toBeLessThan(0.125)
+    for (let x = 16; x <= 28; x += 0.5) for (let z = -16; z <= -5; z += 0.5) expect(hf.sample(x, z), `(${x}, ${z})`).toBe(without.sample(x, z))
+  })
+  it('makes the flat\'s dry ground lawn, and nowhere else', () => {
+    expect(hf.lawn!(38, -12)).toBe(1)
+    expect(hf.lawn!(30, -20)).toBe(0)                      // out in the lake
+    expect(hf.lawn!(0, 0)).toBe(0)                         // the near bank: grass by its height, not lawn
+    expect(lakeHeightfield(1, { flat: false }).lawn!(38, -12)).toBe(0)
+  })
   it('rises on the far shore', () => {
     expect(hf.sample(0, -66)).toBeGreaterThan(0.5)
   })
@@ -54,6 +98,13 @@ describe('terrainColor', () => {
     expect(g).toBeGreaterThan(b)
     const [r2, g2] = terrainColor(1.5, 0)
     expect(g2).toBeGreaterThan(r2)
+  })
+  it('is grass on a lawn, however low it lies', () => {
+    const [r, g] = terrainColor(0.3, 0)
+    expect(r).toBeGreaterThan(g)
+    const [lr, lg, lb] = terrainColor(0.3, 0, 1)
+    expect(lg).toBeGreaterThan(lr)
+    expect(lg).toBeGreaterThan(lb)
   })
   it('shifts toward gravel as slope increases', () => {
     const gravel: [number, number, number] = [0.52, 0.50, 0.46]

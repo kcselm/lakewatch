@@ -4,7 +4,7 @@ import { loadLocation, type Vec3 } from './location'
 import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
 import { createZoneOutlines } from './hud/zoneOutlines'
-import { lakeHeightfield } from './world/heightfield'
+import { lakeHeightfield, FLAT } from './world/heightfield'
 import { createTerrain, terrainSurface } from './world/terrain'
 import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
@@ -198,6 +198,12 @@ world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds
 const grass = createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind)
 grass.object.layers.set(NO_REFLECT)
 world.add(grass)
+// the geese's flat: a grazed lawn a few centimetres tall, so their feet and bills show in it; out of the mirror, as the
+// near grass is, since a sward this short barely shows in it
+const lawnPoints = scatterInBand(heightfield, { minY: 0.02, maxY: 0.4, bounds: [FLAT.x[0], FLAT.x[1], FLAT.z[0], FLAT.z[1]], count: 9000, seed: 14 })
+const lawn = createGrass(lawnPoints.filter(p => (heightfield.lawn?.(p.x, p.z) ?? 0) > 0.5), world.wind, { height: 0.06, width: 0.012 })
+lawn.object.layers.set(NO_REFLECT)
+world.add(lawn)
 
 world.add(createTreeLine(heightfield, world.palette))
 for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
