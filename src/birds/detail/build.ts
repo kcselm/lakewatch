@@ -4,8 +4,8 @@ import type { SpeciesSpec } from '../spec'
 import { createProfile, type Profile } from './profile'
 import { Mesher } from './mesher'
 import { buildLoft, RADIAL, type LoftResult } from './loft'
-import { buildBill, buildEyes, buildShield, type BillResult } from './bill'
-import { buildFoldedWings, buildSpreadWings, shoulderAt } from './wing'
+import { buildBill, buildEyes, buildPouch, buildShield, type BillResult } from './bill'
+import { buildFoldedWings, buildSpreadWings, buildFlightWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
 import { createBones, chainBones, type Joints, type NeckBone } from './rig'
@@ -52,6 +52,10 @@ export interface Anatomy {
   closed: { name: string; indexFirst: number; indexCount: number }[]
   /** a frontal shield's midline: where it leaves the top of the bill's base, and its top; null without one */
   shield: { base: THREE.Vector3; top: THREE.Vector3 } | null
+  /** a pouch under the bill: its vertices in the mesh's geometry; null without one */
+  pouch: { first: number; count: number } | null
+  /** a flight wing: both wings' vertices in the mesh's geometry, and the right wing's wrist and tip at rest; null without one */
+  flightWing: { first: number; count: number; wrist: THREE.Vector3; tip: THREE.Vector3 } | null
   /** the version-only parts: where each leaves the body and its highest point, at rest, and whether this bird shows it */
   parts: { kind: string; base: THREE.Vector3; top: THREE.Vector3; shown: boolean }[]
 }
@@ -61,6 +65,9 @@ export interface DetailedBirdModel extends BirdModel {
   anatomy: Anatomy
   profile: Profile
   layout: LegLayout
+  spec: SpeciesSpec
+  /** what it shares with every bird of its species; a twin is built from it */
+  built: Built
 }
 
 /** bone scale that hides a part: a skinned mesh cannot hide a piece of itself */
@@ -68,13 +75,18 @@ const HIDDEN = 1e-4
 /** how far a swimmer's leg swings each way in a paddle stroke, radians: the tibia about the hip, the tarsus about the joint */
 const PADDLE_SWING = 0.5
 
-export function buildDetailedBird(spec: SpeciesSpec, variant?: string): DetailedBirdModel {
+/**
+ * What every bird of a species shares, whatever its version: its mesh, where its joints sit, and its anatomy at rest.
+ * A version-only part is built on every bird, and each bird's own bones show or hide it.
+ */
+export interface Built { profile: Profile; layout: LegLayout; geometry: THREE.BufferGeometry; joints: Joints; anatomy: Anatomy }
+
+function construct(spec: SpeciesSpec): Built {
   const detail = spec.detail
   if (!detail) throw new Error(`${spec.code}: no detail block`)
   const swimming = spec.posture === 'swimming'
   if (!swimming && spec.posture !== 'standing') throw new Error(`${spec.code}: the detailed builder builds standing and swimming birds only (posture ${spec.posture})`)
   if (swimming && !detail.float) throw new Error(`${spec.code}: a swimming bird needs detail.float, its waterline`)
-  if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
   const profile = createProfile(detail.profile)
   const layout = legLayout(detail, profile, swimming)
 
@@ -83,17 +95,16 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const loft: LoftResult = buildLoft(m, profile, detail.rig, tailless)
   const bill: BillResult = buildBill(m, detail, profile)
   const shield = buildShield(m, detail, profile)
+  const pouch = buildPouch(m, detail, profile)
   buildEyes(m, detail, profile)
   const fold = buildFoldedWings(m, detail)
   const shoulder = shoulderAt(detail, profile)
-  buildSpreadWings(m, detail, shoulder)
+  const flightWing = detail.flight ? buildFlightWings(m, detail, shoulder) : null
+  if (!flightWing) buildSpreadWings(m, detail, shoulder)
   const tail = buildTail(m, detail, profile)
   const feet = buildLegs(m, layout, { kind: detail.feet, lobeWidth: detail.lobeWidth })
-  // built on every bird of the species; shown only on the versions that have them
-  const extras = (detail.parts ?? []).map(p => ({
-    ...(p.kind === 'curl' ? buildCurl(m, p, profile) : buildPlume(m, p, profile)),
-    shown: !!variant && p.versions.includes(variant),
-  }))
+  // built on every bird of the species; each bird shows only the ones its version has
+  const extras = (detail.parts ?? []).map(p => (p.kind === 'curl' ? buildCurl(m, p, profile) : buildPlume(m, p, profile)))
   const extra = (kind: string) => extras.find(e => e.kind === kind)
 
   // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Swimming: the traced waterline on
@@ -138,32 +149,14 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     bill: at(bill.base), tail: at(tail.root),
     wingFoldR: at(fold.wrist), wingFoldL: mirror(at(fold.wrist)),
     wingR: at(shoulder), wingL: mirror(at(shoulder)),
+    // without a flight wing the hands sit on the shoulders, with no length and no skin
+    handR: at(flightWing?.wrist ?? shoulder), handL: mirror(at(flightWing?.wrist ?? shoulder)),
     tibiaR: hipR, tarsusR: kneeR, toesR: footR,
     tibiaL: mirror(hipR), tarsusL: mirror(kneeR), toesL: mirror(footR),
     curl: extra('curl') ? at(extra('curl')!.base) : pivot.clone(),
     plume: extra('plume') ? at(extra('plume')!.base) : spineAt(detail.rig.head),
     ...neckJoints,
   }
-  const { bones, list } = createBones(joints)
-
-  const geometry = m.geometry()
-  const mesh = new THREE.SkinnedMesh(geometry, materialFor(spec, variant))
-  mesh.name = 'skin'
-  mesh.castShadow = true
-  const group = new THREE.Group()
-  group.name = `bird:${spec.code}${variant ? ':' + variant : ''}`
-  group.add(bones.root, mesh)
-  group.updateMatrixWorld(true)
-  mesh.bind(new THREE.Skeleton(list))
-  // a version-only part stays hidden on the versions without it (set after binding, so the bind pose is the whole bird)
-  bones.curl.scale.setScalar(extra('curl')?.shown ? 1 : HIDDEN)
-  bones.plume.scale.setScalar(extra('plume')?.shown ? 1 : HIDDEN)
-
-  const parts: BirdParts = {
-    body: bones.body, neck: bones.neck, head: bones.head, bill: bones.bill,
-    wingL: bones.wingL, wingR: bones.wingR, tail: bones.tail, legs: bones.legs,
-  }
-
   const headStart = profile.uOf('occiput')
   const neckStart = profile.uOf(detail.rig.neckBase), neckY = spineAt(detail.rig.neckBase).y
   const headVerts: THREE.Vector3[] = []
@@ -194,12 +187,54 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
       { name: 'loft', indexFirst: loft.indexFirst, indexCount: loft.indexCount },
       { name: 'bill', indexFirst: bill.indexFirst, indexCount: bill.indexCount },
       ...(shield ? [{ name: 'shield', indexFirst: shield.indexFirst, indexCount: shield.indexCount }] : []),
+      ...(pouch ? [{ name: 'pouch', indexFirst: pouch.indexFirst, indexCount: pouch.indexCount }] : []),
       ...feet,
       ...extras.map(e => ({ name: e.kind, indexFirst: e.indexFirst, indexCount: e.indexCount })),
     ],
     shield: shield && { base: at(shield.base), top: at(shield.top) },
-    parts: extras.map(e => ({ kind: e.kind, base: at(e.base), top: at(e.top), shown: e.shown })),
+    pouch: pouch && { first: pouch.first, count: pouch.count },
+    flightWing: flightWing && { first: flightWing.first, count: flightWing.count, wrist: at(flightWing.wrist), tip: at(flightWing.tip) },
+    parts: extras.map(e => ({ kind: e.kind, base: at(e.base), top: at(e.top), shown: false })),
   }
+  return { profile, layout, geometry: m.geometry(), joints, anatomy }
+}
+
+/**
+ * A detailed bird of a species, in one of its versions. With a `twin` (another bird of the same species, of any
+ * version), it shares the twin's mesh and builds only its own bones: a flock's birds cost one mesh between them.
+ */
+export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: DetailedBirdModel): DetailedBirdModel {
+  const detail = spec.detail
+  if (!detail) throw new Error(`${spec.code}: no detail block`)
+  if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
+  if (twin && twin.spec !== spec) throw new Error(`${spec.code}: a twin must be a bird of the same species`)
+  const built = twin ? twin.built : construct(spec)
+  const { profile, layout, geometry, joints } = built
+  const swimming = spec.posture === 'swimming'
+  const shown = (kind: string) => !!variant && !!detail.parts?.find(p => p.kind === kind)?.versions.includes(variant)
+  const anatomy: Anatomy = { ...built.anatomy, parts: built.anatomy.parts.map(e => ({ ...e, shown: shown(e.kind) })) }
+  const { pouch, flightWing } = anatomy
+  const chainNames = detail.rig.neck ? chainBones(detail.rig.neck.length) : null
+  const hipR = anatomy.hip, kneeR = anatomy.knee, footR = anatomy.foot
+  const { bones, list } = createBones(joints)
+
+  const mesh = new THREE.SkinnedMesh(geometry, materialFor(spec, variant))
+  mesh.name = 'skin'
+  mesh.castShadow = true
+  const group = new THREE.Group()
+  group.name = `bird:${spec.code}${variant ? ':' + variant : ''}`
+  group.add(bones.root, mesh)
+  group.updateMatrixWorld(true)
+  mesh.bind(new THREE.Skeleton(list))
+  // a version-only part stays hidden on the versions without it (set after binding, so the bind pose is the whole bird)
+  bones.curl.scale.setScalar(shown('curl') ? 1 : HIDDEN)
+  bones.plume.scale.setScalar(shown('plume') ? 1 : HIDDEN)
+
+  const parts: BirdParts = {
+    body: bones.body, neck: bones.neck, head: bones.head, bill: bones.bill,
+    wingL: bones.wingL, wingR: bones.wingR, tail: bones.tail, legs: bones.legs,
+  }
+
 
   // rest angles of each leg, for turning IK solutions into bone rotations
   const hip2 = { x: hipR.x, y: hipR.y }
@@ -216,9 +251,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   const bodyLength = profile.length
   // for the reach: the bill tip from the head joint (the head bone carries no rotation at rest), and that line's
   // angle off the bill's own
-  const headToTip = at(bill.tip).sub(joints.head)
+  const headToTip = anatomy.billTip.clone().sub(joints.head)
   const tipReach = Math.hypot(headToTip.x, headToTip.y)
-  const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(bill.dir.y, bill.dir.x)
+  const tipOffAxis = Math.atan2(headToTip.y, headToTip.x) - Math.atan2(anatomy.billDir.y, anatomy.billDir.x)
   // a reach aims the bill tip below the ground by the species' probeDepth and the pose's reachDepth; the solvers aim at
   // y = 0, so they work in a frame raised by it
   const probeDepth = detail.probeDepth ?? 0
@@ -335,6 +370,22 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     if (reach > 0) reachDown(smooth(reach), probeDepth + st.reachDepth, THREE.MathUtils.clamp(st.reachAngle, 0, Math.PI / 2))
   }
 
+  /**
+   * A flight wing through its beat: the inner wing swings about the shoulder either side of its lift, and the hand
+   * about the wrist, behind it by its lag. A glide holds both still at the glide's angles. Positive angles are up.
+   */
+  function flyWings(st: PoseState, spread: number) {
+    const F = detail!.flight!
+    const glide = THREE.MathUtils.clamp(st.glide, 0, 1)
+    const phase = st.wingPhase * Math.PI * 2
+    const beatS = F.beat.lift + F.beat.shoulder * Math.sin(phase)
+    const beatH = F.beat.hand * Math.sin(phase - F.beat.lag * Math.PI * 2)
+    const shoulder = THREE.MathUtils.degToRad(beatS + (F.glide.shoulder - beatS) * glide) * spread
+    const hand = THREE.MathUtils.degToRad(beatH + (F.glide.hand - beatH) * glide) * spread
+    bones.wingL.rotation.x = shoulder; bones.wingR.rotation.x = -shoulder
+    bones.handL.rotation.x = hand; bones.handR.rotation.x = -hand
+  }
+
   function pose(st: PoseState) {
     // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
     bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
@@ -342,6 +393,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     else poseNeck(st)
     // positive raises the bill: the head turns last, after the neck's shape and any reach
     bones.head.rotation.z += st.headPitch
+    // a pouch fills toward its full outline: the geometry's one morph target
+    if (pouch) mesh.morphTargetInfluences![0] = THREE.MathUtils.clamp(st.pouch, 0, 1)
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
     bones.tail.rotation.z = -st.tailTilt
     // wings: folded shell at rest, the spread planform once the wings open
@@ -349,9 +402,12 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
     const open = spread > 0.05
     for (const b of [bones.wingFoldL, bones.wingFoldR]) b.scale.setScalar(open ? HIDDEN : 1)
     for (const b of [bones.wingL, bones.wingR]) b.scale.setScalar(open ? 1 : HIDDEN)
-    const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * spread
-    bones.wingL.rotation.x = flap
-    bones.wingR.rotation.x = -flap
+    if (flightWing) flyWings(st, spread)
+    else {
+      const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * spread
+      bones.wingL.rotation.x = flap
+      bones.wingR.rotation.x = -flap
+    }
     // legs
     if (swimming) { paddleLegs(st); return }
     if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
@@ -369,8 +425,9 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   mesh.boundingSphere!.radius *= 1.3            // poses reach a little past the rest bounds
 
   return {
-    group, parts, pose, center, mesh, anatomy, profile, layout,
+    group, parts, pose, center, mesh, anatomy, profile, layout, spec, built,
     radius: Math.max(size.x, size.y) * 0.5,
-    dispose() { geometry.dispose() },
+    // a twin's mesh is its twin's to dispose of
+    dispose() { if (!twin) geometry.dispose() },
   }
 }

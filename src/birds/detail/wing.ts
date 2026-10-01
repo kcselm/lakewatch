@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { createProfile, type Profile, type ProfileSample } from './profile'
 import type { DetailSpec } from './spec'
-import { Mesher } from './mesher'
+import { Mesher, type Weights } from './mesher'
 import { buildLoft, loftWeights, RADIAL, RINGS, type LoftRig } from './loft'
 
 /**
@@ -573,9 +573,12 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
   return { wrist: at[k(0, 0)]!.clone(), tip: at[k(FOLD_S - 1, 0)]!.clone(), low }
 }
 
-/** Right shoulder joint for the spread wing (profile frame): above the flank, just behind the wrist. */
+/**
+ * Right shoulder joint for the spread wing (profile frame): above the flank, just behind the wrist, or where a flight
+ * wing's `rootX` puts it.
+ */
 export function shoulderAt(detail: DetailSpec, profile: Profile): THREE.Vector3 {
-  const best = nearestBodySample(profile, detail.wing.wrist[0])
+  const best = nearestBodySample(profile, detail.flight?.rootX ?? detail.wing.wrist[0])
   return new THREE.Vector3(best.point.x, best.point.y + best.up * 0.5, best.halfWidth * 0.8)
 }
 
@@ -614,4 +617,89 @@ export function buildSpreadWings(m: Mesher, detail: DetailSpec, shoulder: THREE.
       }
     }
   }
+}
+
+/** a flight wing's grid: columns along the span (besides one at each of its outline's points), and points across the chord */
+const FLIGHT_S = 24
+const FLIGHT_T = 6
+/** the inner wing hands the skin over to the hand across this much of the span, either side of the wrist */
+export const WRIST_BLEND = 0.06
+
+export type FlightSpec = NonNullable<DetailSpec['flight']>
+
+/** A flight wing's leading and trailing edges at s along the span, metres ahead of the shoulder: its outline, linear between points. */
+export function flightEdges(flight: FlightSpec, s: number): { lead: number; trail: number } {
+  const o = flight.outline
+  if (s <= o[0]![0]) return { lead: o[0]![1], trail: o[0]![2] }
+  for (let i = 1; i < o.length; i++) {
+    const [s1, l1, t1] = o[i]!, [s0, l0, t0] = o[i - 1]!
+    if (s <= s1) { const k = (s - s0) / (s1 - s0); return { lead: l0 + (l1 - l0) * k, trail: t0 + (t1 - t0) * k } }
+  }
+  const last = o[o.length - 1]!
+  return { lead: last[1], trail: last[2] }
+}
+
+/**
+ * Where the chord's points sit at s, as fractions of the chord from the leading edge (0) to the trailing (1), in
+ * strips of two: without fingers, FLIGHT_T - 1 strips edge to edge; with them, one strip a feather, edge to edge up to
+ * `from`, and from there out drawing apart, until at the tip each keeps `fill` of its share of the chord.
+ */
+export function chordStrips(flight: FlightSpec, s: number): [number, number][] {
+  const f = flight.fingers
+  if (!f) return Array.from({ length: FLIGHT_T - 1 }, (_, k) => [k / (FLIGHT_T - 1), (k + 1) / (FLIGHT_T - 1)] as [number, number])
+  const gap = s <= f.from ? 0 : (1 - f.fill) * ((s - f.from) / (1 - f.from))
+  return Array.from({ length: f.count }, (_, k) => [(k + gap / 2) / f.count, (k + 1 - gap / 2) / f.count] as [number, number])
+}
+
+export interface FlightWingResult {
+  /** the right wing's wrist joint and tip, profile frame */
+  wrist: THREE.Vector3
+  tip: THREE.Vector3
+  /** the wings' vertices, in the geometry */
+  first: number
+  count: number
+}
+
+/**
+ * Wings to fly on (`detail.flight`), in place of the plain spread wing: the species' own planform in the shoulder's
+ * horizontal plane, out along +-z, as strips from the leading edge to the trailing (so a fingered tip can part), the
+ * upper face on 'wingSpread' and the under face on 'wingUnder'. The inner wing is on the wing bone and the hand on the
+ * hand bone, the skin handing over across the wrist.
+ */
+export function buildFlightWings(m: Mesher, detail: DetailSpec, shoulder: THREE.Vector3): FlightWingResult {
+  const F = detail.flight!
+  const first = m.count
+  const even = Array.from({ length: FLIGHT_S }, (_, i) => i / (FLIGHT_S - 1))
+  const marks = [...F.outline.map(([s]) => s), F.wrist - WRIST_BLEND, F.wrist, F.wrist + WRIST_BLEND, ...(F.fingers ? [F.fingers.from] : [])]
+  const all = [...even, ...marks.filter(s => s > 0 && s < 1)].sort((a, b) => a - b)
+  const ss = all.filter((s, i) => i === 0 || s - all[i - 1]! > 1e-6)
+  for (const side of [1, -1] as const) {
+    const wing = side > 0 ? 'wingR' : 'wingL', hand = side > 0 ? 'handR' : 'handL'
+    const weights = (s: number): Weights => {
+      const w = THREE.MathUtils.clamp((s - (F.wrist - WRIST_BLEND)) / (2 * WRIST_BLEND), 0, 1)
+      return w <= 0 ? [[wing, 1]] : w >= 1 ? [[hand, 1]] : [[wing, 1 - w], [hand, w]]
+    }
+    for (const face of ['wingSpread', 'wingUnder'] as const) {
+      const dy = face === 'wingSpread' ? 0.0003 : -0.0003
+      const up = face === 'wingSpread'
+      // each strip's two edges, column by column along the span
+      let before: number[][] | null = null
+      for (const s of ss) {
+        const { lead, trail } = flightEdges(F, s)
+        const column = chordStrips(F, s).map(edges => edges.map(t =>
+          m.vertex(new THREE.Vector3(shoulder.x + lead + (trail - lead) * t, shoulder.y + dy, side * (shoulder.z + s * F.span)), face, s, t, weights(s))))
+        if (before) {
+          column.forEach(([a, b], k) => {
+            const [a0, b0] = before![k]!
+            // s runs out along +-z, t runs back: the winding that faces up for the upper face, down for the under
+            if ((side > 0) === up) m.quad(a0!, b0!, b!, a!)
+            else m.quad(a0!, a!, b!, b0!)
+          })
+        }
+        before = column
+      }
+    }
+  }
+  const at = (s: number) => { const e = flightEdges(F, s); return new THREE.Vector3(shoulder.x + (e.lead + e.trail) / 2, shoulder.y, shoulder.z + s * F.span) }
+  return { wrist: at(F.wrist), tip: at(1), first, count: m.count - first }
 }

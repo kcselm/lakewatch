@@ -3,9 +3,9 @@ import { ATLAS_SIZE, PAD, REGIONS, pixelST } from './atlas'
 import { compileLayer, hashString, hexRGB, pointMm, skinSpan, type Frame, type Out, type Px, type RGB } from './layers'
 import { createProfile, type Profile } from '../detail/profile'
 import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
-import { SPAN, ROOT_CHORD, outlineAt } from '../detail/wing'
+import { SPAN, ROOT_CHORD, outlineAt, flightEdges } from '../detail/wing'
 import { ROOT_WIDTH, TIP_SPREAD } from '../detail/tail'
-import { billScale } from '../detail/bill'
+import { billScale, pouchFrame } from '../detail/bill'
 import { CURL_LENGTH, CURL_RADIUS, PLUME_RADIUS } from '../detail/extras'
 import type { SpeciesSpec } from '../spec'
 
@@ -26,7 +26,11 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     return v
   }
   const flat = (lengthMm: number, widthMm: (s: number) => number): Frame => ({ lengthMm, widthMm, uOf: noLabels })
-  const spread = flat(SPAN * m.wingChord * 1000, s => ROOT_CHORD * m.wingChord * 1000 * (1 - 0.85 * s ** 1.3))
+  const F = detail.flight
+  // a flight wing's own span and chord; else the plain spread wing's
+  const spread = F
+    ? flat(F.span * 1000, s => { const e = flightEdges(F, s); return Math.max((e.lead - e.trail) * 1000, 0.01) })
+    : flat(SPAN * m.wingChord * 1000, s => ROOT_CHORD * m.wingChord * 1000 * (1 - 0.85 * s ** 1.3))
   const tailRoot = profile.sampleAt(profile.uOf(detail.rig.tailBase)).halfWidth * 2 * ROOT_WIDTH * 1000
   const tail = flat(m.tail * 1000, s => tailRoot * (1 + (TIP_SPREAD - 1) * s))
   const curl = detail.parts?.find(p => p.kind === 'curl'), plume = detail.parts?.find(p => p.kind === 'plume')
@@ -47,6 +51,7 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     shield: detail.bill.shield ? flat(detail.bill.shield.length * 1000, () => detail.bill.shield!.width * 1000) : flat(1, () => 1),
     curl: flat(CURL_LENGTH * (curl?.height ?? 0.001) * 1000, () => 2 * Math.PI * CURL_RADIUS * 1000),
     plume: flat((plume?.length ?? 0.001) * 1000, () => 2 * Math.PI * PLUME_RADIUS * 1000),
+    pouch: detail.bill.pouch ? flat(pouchFrame(detail).lengthMm, pouchFrame(detail).widthMm) : flat(1, () => 1),
   }
 }
 

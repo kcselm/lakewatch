@@ -5,7 +5,7 @@ const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -30,7 +30,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -107,6 +107,13 @@ export const detailSchema = z.object({
      * `width` across, standing `thickness` off the head at its middle, all metres. Painted as its own part, 'shield'.
      */
     shield: z.object({ length: pos, width: pos, thickness: pos }).optional(),
+    /**
+     * A pouch hanging under the bill (a pelican's): its lower outline as [s, rest, full], s a fraction of the culmen
+     * from the base (0) to the tip (1), negative behind the base, under the throat; `rest` and `full` how far below
+     * the bill's axis it hangs there, metres, slack and filled. Linear between points; it begins at the first and
+     * ends at the last. PoseState.pouch fills it. Painted as its own part, 'pouch': s along it, t across.
+     */
+    pouch: z.array(z.tuple([z.number().min(-0.6).max(1), z.number().min(0), z.number().min(0)])).min(3).optional(),
   }),
   eye: z.object({
     radius: pos, t: unit, iris: hex,
@@ -152,6 +159,29 @@ export const detailSchema = z.object({
    * bird in the reference photo. The builder puts it at y = 0. Required for a species whose posture is 'swimming'.
    */
   float: z.object({ waterline: z.number() }).optional(),
+  /**
+   * A wing to fly on, in place of the plain spread wing: its own planform, and a wrist it bends at.
+   * - `span`: shoulder to wingtip, metres. `rootX`: where the shoulder sits along the body, metres in the traced side
+   *   view (unset: just behind the folded wing's wrist, as the plain wing's).
+   * - `outline`: [s, lead, trail], s a fraction of the span from the shoulder (0) to the tip (1); the leading and
+   *   trailing edges there, metres ahead of the shoulder (behind it: negative). Linear between points.
+   * - `wrist`: where the wing bends, a fraction of the span. The inner wing turns at the shoulder, the hand at the wrist.
+   * - `fingers`: separated primaries at the tip: from `from` of the span outward the wing parts into `count` feathers,
+   *   the slots between them opening until, at the tip, each feather keeps `fill` of its share of the chord.
+   * - `beat`: a wingbeat, degrees: the inner wing swings `shoulder` either side of `lift` (positive: up), the hand
+   *   `hand` either side of the inner wing's line, `lag` of a beat behind it.
+   * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's.
+   * Painted as 'wingSpread' above and 'wingUnder' below: s along the span, t from the leading edge (0) to the trailing.
+   */
+  flight: z.object({
+    span: pos,
+    rootX: z.number().optional(),
+    outline: z.array(z.tuple([unit, z.number(), z.number()])).min(3),
+    wrist: z.number().min(0.2).max(0.8),
+    fingers: z.object({ count: z.number().int().min(2).max(8), from: z.number().min(0.5).max(0.95), fill: z.number().min(0.3).max(0.95) }).optional(),
+    beat: z.object({ shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit }),
+    glide: z.object({ shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45) }),
+  }).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
   sources: z.array(z.string().min(1)).min(1),
@@ -159,6 +189,17 @@ export const detailSchema = z.object({
   if (d.bill.taper === undefined && !d.bill.profile) ctx.addIssue({ code: 'custom', message: 'a bill needs a taper or a profile', path: ['bill'] })
   d.bill.profile?.forEach(([s], i, list) => {
     if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'bill profile points must run from base to tip', path: ['bill', 'profile', i] })
+  })
+  d.flight?.outline.forEach(([s, lead, trail], i, list) => {
+    if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'flight outline points must run from the shoulder to the tip', path: ['flight', 'outline', i] })
+    if (trail > lead) ctx.addIssue({ code: 'custom', message: "the wing's trailing edge lies behind its leading edge", path: ['flight', 'outline', i] })
+  })
+  if (d.flight && (d.flight.outline[0]![0] !== 0 || d.flight.outline.at(-1)![0] !== 1)) {
+    ctx.addIssue({ code: 'custom', message: 'the flight outline runs from s = 0 to s = 1', path: ['flight', 'outline'] })
+  }
+  d.bill.pouch?.forEach(([s, rest, full], i, list) => {
+    if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'pouch points must run from the throat to the tip', path: ['bill', 'pouch', i] })
+    if (full < rest) ctx.addIssue({ code: 'custom', message: 'a full pouch hangs no higher than a slack one', path: ['bill', 'pouch', i] })
   })
   const labels = new Set(d.profile.flatMap(s => (s.label ? [s.label] : [])))
   const need = (label: string, path: (string | number)[]) => {
