@@ -1,8 +1,9 @@
 # Belted Kingfisher: design spec
 
 Date: 2026-09-30
-Status: draft for review
-Builds on: `2026-09-30-water-design.md` (rings sized by what made them, the
+Status: approved; amended after the research and the pelican round's merge
+Builds on: `2026-09-30-pelican-design.md` (the flight wing: `detail.flight`,
+the hand bones, the beat, `glide`), `2026-09-30-water-design.md` (rings sized by what made them, the
 water's clarity), `2026-09-27-herons-design.md` (the head-hung part,
 `headPitch`, the style's settings table, spacing handed out by the spawner),
 `2026-09-26-swimmers-design.md` (per-version cast counts, the ring budget), and
@@ -19,7 +20,9 @@ kingfisher is what a birder listens for on a valley lake in autumn. The rattle
 comes first, then a blue-grey bird low over the water, then the hover and the
 plunge.
 
-This round makes it a detailed bird, and the first detailed bird that flies:
+This round makes it a detailed bird. The pelican round gave the builder a wing
+to fly on, for a flock crossing the sky. The kingfisher is the first detailed
+bird to take off, hover, and fold its wings again in the scene:
 
 - **The bird:** a big head with a shaggy double crest, a heavy dagger bill,
   blue-grey above, a white collar, a blue-grey breast band, and on the female a
@@ -56,12 +59,13 @@ In scope:
   and painted, in the plumage versions late September calls for.
 - **A perched posture** in the detailed builder: a detailed bird standing on a
   perch, its toes gripping it.
-- **A detailed spread wing:** a traced planform, painted above and below,
-  jointed at the shoulder, elbow, and wrist, with a wingbeat cycle that has a
-  flapping stroke and a hovering stroke. A fold and unfold that doesn't pop
-  against the folded wing. A tail that fans.
-- `PoseState` gains a head turn (`headYaw`), a stroke blend, tail fan, crest
-  raise, and a held fish. Each defaults to a value that changes no existing pose.
+- **The pelican's flight wing, extended:** the kingfisher's traced planform on
+  `detail.flight`, a hovering stroke beside the pelican's flapping beat, a
+  fold and unfold that doesn't pop against the folded wing, and a tail that
+  fans.
+- `PoseState` gains a head turn (`headYaw`), a stroke blend (`wingStroke`), a
+  wing sweep for the fold, tail fan, crest raise, and a held fish. Each defaults
+  to a value that changes no existing pose.
 - A crest: a head-hung part, raised and lowered.
 - A fish prop, held in the bill after a catch.
 - The `hover` behaviour becomes a `kingfisher` behaviour: perching, perch
@@ -78,8 +82,9 @@ In scope:
 
 Out of scope:
 
-- Flight for any other detailed bird. The geese and pelicans stay block
-  flyovers, and the herons and swimmers don't fly or flap.
+- Flight for any other detailed bird. The pelicans keep their flock as built,
+  the geese stay block flyovers, and the herons and swimmers don't fly or flap.
+  The hovering stroke and the fold are there for them to take up later.
 - Spray for the grebe's dive, the coot's jump-dive, or the heron's strike.
 - The bird under the water beyond a brief disappearance: no underwater swimming
   shown, no bubbles.
@@ -95,6 +100,7 @@ Out of scope:
 | Decision | Choice |
 |---|---|
 | Flight | A real detailed spread wing, traced and painted, bending at the wrist, with flapping and hovering strokes, built general and proven on the kingfisher. Improving today's flat sheet (a paddle in the telescope) and a perch-only round were rejected |
+| The pelican's wing | Built on, not beside. The pelican round landed first with `detail.flight` (planform, wrist, fingers, beat, glide) and two bones a side. The kingfisher adds to it rather than making a second wing (decided after the pelican round merged) |
 | Perches | The snag and two or three more around the shore, with low flights between them. The snag alone was rejected |
 | Nearest perch | Binocular range, 30–35 m. The research finds that honest for a still person, and 25 m at the edge. The far perches are at telescope distance |
 | Pace | About 4 times the real rates, said so in the settings table. Real birds sit 6–16 minutes a perch and plunge 0.7–3 times an hour, so a player would wait 20–60 minutes for a plunge. The game's bird sits 1–4 minutes and plunges 10–15 times an hour |
@@ -203,68 +209,98 @@ perch.
 
 ## The spread wing
 
+The pelican round built the flight wing this extends (`2026-09-30-pelican-design.md`,
+"The flight wing", and `src/birds/detail/wing.ts`, `buildFlightWings`):
+
+- `detail.flight` gives the planform: `span`, an `outline` of leading and
+  trailing edges from the shoulder (`s` = 0) to the tip (`s` = 1), the `wrist`,
+  and optional `fingers`.
+- Two bones a side: `wingR`/`wingL` at the shoulder carry the inner wing, and
+  `handR`/`handL` at the wrist carry the hand, the skin handing over across the
+  wrist.
+- `beat` drives both bones through `wingPhase`: the inner wing swings up and
+  down about its `lift` by its `shoulder` amplitude, and the hand follows it by
+  `hand`, its `lag` behind. `PoseState.glide` eases both to the `glide` angles.
+- The folded shell and the spread wing still swap at `wingSpread` 0.05.
+
+The pelican's wing only flaps up and down, at one stroke, opened all at once. The
+kingfisher needs it to hover and to fold. Every addition below is optional in
+`detail.flight`, and a flight wing without it, the pelican's, builds and poses
+exactly as it does now.
+
 ### Planform and paint
 
-- A species with flight gives a `wing` block in its `detail`: the planform
-  traced from a top-down spread-wing photo, as a set of stations along the span
-  (the chord's leading and trailing edges at each), with the wrist's station
-  named.
-- The upper and under faces get their own atlas regions and field-mark layers,
-  such as the kingfisher's white patch at the primaries' bases and its barred
-  flight feathers.
-- The trailing edge of the hand is notched where the primaries' tips separate,
-  as the research traces it.
-- A species without a `wing` block keeps today's generic planform and its
-  prints.
+- The kingfisher's `flight` block is traced top-down from a spread-wing photo:
+  a 0.53 m span, a half-span of 1.47 × the wing chord, the wrist at 0.37 of
+  it, and the outer four or five primaries as `fingers`.
+- The upper and under faces paint, on the `wingSpread` and `wingUnder` parts,
+  the white patch at the primaries' bases (0.64–0.88 of the half-span), the
+  barred flight feathers, and the underwing coverts: white on the male, rusty
+  on the female. The plan checks that the regions have enough pixels along the
+  span for the patch and bars, as the pelican plan did, and enlarges them only
+  if not.
 
-### Joints and the stroke
+### The hovering stroke
 
-- The spread wing is skinned to three bones per side, the arm, forearm, and
-  hand, with weights handing off across the elbow and the wrist as the neck's
-  do.
-- `wingPhase` runs the cycle as today. A new `PoseState.wingStroke` blends
-  between two strokes: 0 = flapping flight, 1 = hovering. Each is a table of
-  joint angles over the cycle, from the research. In the flapping stroke the
-  hand folds at the wrist on the upstroke. In the hovering stroke the stroke
-  plane tips toward horizontal and the amplitude grows to about 120°.
+- `detail.flight.hover`, with the shape of `beat` plus a sweep: a second stroke,
+  of larger amplitude (about 120° in all), its hand bent less, and the wing
+  sweeping forward on the downstroke and back on the upstroke, about the
+  shoulder's vertical axis.
+- `PoseState.wingStroke`, 0 = `beat`, 1 = `hover`, default 0, blends the two.
+  The body's tilt (50–60° up, set by the behaviour through `lean`) tips the
+  stroke plane toward horizontal, so the stroke itself needs no stroke-plane
+  angle.
 - **The glide:** flapping flight comes in bouts of 5–6 beats, then a short
-  glide on half-closed wings. The glide is a held pose, not a third stroke: the
-  behaviour holds `wingPhase` at the stroke's glide point and eases
-  `wingSpread` to about half.
+  glide on half-closed wings: the pelican's `glide`, with the kingfisher's own
+  angles and a partial sweep back.
 - **Frequencies:** about 7 Hz flapping and 8.5–9 Hz hovering, the hover's beat
-  falling as the wind rises (8.5 Hz in the scene's 2.8 m/s). Each is capped at
-  the frame rate ÷ 6, so a beat never has fewer than six frames and doesn't
-  alias into flicker when the frame rate dips.
-- `wingSpread` still runs 0 folded to 1 spread. Between them the elbow and
-  wrist close, so the spread wing folds toward the body.
+  falling as the wind rises (8.5 Hz in the scene's 2.8 m/s). The behaviour
+  caps each at the frame rate ÷ 6, so a beat never has fewer than six frames
+  and doesn't alias into flicker when the frame rate dips.
 
 ### Folding onto the body
 
-Today the spread wing swaps for the folded shell as soon as `wingSpread` passes
-0.05, and the swap pops.
+The swap at `wingSpread` 0.05 pops: at 0.05 the spread wing is still nearly
+spread, scaled down to its root.
 
-- The spread wing closes to lie along the folded wing's place, and the swap
-  happens where the two nearly coincide.
+- `detail.flight.fold` gives the sweep of each bone, in degrees about the
+  vertical axis, that lays the spread wing along the folded wing's place: the
+  inner wing swept back, the hand swept back further over it.
+- As `wingSpread` falls from 1 to 0, a bird with `fold` sweeps its wings
+  through it, and the swap comes at the end of the sweep, where the two nearly
+  coincide. Without `fold`, the swap stays at 0.05.
+- The pelican's two bones may not be able to fold the wing that tightly: in a
+  real fold the forearm turns forward at the elbow while the hand goes back. If
+  the swap's jump test can't pass with two, the plan adds an elbow bone, as
+  the pelican's hand bones were added, appended after every existing bone and
+  parked with no length on every bird without `fold`.
 - A test measures the largest jump of any wing vertex at the swap. It must be
-  under 1 pixel at the nearest perch through binoculars. The plan computes that
-  distance in millimetres.
+  under 1 pixel at the near perch (30 m) through binoculars. The plan computes
+  that distance in millimetres.
 
 ### The tail
 
 `PoseState.tailSpread`, 0 closed to 1 fully fanned, spreads the tail about its
-base to the research's hovering fan. At 0 nothing changes.
+base to the research's hovering fan (90–120°). At 0 nothing changes.
+
+### The legs in flight
+
+A perched bird's feet would hang under it in flight. While its wings are open,
+a perched detailed bird folds its legs up under the belly, as the pelican
+round's swimmers hide theirs, and lowers them again for the landing. The plan
+decides whether that needs a pose value of its own.
 
 ### Guards
 
-- **Lengths kept:** in every stroke and fold, each wing bone keeps its length,
-  and the planform's area changes only as the hand folds.
+- **Lengths kept:** in every stroke, sweep, and fold, each wing bone keeps its
+  length.
 - **No pass-through:** no wing vertex goes inside the body's loft anywhere in
-  either stroke, or in the fold.
+  either stroke, the glide, or the fold.
 - **Frames per beat:** at 60 fps the flapping stroke gets about 8.6 frames a
   beat and the hovering stroke about 7.1, and the cap holds every beat to at
   least six frames at any frame rate.
 - **Existing birds untouched:** every existing species' geometry and pose
-  prints are unchanged.
+  prints, the pelican's included, are unchanged.
 
 ## The head and its parts
 
@@ -378,8 +414,13 @@ list to the bird.
 - **The snag** at (22, −48), about 53 m, as now, with its branch as the perch.
 - **A near perch** 30–35 m out, a dead branch leaning out over the water
   or an old post near the shore.
-- **One or two far perches:** a branch over the far bank's water, and perhaps a
-  second on the side shore.
+- **A side-shore perch** at telescope distance, if one fits clear of the far
+  bank.
+
+The far bank's perch waits. The trees round (`2026-09-27-trees-design.md`,
+in progress in another worktree) reworks the far bank's layout and keeps the
+snag as it is. Whichever of the two rounds lands second places a perch over the
+far bank's water, against the real trees (decided after brainstorming).
 
 Each perch is a new world object built like the snag, low-poly and weathered,
 with water deep enough below it for a plunge. The research's tolerated distance
@@ -411,7 +452,7 @@ point zones.
 Traced side-on on a perch from a photo, with the crest lowered. The spread wing
 is traced top-down from a flying or hovering photo, upper and under: a span of
 0.53 m, a half-span of 1.47 × the wing chord, the wrist at 0.37 of it, and the
-outer four or five primaries separated. Today's generic planform (1.78 and
+outer four or five primaries separated. The generic spread wing, which birds without a flight block still get (1.78 and
 0.42 × the wing chord) is too long and narrow for this bird. Both sexes are
 blue-grey above with a white collar and a blue-grey breast band. The female adds
 a rusty band and flanks, and rusty underwing coverts where the male's are white.
@@ -519,8 +560,9 @@ them against the build before this round.
 1. Research: the two documents, written in parallel.
 2. The perched posture, `headYaw`, `tailSpread`, the crest part, and the fish,
    proven in the viewer on a test bird, with the builder tests.
-3. The spread wing: planform, joints, strokes, and the fold, proven on a test
-   bird, with its guards.
+3. The pelican's flight wing extended: the hovering stroke, the sweep and the
+   fold (with an elbow bone if two can't fold it), the tail fan, and the legs
+   in flight, proven on a test bird, with their guards.
 4. The perches and the `perches` zone, with the scene tests.
 5. Spray, and the call scheduler's asked-for calls.
 6. The `kingfisher` behaviour, test first.
@@ -533,7 +575,8 @@ The work runs on one branch in a worktree. The plan decides who does each task.
 
 - Flight, take-off, and landing for the herons, swimmers, and shorebirds, using
   this wing.
-- Detailed geese and pelicans on the flyovers.
+- Detailed geese on the flyovers.
+- The far bank's perch, if the trees round lands after this one.
 - Spray for the grebe's dive, the coot's jump-dive, and the heron's strike.
 - Territorial chases, a second kingfisher, and birds flushing from the player.
 - Detailed reed perchers on the perched posture.
