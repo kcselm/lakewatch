@@ -18,6 +18,7 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
+  pouch: 0, glide: 0, raise: 0, flap: false,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
@@ -118,6 +119,9 @@ function applyLook(): void {
   waterMaterial.color.set(state.float ? '#4d6a73' : '#6f8a93')
   waterMaterial.needsUpdate = true
   ground.position.y = state.float ? -1 : 0
+  // from below, the ground and the water would be all there is to see
+  ground.visible = state.view !== 'below' || !!state.field
+  if (!ground.visible) water.visible = false
   grid.visible = !state.float && ground.visible
   spine.visible = state.stations
   for (const s of slots) {
@@ -162,6 +166,7 @@ function place(): void {
   renderer.setSize(w, h)
   camera.aspect = w / h
   const mid = slots.reduce((acc, s) => acc.add(s.model.center.clone().add(s.base)), new THREE.Vector3()).multiplyScalar(1 / slots.length)
+  mid.y += state.raise
   if (field) {
     camera.fov = field.fov
     camera.position.set(mid.x, 1.6, field.distance)
@@ -170,9 +175,11 @@ function place(): void {
   } else {
     camera.fov = 20
     // back off far enough to fit both birds side by side, with room for the panel
-    const span = Math.abs(slots[0]!.base.x - slots[1]!.base.x) + 2 * Math.max(...slots.map(s => s.model.radius))
+    // spread wings reach well past the bird at rest: a flight wing's span each side, where a bird has one
+    const reach = (s: Slot) => Math.max(s.model.radius, state.spread > 0.05 ? (getSpec(s.model.group.name.split(':')[1]!).detail?.flight?.span ?? 0) * 1.1 : 0)
+    const span = Math.abs(slots[0]!.base.x - slots[1]!.base.x) + 2 * Math.max(...slots.map(reach))
     const d = (span / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5
-    const at = { side: [0, 0, d], front: [d, 0, 0], top: [0, d, 0.001], three: [d * 0.6, d * 0.3, d * 0.75] }[state.view]
+    const at = { side: [0, 0, d], front: [d, 0, 0], top: [0, d, 0.001], below: [0, -d, 0.001], three: [d * 0.6, d * 0.3, d * 0.75] }[state.view]
     camera.position.set(mid.x + at[0]!, mid.y + at[1]!, mid.z + at[2]!)
     controls.target.copy(mid)
     controls.enabled = true
@@ -261,6 +268,9 @@ const pose = group('Pose')
 const SHAPES: Record<string, Partial<ViewerState>> = {
   hunch: { neck: 0, reach: 0, pitch: 0 }, trace: { neck: 0.5, reach: 0, pitch: 0 }, erect: { neck: 1, reach: 0, pitch: 0 },
   swallow: { neck: 1, reach: 0, pitch: 0.9 }, strike: { neck: 0.5, reach: 1, lean: 0.5, pitch: 0 },
+  // a pelican's: the bill under in a dip, up again with the pouch full, and in flight with the neck folded back
+  dip: { neck: 0.5, reach: 1, lean: 0.15, pitch: 0, pouch: 0 }, full: { neck: 0.5, reach: 0, lean: 0, pitch: 0, pouch: 1 },
+  fly: { neck: 0, reach: 0, lean: 0, pitch: 0, pouch: 0, spread: 1 },
 }
 select(pose, 'neck shape', [['', '(sliders)'], ...Object.keys(SHAPES).map(k => [k, k] as [string, string])], '', v => {
   if (SHAPES[v]) { set(SHAPES[v]!); location.reload() }
@@ -271,6 +281,10 @@ slider(pose, 'lean (tip-up 1.5)', state.lean, v => set({ lean: v }), 0, 1.6, 0.0
 slider(pose, 'tail up', state.tail, v => set({ tail: v }), -0.5, 1, 0.01)
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
+check(pose, 'flap', state.flap, v => set({ flap: v }))
+slider(pose, 'glide (a flight wing)', state.glide, v => set({ glide: v }))
+slider(pose, 'raise, m', state.raise, v => set({ raise: v }), 0, 80, 1)
+slider(pose, 'pouch', state.pouch, v => set({ pouch: v }))
 slider(pose, 'reach', state.reach, v => set({ reach: v }))
 slider(pose, 'reach depth, cm (negative: above the ground)', state.depth * 100, v => set({ depth: v / 100 }), -40, 30, 0.5)
 slider(pose, 'bill angle, deg', THREE.MathUtils.radToDeg(state.angle), v => set({ angle: THREE.MathUtils.degToRad(v) }), 0, 90, 1)
@@ -306,7 +320,7 @@ group('Measurements, mm').appendChild(readout)
 // --- loop ----------------------------------------------------------------------------------------
 const labels = document.getElementById('labels')!
 const WALK_LOOP = 1.2            // metres before the walk starts over
-let stride = 0, paddlePhase = 0
+let stride = 0, paddlePhase = 0, flapPhase = 0
 let last = performance.now()
 const tmp = new THREE.Vector3()
 
@@ -316,17 +330,20 @@ function frame(): void {
   last = now
   if (state.walk) stride += state.speed * dt
   if (state.paddle > 0) paddlePhase = (paddlePhase + STROKES * dt) % 1
+  // flapping, each bird at its own species' wingbeat; the left bird's phase is the one kept
+  if (state.flap) flapPhase += dt
   const p = {
     ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
     reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
-    headPitch: state.pitch,
+    headPitch: state.pitch, pouch: state.pouch, glide: state.glide,
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
   p.lean.x = state.lean
   for (const s of slots) {
     s.model.group.position.copy(s.base)
-    s.model.group.position.y -= state.sink
+    s.model.group.position.y += state.raise - state.sink
     if (state.walk) s.model.group.position.x += stride % WALK_LOOP
+    if (state.flap) p.wingPhase = (flapPhase * getSpec(s.model.group.name.split(':')[1]!).wingbeatHz) % 1
     s.model.pose(p)
   }
   fitNear()
@@ -352,7 +369,9 @@ function frame(): void {
     const floating = m.waterlineLength > 0
       ? `\n  above water: back ${f(m.backAbove)}  crown ${f(m.crownAbove)}  tail tip ${f(m.tailTipAbove)}\n  wingtip ${f(m.wingTipAbove)}  breast ${f(m.breastFrontAbove)}  draft ${f(m.draft)}  waterline ${f(m.waterlineLength)}`
       : ''
-    const crown = `\n  crown now ${f(crownNow(s.model as DetailedBirdModel))}  at rest ${f(m.crownAbove)}`
+    const fw = (s.model as DetailedBirdModel).anatomy.flightWing
+    const flight = fw ? `\n  flight wing: tip to tip ${f(2 * fw.tip.z)}  wrist at ${f(fw.wrist.z)}` : ''
+    const crown = `\n  crown now ${f(crownNow(s.model as DetailedBirdModel))}  at rest ${f(m.crownAbove)}${flight}`
     return `${name}${crown}\n  length ${f(m.length)}  culmen ${f(m.culmen)}  head ${f(m.head)}\n  culmen/head ${(m.culmen / m.head).toFixed(2)}  culmen/tarsus ${(m.culmen / m.tarsus).toFixed(2)}\n  bill depth ${f(m.billDepth)}  tip rise ${f(m.billTipRise)}  widest ${m.billWidestAt.toFixed(2)} x${m.billWidestRatio.toFixed(2)}\n  tarsus ${f(m.tarsus)}  bare tibia ${f(m.tibia)}\n  wing ${f(m.wingChord)}  tail ${f(m.tail)}  projection ${f(m.projection)}${floating}`
   }).join('\n')
   requestAnimationFrame(frame)

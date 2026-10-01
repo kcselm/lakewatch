@@ -3,6 +3,7 @@ import { parseState, stateHash, type ViewerState } from './state'
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: 'lesyel', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
+  pouch: 0, glide: 0, raise: 0, flap: false,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 
@@ -30,6 +31,11 @@ describe('viewer state', () => {
     expect(parseState('#water=-1', DEFAULTS).water).toBe(0)
     expect(parseState('#water=1', DEFAULTS).water).toBe(0.03)
     expect(parseState('#water=0', DEFAULTS).water).toBe(0)
+  })
+  it('round-trips the pelican controls: a full pouch, a glide, the birds raised as high as a flock flies, flapping, seen from below', () => {
+    const s: ViewerState = { ...DEFAULTS, a: 'amwpel', view: 'below', field: 'bino120', spread: 1, pouch: 0.7, glide: 0.4, raise: 60, flap: true }
+    expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
+    expect(parseState('#pouch=3&glide=-1&raise=500', DEFAULTS)).toMatchObject({ pouch: 1, glide: 0, raise: 80 })
   })
   it('falls back from a species or plumage the catalog lacks', () => {
     const catalog = { has: (c: string) => ['greyel', 'lesyel', 'mallar3'].includes(c), variants: (c: string) => (c === 'mallar3' ? ['male', 'female'] : []) }
