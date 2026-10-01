@@ -56,7 +56,7 @@ describe('species specs', () => {
   })
   it('no detailed species creases its body: the spine never turns tighter than the body is deep', () => {
     for (const spec of Object.values(SPECIES)) {
-      if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig), spec.code).toBe(0)
+      if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig, spec.detail.rings), spec.code).toBe(0)
     }
   })
   it('every detailed species keeps its stance foot planted at its own step length (too long a step slides the foot)', () => {

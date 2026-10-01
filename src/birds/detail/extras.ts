@@ -7,9 +7,12 @@ import { sweep, type Mesher } from './mesher'
 const CURL_SWEEP = (5 / 3) * Math.PI
 /** the length of a curl's feather along its loop, as a multiple of its height (a circle of that diameter, CURL_SWEEP round) */
 export const CURL_LENGTH = CURL_SWEEP / 2
-/** the curled feathers' thickness (a tube's radius), and how far apart the two loops sit, metres */
-export const CURL_RADIUS = 0.0012
-const CURL_GAP = 0.0016
+/**
+ * the curled feathers' thickness (a tube's radius), and how far apart the two loops sit, metres: each covert is a
+ * broad glossy feather 3-4 mm across, so the pair reads as two black loops from 15 m, not wires
+ */
+export const CURL_RADIUS = 0.0018
+const CURL_GAP = 0.0022
 
 /** a plume strand's radius where it leaves the head, and at its tip, and the two strands' distance apart, metres */
 export const PLUME_RADIUS = 0.0015

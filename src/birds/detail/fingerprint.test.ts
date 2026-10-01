@@ -99,7 +99,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   lesyel: { geometry: '7d825b07', poses: 'b525d3d3' },          // geometry was 923592bf; poses e640b069
   pecsan: { geometry: '7973625f', poses: 'ff0f04c9' },          // were fc0011fe, 086a1105; poses bac5bab5
   lobdow: { geometry: 'fb46c144', poses: '2b3e77bf' },          // the throat retraced (Task 5); were bedf44dc, f52423c1; poses 449d38d8
-  mallar3: { geometry: '3d92faa1', poses: 'e879d30e' },         // the Mallard, detailed (Task 14); were 0e8b620c, 9e4a41a2; poses 821985c4
+  mallar3: { geometry: 'e321101a', poses: '858da476' },         // the Mallard, detailed (Task 14); were 0e8b620c, 9e4a41a2; poses 821985c4. Rebuilt: lofted from 128 rings, the head's depths and tilts refitted so no ring folds, a squared bill, a thicker curl, the wing's front eased in (its wrist bone moved with it); were 3d92faa1, e879d30e
   pibgre: { geometry: '3e8d46e5', poses: '87a95e1c' },          // the Pied-billed Grebe, detailed (Task 19); were 7aa2294d, 52b7741a; geometry bc526bd5 before the wing's last tenth flattened
   amewig: { geometry: 'bac74eba', poses: 'f90d45d9' },          // the American Wigeon, detailed (Task 16); were 23baa5a5, 8002ac5d
   norsho: { geometry: '43f8e74d', poses: '3a31c6da' },          // the Northern Shoveler, detailed (Task 17); were 457394f6, 24395fd5
@@ -136,8 +136,9 @@ function atlasPrint(spec: (typeof SPECIES)[string], variant?: string): string {
 // what it was. The dowitcher's is new: its retraced neck and head (Task 5) give its skin new lengths and girths.
 const EXPECTED_ATLAS: Record<string, string> = {
   killde: '3e3455e3', leasan: 'e132a9b2', greyel: '27f746a6', lesyel: '4b6f7821', pecsan: '07f03e17', lobdow: 'e1e47f53',
-  // new: the Mallard's three versions (Task 14); with no version it paints the drake's
-  mallar3: '6fdb2766', 'mallar3:male': '6fdb2766', 'mallar3:maleMoult': '3f09c818', 'mallar3:female': 'f09b0574',
+  // new: the Mallard's three versions (Task 14); with no version it paints the drake's. Repainted in the rebuild (and the
+  // head's refitted girths move its skin's layout); were 6fdb2766, 3f09c818, f09b0574
+  mallar3: 'b0cdaa03', 'mallar3:male': 'b0cdaa03', 'mallar3:maleMoult': 'aa0d4cd3', 'mallar3:female': '6c7043a0',
   // new: the Pied-billed Grebe's two versions (Task 19); with no version it paints the basic adult's
   pibgre: '85bc5af8', 'pibgre:basic': '85bc5af8', 'pibgre:juvenile': '302095eb',
   // new: the American Wigeon's three versions (Task 16); with no version it paints the female-type bird's

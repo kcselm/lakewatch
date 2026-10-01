@@ -45,6 +45,8 @@ export interface Anatomy {
   waterline: { back: number; front: number }
   /** skin vertices from the occiput forward (the head) */
   head: THREE.Vector3[]
+  /** how many rings the skin is lofted from: its first rings × RADIAL vertices are the loft's, ring by ring */
+  rings: number
   /** every labelled station's spine point, and the spine itself (101 points, tail to bill base), for the viewer */
   stations: { label: string; position: THREE.Vector3 }[]
   spine: THREE.Vector3[]
@@ -92,7 +94,7 @@ function construct(spec: SpeciesSpec): Built {
 
   const m = new Mesher()
   const tailless = detail.tail.shape === 'none'
-  const loft: LoftResult = buildLoft(m, profile, detail.rig, tailless)
+  const loft: LoftResult = buildLoft(m, profile, detail.rig, tailless, detail.rings)
   const bill: BillResult = buildBill(m, detail, profile)
   const shield = buildShield(m, detail, profile)
   const pouch = buildPouch(m, detail, profile)
@@ -180,7 +182,7 @@ function construct(spec: SpeciesSpec): Built {
     wrist: at(fold.wrist), wingTip: at(fold.tip),
     hip: hipR, knee: kneeR, foot: footR, bellyY: layout.bellyY + offset.y,
     bodyLowY, wingLowY: fold.low + offset.y, backTopY, breastFront, waterline: { back: water[0], front: water[1] },
-    head: headVerts,
+    head: headVerts, rings: loft.ringU.length,
     stations: detail.profile.flatMap(s => (s.label ? [{ label: s.label, position: spineAt(s.label) }] : [])),
     spine: Array.from({ length: 101 }, (_, k) => at(profile.sampleAt(k / 100).point)),
     closed: [

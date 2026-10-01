@@ -63,15 +63,15 @@ function chainWeights(u: number, profile: Profile, labels: string[]): Weights {
   return [['head', 1]]
 }
 
-/** The body-neck-head surface: RINGS cross-sections swept along the spine, closed at both ends. */
-export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail = false): LoftResult {
+/** The body-neck-head surface: `rings` cross-sections (RINGS unless the species sets its own) swept along the spine, closed at both ends. */
+export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail = false, rings = RINGS): LoftResult {
   const first = m.count
   const indexFirst = m.indexCount
   const ringU: number[] = []
   const ring: number[][] = []
   const p = new THREE.Vector3()
-  for (let i = 0; i < RINGS; i++) {
-    const u = i / (RINGS - 1)
+  for (let i = 0; i < rings; i++) {
+    const u = i / (rings - 1)
     ringU.push(u)
     const s = profile.sampleAt(u)
     const weights = loftWeights(u, profile, rig, rearToTail)
@@ -85,7 +85,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail 
     ring.push(row)
   }
   // sides: theta runs counter-clockwise around the tangent, so (i,j) (i,j+1) (i+1,j+1) (i+1,j) faces outward
-  for (let i = 0; i < RINGS - 1; i++) {
+  for (let i = 0; i < rings - 1; i++) {
     for (let j = 0; j < RADIAL; j++) {
       const j1 = (j + 1) % RADIAL
       m.quad(ring[i]![j]!, ring[i]![j1]!, ring[i + 1]![j1]!, ring[i + 1]![j]!)
@@ -102,7 +102,7 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail 
   for (let j = 0; j < RADIAL; j++) {
     const j1 = (j + 1) % RADIAL
     m.tri(rear, ring[0]![j1]!, ring[0]![j]!)
-    m.tri(front, ring[RINGS - 1]![j]!, ring[RINGS - 1]![j1]!)
+    m.tri(front, ring[rings - 1]![j]!, ring[rings - 1]![j1]!)
   }
   return { first, count: m.count - first, indexFirst, indexCount: m.indexCount - indexFirst, ringU }
 }
@@ -112,12 +112,12 @@ export function buildLoft(m: Mesher, profile: Profile, rig: LoftRig, rearToTail 
  * earlier ring's plane (square to the spine, or turned by its tilt) the next ring reaches. A spine that turns tighter
  * than the section is deep on its inside creases the surface; species tests hold this at 0.
  */
-export function worstFold(profile: Profile, rig: LoftRig): number {
+export function worstFold(profile: Profile, rig: LoftRig, rings = RINGS): number {
   const m = new Mesher()
-  const r = buildLoft(m, profile, rig)
+  const r = buildLoft(m, profile, rig, false, rings)
   const t = new THREE.Vector3()
   let worst = 0
-  for (let i = 0; i < RINGS - 1; i++) {
+  for (let i = 0; i < rings - 1; i++) {
     const s = profile.sampleAt(r.ringU[i]!)
     // the ring's plane faces along the spine, turned with the section's axis
     t.set(s.axis.y, -s.axis.x, 0)

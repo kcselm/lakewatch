@@ -102,9 +102,9 @@ interface Skin {
   h: Float64Array; u: Float64Array; w: Float64Array
 }
 
-function rightSkin(profile: Profile, rig: LoftRig): Skin {
+function rightSkin(profile: Profile, rig: LoftRig, rings = RINGS): Skin {
   const m = new Mesher()
-  const loft = buildLoft(m, profile, rig)
+  const loft = buildLoft(m, profile, rig, false, rings)
   const g = m.geometry()
   const index = g.getIndex()!.array
   g.dispose()
@@ -121,7 +121,7 @@ function rightSkin(profile: Profile, rig: LoftRig): Skin {
       at.set(key, (k = v.push(p.x, p.y, Math.abs(p.z)) / 3 - 1))
       // the loft's vertices come ring by ring, RADIAL to a ring, then the rear cap's point and the front cap's
       const r = i - loft.first
-      const u = r < RINGS * RADIAL ? Math.floor(r / RADIAL) / (RINGS - 1) : r === RINGS * RADIAL ? 0 : 1
+      const u = r < rings * RADIAL ? Math.floor(r / RADIAL) / (rings - 1) : r === rings * RADIAL ? 0 : 1
       neck.push(1 - loftWeights(u, profile, rig).reduce((s, [bone, w]) => s + (bone === 'body' ? w : 0), 0))
     }
     return k
@@ -193,8 +193,8 @@ function outwardInSection(skin: Skin, f: number): THREE.Vector3 {
 }
 
 /** The height (z) of the body's skin, as the loft meshes it, over side-view point (x, y), profile frame; -Infinity off the body. */
-export function skinHeight(profile: Profile, rig: LoftRig): (x: number, y: number) => number {
-  const skin = rightSkin(profile, rig)
+export function skinHeight(profile: Profile, rig: LoftRig, rings = RINGS): (x: number, y: number) => number {
+  const skin = rightSkin(profile, rig, rings)
   return (x, y) => outermost(skin, x, y).z
 }
 
@@ -335,7 +335,7 @@ function placeFold(detail: DetailSpec): Fold {
   const dir = new THREE.Vector2(-Math.cos(droop), -Math.sin(droop))
   const down = new THREE.Vector2(-dir.y, dir.x)
   const [wx, wy] = detail.wing.wrist
-  const skin = rightSkin(createProfile(detail.profile), detail.rig)
+  const skin = rightSkin(createProfile(detail.profile), detail.rig, detail.rings)
   const flare = FLARE * chord
   // grid point (i, j), at s = i / (FOLD_S - 1) and t = ts[k(i, j)], is number k(i, j): `at` is where it is, `out` the
   // way it moves out, and each column's height sets how it moves

@@ -6,6 +6,7 @@ import { ringT } from './loft'
 
 const RINGS = 16
 const RADIAL = 12
+const SQUARE_RADIAL = 20
 /** the bill's root starts this fraction of its length inside the head */
 const ROOT = 0.15
 /** a hook bends the last HOOK of the bill down */
@@ -55,6 +56,16 @@ export function billScale(bill: DetailSpec['bill'], sigma: number): { width: num
 }
 
 /**
+ * A point of the bill's cross-section at angle th (0 the culmen, pi/2 the right side), `d` deep and `w` wide from its
+ * centre: an ellipse, or with `section` a superellipse of that exponent, flat on top and squared at the sides.
+ */
+export function billOffset(th: number, d: number, w: number, section?: number): { n: number; z: number } {
+  if (!section) return { n: Math.cos(th) * d, z: Math.sin(th) * w }
+  const e = 2 / section, c = Math.cos(th), s = Math.sin(th)
+  return { n: Math.sign(c) * Math.abs(c) ** e * d, z: Math.sign(s) * Math.abs(s) ** e * w }
+}
+
+/**
  * The bill's centreline in the side view for sigma in [-ROOT, 1] (0 = base, 1 = tip): straight along the
  * spine's final tangent, lifted over the distal half by `curve` x length at the tip, and dropped over the last tenth
  * by `hook`.
@@ -94,22 +105,24 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
   const { billDepth, billWidth } = detail.measurements
   const rings: number[][] = []
   const sigmas = ringSigmas(detail.bill)
+  // a squared section needs more points round it to keep its corners
+  const radial = detail.bill.section ? SQUARE_RADIAL : RADIAL
   for (const sigma of sigmas) {
     const { p, tangent } = billCenter(detail, profile, sigma)
     const normal = new THREE.Vector2(-tangent.y, tangent.x)
     const f = billScale(detail.bill, sigma)
     const d = (billDepth / 2) * f.depth, w = (billWidth / 2) * f.width
     const row: number[] = []
-    for (let j = 0; j < RADIAL; j++) {
-      const th = (j / RADIAL) * Math.PI * 2
-      const n = Math.cos(th) * d, z = Math.sin(th) * w
+    for (let j = 0; j < radial; j++) {
+      const th = (j / radial) * Math.PI * 2
+      const { n, z } = billOffset(th, d, w, detail.bill.section)
       row.push(m.vertex(new THREE.Vector3(p.x + normal.x * n, p.y + normal.y * n, z), 'bill', Math.max(0, sigma), ringT(th), [['bill', 1]]))
     }
     rings.push(row)
   }
   for (let i = 0; i < rings.length - 1; i++) {
-    for (let j = 0; j < RADIAL; j++) {
-      const j1 = (j + 1) % RADIAL
+    for (let j = 0; j < radial; j++) {
+      const j1 = (j + 1) % radial
       m.quad(rings[i]![j]!, rings[i]![j1]!, rings[i + 1]![j1]!, rings[i + 1]![j]!)
     }
   }
@@ -117,8 +130,8 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
   const tip2 = billCenter(detail, profile, 1).p
   const rootV = m.vertex(new THREE.Vector3(root.x, root.y, 0), 'bill', 0, 0.5, [['bill', 1]])
   const tipV = m.vertex(new THREE.Vector3(tip2.x, tip2.y, 0), 'bill', 1, 0.5, [['bill', 1]])
-  for (let j = 0; j < RADIAL; j++) {
-    const j1 = (j + 1) % RADIAL
+  for (let j = 0; j < radial; j++) {
+    const j1 = (j + 1) % radial
     m.tri(rootV, rings[0]![j1]!, rings[0]![j]!)
     m.tri(tipV, rings[rings.length - 1]![j]!, rings[rings.length - 1]![j1]!)
   }

@@ -72,6 +72,11 @@ export const detailSchema = z.object({
     tarsus: pos, tibia: pos, toe: pos, wingChord: pos, tail: pos,
   }),
   profile: z.array(stationSchema).min(4),
+  /**
+   * How many cross-sections the skin is lofted from, evenly along the spine (default 64, loft.ts RINGS). A bird whose
+   * head is short against its spine (a duck's, drawn in on the shoulders) needs more to keep the head round.
+   */
+  rings: z.number().int().min(16).max(256).optional(),
   rig: z.object({
     neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string(),
     /**
@@ -102,6 +107,11 @@ export const detailSchema = z.object({
     profile: z.array(z.tuple([unit, z.number().min(0), z.number().min(0)])).min(2).optional(),
     /** how far the tip drops over the bill's last tenth, metres: a duck's nail, a grebe's hooked tip */
     hook: z.number().min(0).optional(),
+    /**
+     * The cross-section's squareness, a superellipse's exponent as the skin's (profile.ts): 2, the default, is an ellipse;
+     * higher flattens the top and squares the sides, as a dabbling duck's broad bill is
+     */
+    section: z.number().min(2).max(6).optional(),
     /**
      * A frontal shield (the Coot's): a plate from the top of the bill's base up the forehead, `length` along it,
      * `width` across, standing `thickness` off the head at its middle, all metres. Painted as its own part, 'shield'.
