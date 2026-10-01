@@ -7,10 +7,10 @@ import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../beh
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
-import { createFlyover, type Formation, type FlyoverController } from '../behavior/flyover'
+import { createFlyover, flightFor, type Formation, type FlyoverController } from '../behavior/flyover'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
-import { buildFlockModel, type FlockModel } from './flock'
+import { buildFlock, type FlockModel } from './flock'
 import { getSpec, hasSpec } from './species'
 import { defaultPose, type PoseState, type BirdModel } from './model'
 import type { BirdRegistry } from './registry'
@@ -38,7 +38,11 @@ export interface SpawnDeps {
 }
 
 export interface Individual { species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string }
-export interface FlockEntry { species: string; variant?: string; zone: string; count: number; everySeconds: [number, number]; formation: Formation; groupKey: string }
+export interface FlockEntry {
+  species: string; variant?: string; zone: string; count: number; everySeconds: [number, number]; formation: Formation; groupKey: string
+  /** a version for each bird, where the entry gives counts per version (a detailed species' flock; validateCast allows no other) */
+  versions?: (string | undefined)[]
+}
 
 export const DEFAULT_FLOCK_EVERY: [number, number] = [120, 300]
 
@@ -90,6 +94,7 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
     out.push({
       species: entry.species, variant: pickVariant(entry.species, entry.plumage, rng), zone: entry.zone, count: entry.count,
       everySeconds: entry.everySeconds ?? DEFAULT_FLOCK_EVERY, formation: entry.formation ?? 'line', groupKey: `cast${i}`,
+      ...(typeof entry.plumage === 'object' ? { versions: versionsFor(entry, rng) } : {}),
     })
   })
   return out
@@ -109,7 +114,7 @@ export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | '
 
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }
 interface LiveFlock {
-  key: string; species: string; variant?: string
+  key: string; species: string
   model: FlockModel; controller: FlyoverController; pose: PoseState
   /** registry ids and targeting proxies, present only while crossing */
   ids: number[]; proxies: THREE.Group[]
@@ -178,22 +183,24 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const lane = loc.zones[fe.zone] as LaneZone
     if (!hasSpec(fe.species)) { console.warn(`flock ${fe.species}: no species spec; skipped`); continue }
     const spec = getSpec(fe.species)
-    const model = buildFlockModel(spec, fe.count, fe.variant)
+    const model = buildFlock(spec, fe.versions ?? Array.from({ length: fe.count }, () => fe.variant))
     model.object.visible = false
     object.add(model.object)
     const controller = createFlyover(lane, makeRng(Math.floor(rng() * 1e9)), {
       count: fe.count, formation: fe.formation, everySeconds: fe.everySeconds, wingbeatHz: spec.wingbeatHz,
+      speed: flightFor(fe.species).speed, spacing: flightFor(fe.species).spacing, bouts: flightFor(fe.species).bouts,
     })
-    flocks.push({ key: fe.groupKey, species: fe.species, variant: fe.variant, model, controller, pose: defaultPose(), ids: [], proxies: [] })
+    flocks.push({ key: fe.groupKey, species: fe.species, model, controller, pose: defaultPose(), ids: [], proxies: [] })
   }
 
   function enter(f: LiveFlock): void {
     f.model.object.visible = true
     for (let i = 0; i < f.model.count; i++) {
+      // a skinned member is aimed at itself; an instanced one has no model of its own, so a proxy goes where it goes
       const proxy = new THREE.Group()
       const inst = deps.registry.add({
-        species: f.species, variant: f.variant, behavior: 'flyover',
-        model: { group: proxy, center: new THREE.Vector3(), radius: f.model.radius },
+        species: f.species, variant: f.model.variants[i], behavior: 'flyover',
+        model: f.model.target(i) ?? { group: proxy, center: new THREE.Vector3(), radius: f.model.radius },
       })
       f.ids.push(inst.id)
       f.proxies.push(proxy)
@@ -226,10 +233,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
         if (f.controller.state === 'crossing') {
           if (was === 'waiting') enter(f)
           f.pose.wingSpread = 1
-          f.pose.neckExtend = 1
+          f.pose.neckExtend = flightFor(f.species).neck
           f.pose.lean.set(0, 0, 0)
           f.controller.members.forEach((m, i) => {
             f.pose.wingPhase = m.wingPhase
+            f.pose.glide = m.glide
             f.model.setMember(i, m.x, m.y, m.z, m.heading, f.pose)
             const p = f.proxies[i]!
             p.position.set(m.x, m.y, m.z)

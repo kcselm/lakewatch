@@ -5,7 +5,7 @@ import { isProbeStyle, isSwimStyle, isWadeStyle, type SpeciesSpec } from '../bir
 import { SPECIES } from '../birds/species'
 
 /** What validateCast reads from each species' spec: its plumage versions, and how it feeds. */
-export type CastSpecs = Readonly<Record<string, Pick<SpeciesSpec, 'variants' | 'foraging'>>>
+export type CastSpecs = Readonly<Record<string, Pick<SpeciesSpec, 'variants' | 'foraging'> & { detail?: unknown }>>
 
 const ZONE_KIND_FOR_BEHAVIOR = {
   swim: 'polygon', wade: 'polygon', probe: 'polygon',
@@ -52,7 +52,8 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
 /** Plumage given as counts per version: each a version the species has, each a whole number, adding up to the count. */
 function checkCounts(entry: Location['cast'][number], i: number, spec: CastSpecs[string] | undefined): string[] {
   const counts = entry.plumage as Record<string, number>
-  if (entry.behavior === 'flyover') return [`cast[${i}]: a flyover flock is one version; give plumage as a single version, not counts`]
+  // a block species' flock is instances of one bird; a detailed species' is a bird a member, each in its own version
+  if (entry.behavior === 'flyover' && !spec?.detail) return [`cast[${i}]: a flyover flock of block birds is one version; give plumage as a single version, not counts`]
   const errors: string[] = []
   const versions = spec ? Object.keys(spec.variants) : []
   let sum = 0

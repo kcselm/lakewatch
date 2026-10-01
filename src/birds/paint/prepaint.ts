@@ -8,7 +8,8 @@ import { atlasKey, atlasReady, materialFor, storeAtlas, type AtlasJob, type Pain
 /**
  * Every atlas the cast's detailed birds can need: each version of a species with versions, and the species' own
  * plumage for a bird with none. That covers whatever versions a 'mixed' entry picks, so the list doesn't depend on
- * the spawner's seed. Flyover flocks are block birds and need none. `specs` is the registry, or a test's own.
+ * the spawner's seed. A flyover flock of a detailed species needs its atlases too; one of block birds needs none.
+ * `specs` is the registry, or a test's own.
  */
 export function castAtlases(loc: Location, specs: Record<string, SpeciesSpec> = SPECIES): AtlasJob[] {
   const jobs = new Map<string, AtlasJob>()
@@ -18,6 +19,12 @@ export function castAtlases(loc: Location, specs: Record<string, SpeciesSpec> = 
     if (!spec?.detail) continue
     if (ind.variant === undefined) add(ind.species)
     else for (const v of Object.keys(spec.variants)) add(ind.species, v)
+  }
+  for (const entry of loc.cast) {
+    const spec = specs[entry.species]
+    if (entry.behavior !== 'flyover' || !spec?.detail) continue
+    if (entry.plumage === undefined || Object.keys(spec.variants).length === 0) add(entry.species)
+    else for (const v of Object.keys(spec.variants)) add(entry.species, v)
   }
   return [...jobs.values()]
 }

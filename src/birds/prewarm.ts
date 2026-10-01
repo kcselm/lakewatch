@@ -23,12 +23,14 @@ function defaultNext(): Promise<void> {
 }
 
 /**
- * Every detailed species the cast can need, once each, in cast order: whatever `expandCast` would build, minus the
- * duplicates and the block species. Doesn't depend on the spawner's seed (mirrors castAtlases's own traversal).
+ * Every detailed species the cast can need, once each: whatever `expandCast` would build, in cast order, then the
+ * flyover flocks', minus the duplicates and the block species. Doesn't depend on the spawner's seed (mirrors
+ * castAtlases's own traversal).
  */
 function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): string[] {
   const seen = new Set<string>()
   for (const ind of expandCast(loc, makeRng(1))) if (specs[ind.species]?.detail) seen.add(ind.species)
+  for (const entry of loc.cast) if (entry.behavior === 'flyover' && specs[entry.species]?.detail) seen.add(entry.species)
   return [...seen]
 }
 

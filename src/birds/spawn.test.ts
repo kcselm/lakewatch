@@ -41,9 +41,17 @@ describe('expandCast', () => {
     }
     expect(orders.size).toBe(4)          // the drake has been first, second, third, and last
   })
-  it('gives a flyover flock no version from a record (validateCast rejects one there)', () => {
-    const out = flockEntries(loc([{ species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 3, plumage: { male: 1, female: 2 } }]), makeRng(7))
-    expect(out[0]!.variant).toBeUndefined()
+  it('deals a flyover flock its versions from a record, a bird each (a detailed species: validateCast allows no other)', () => {
+    const orders = new Set<string>()
+    for (let seed = 1; seed <= 20; seed++) {
+      const out = flockEntries(loc([{ species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 3, plumage: { male: 1, female: 2 } }]), makeRng(seed))
+      expect(out[0]!.variant).toBeUndefined()
+      expect([...out[0]!.versions!].sort()).toEqual(['female', 'female', 'male'])
+      orders.add(out[0]!.versions!.join())
+    }
+    expect(orders.size).toBe(3)
+    // with one version, or none, there is nothing to deal
+    expect(flockEntries(loc([{ species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 3, plumage: 'female' }]), makeRng(7))[0]!.versions).toBeUndefined()
   })
   it('leaves flyover entries to flockEntries', () => {
     const l = loc([{ species: 'cangoo', behavior: 'flyover', zone: 'sky', count: 5 }])
@@ -143,6 +151,29 @@ describe('spawnCast flocks', () => {
     advanceUntil(world, deps.wind, () => deps.registry.size === 3)
     const secondIds = deps.registry.all().map(b => b.id)
     expect(secondIds.every(id => !firstIds.includes(id))).toBe(true)
+  })
+
+  it('flies a detailed species as skinned birds: each member its own model and version, aimed at itself, and none registered while it waits', () => {
+    const deps = makeDeps(5)
+    const world = spawnCast({ ...flockLoc, cast: [{ species: 'mallar3', behavior: 'flyover', zone: 'sky', count: 3, everySeconds: [1, 2], plumage: { male: 1, female: 2 } }] }, deps)
+    const flockGroup = world.object.children.find(c => c.name === 'flock:mallar3')!
+    expect(flockGroup.visible).toBe(false)
+    expect(deps.registry.size).toBe(0)
+    advanceUntil(world, deps.wind, () => deps.registry.size === 3)
+    expect(flockGroup.visible).toBe(true)
+    const birds = deps.registry.all()
+    expect(birds.map(b => b.variant).sort()).toEqual(['female', 'female', 'male'])
+    for (const b of birds) {
+      expect(b.behavior).toBe('flyover')
+      // the model aimed at is the bird drawn: one of the flock's own, where the flock put it
+      expect(b.model.group.parent).toBe(flockGroup)
+      expect(b.model.group.name).toBe(`bird:mallar3:${b.variant}`)
+      expect(b.position.y).toBeGreaterThanOrEqual(39)
+      expect(b.position.y).toBeLessThanOrEqual(51)
+    }
+    expect(new Set(birds.map(b => b.model.group)).size).toBe(3)
+    advanceUntil(world, deps.wind, () => deps.registry.size === 0)
+    expect(flockGroup.visible).toBe(false)
   })
 
   it('fires flockStart once, then one or more flockMove, then flockEnd once, all with the same key', () => {
