@@ -42,7 +42,7 @@ describe('placeFolds', () => {
   it('places the folded wing of every detailed species in the lake cast, and paints no atlas', async () => {
     const lake = loadLocation()
     const codes = [...new Set(expandCast(lake, makeRng(1)).map(b => b.species))].filter(c => getSpec(c).detail)
-    expect(codes).toHaveLength(14)
+    expect(codes).toHaveLength(15)
     expect(codes.filter(c => isPlaced(getSpec(c).detail!))).toEqual([])
     const before = paintStats.atlases
     await placeFolds(lake, { next: async () => {} })

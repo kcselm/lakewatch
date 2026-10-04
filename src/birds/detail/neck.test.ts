@@ -51,6 +51,15 @@ describe('a chained neck in the schema', () => {
     expect(() => detailSchema.parse({ ...TEST_HERON_DETAIL, neckShapes: { ...SHAPES, erect: [0, 0, 0] } })).toThrow(/neckShapes.erect needs one bend per joint \(6\)/)
     expect(() => detailSchema.parse({ ...TEST_SPEC.detail!, neckShapes: SHAPES })).toThrow(/neckShapes needs rig.neck/)
   })
+  it('stretches only a chained neck, by 1 to 3', () => {
+    expect(detailSchema.parse({ ...TEST_HERON_DETAIL, neckStretch: 1.3 }).neckStretch).toBe(1.3)
+    expect(() => detailSchema.parse({ ...TEST_HERON_DETAIL, neckStretch: 0.9 })).toThrow()
+    expect(() => detailSchema.parse({ ...TEST_HERON_DETAIL, neckStretch: 3.1 })).toThrow()
+    expect(() => detailSchema.parse({ ...TEST_SPEC.detail!, neckStretch: 1.3 })).toThrow(/neckStretch needs rig.neck/)
+    expect(detailSchema.parse({ ...TEST_HERON_DETAIL, reachStretch: 1.2 }).reachStretch).toBe(1.2)
+    expect(() => detailSchema.parse({ ...TEST_HERON_DETAIL, reachStretch: 3.1 })).toThrow()
+    expect(() => detailSchema.parse({ ...TEST_SPEC.detail!, reachStretch: 1.2 })).toThrow(/reachStretch needs rig.neck/)
+  })
 })
 
 describe('chainBones', () => {
@@ -76,6 +85,25 @@ describe('the chained neck\'s skin', () => {
     expect(weightOf((kink + up) / 2, 'neck3')).toBeCloseTo(0.5, 12)
     expect(weightOf((kink + up) / 2, 'neck4')).toBeCloseTo(0.5, 12)
   })
+  it('hands off from the body to the neck from rig.neckFrom when it names one, else over 0.08 of the spine', () => {
+    const weightOf = (r: typeof rig, u: number, bone: string) => loftWeights(u, profile, r).reduce((s, [b, v]) => s + (b === bone ? v : 0), 0)
+    const breast = profile.uOf('breast'), base = profile.uOf('neckBase')
+    expect(weightOf(rig, base - 0.08, 'body')).toBeCloseTo(1, 12)
+    expect(weightOf(rig, base - 0.04, 'body')).toBeCloseTo(0.5, 12)
+    const late = { ...rig, neckFrom: 'breast' }
+    expect(breast).toBeGreaterThan(base - 0.08)
+    expect(weightOf(late, breast, 'body')).toBeCloseTo(1, 12)
+    expect(weightOf(late, (breast + base) / 2, 'body')).toBeCloseTo(0.5, 12)
+    expect(weightOf(late, (breast + base) / 2, 'neck')).toBeCloseTo(0.5, 12)
+    expect(weightOf(late, base, 'neck')).toBeCloseTo(1, 12)
+  })
+  it('names a station before the neck base for rig.neckFrom', () => {
+    const at = (neckFrom: string) => ({ ...TEST_HERON_DETAIL, rig: { ...TEST_HERON_DETAIL.rig, neckFrom } })
+    expect(detailSchema.parse(at('breast')).rig.neckFrom).toBe('breast')
+    expect(() => detailSchema.parse(at('neckBase'))).toThrow(/neckFrom/)
+    expect(() => detailSchema.parse(at('nape'))).toThrow(/neckFrom/)
+    expect(() => detailSchema.parse(at('chest'))).toThrow(/label: chest/)
+  })
 })
 
 describe('the chained neck', () => {
@@ -85,6 +113,22 @@ describe('the chained neck', () => {
     TEST_HERON_DETAIL.rig.neck!.forEach((label, i) => expect(boneAt(m, CHAIN[i]!).distanceTo(spine(label))).toBeLessThan(1e-9))
     // the joint it doesn't use sits at its last joint before the head
     expect(boneAt(m, 'neck6').distanceTo(boneAt(m, 'neck5'))).toBeLessThan(1e-12)
+  })
+  it('puts the neck\'s base joint below the spine by rig.neckBaseDepth of the section\'s depth, leaving the loft as built', () => {
+    const detail = { ...TEST_HERON_DETAIL, rig: { ...TEST_HERON_DETAIL.rig, neckBaseDepth: 0.8 } }
+    const m = buildDetailedBird({ ...TEST_HERON_SPEC, detail })
+    const s = createProfile(detail.profile).sampleAt(createProfile(detail.profile).uOf('neckBase'))
+    const spine = m.anatomy.stations.find(q => q.label === 'neckBase')!.position
+    const want = spine.clone().sub(new THREE.Vector3(s.axis.x, s.axis.y, 0).multiplyScalar(0.8 * s.down))
+    expect(boneAt(m, 'neck').distanceTo(want)).toBeLessThan(1e-9)
+    // every other joint where it was
+    for (const n of CHAIN.slice(1)) expect(boneAt(m, n).distanceTo(boneAt(buildDetailedBird(TEST_HERON_SPEC), n))).toBeLessThan(1e-9)
+    m.pose(posed())
+    m.group.updateMatrixWorld(true)
+    const g = m.mesh.geometry.getAttribute('position') as THREE.BufferAttribute
+    const v = new THREE.Vector3()
+    for (let i = 0; i < RINGS * RADIAL; i++) expect(m.mesh.getVertexPosition(i, v).distanceTo(new THREE.Vector3().fromBufferAttribute(g, i))).toBeLessThan(1e-6)
+    expect(() => detailSchema.parse({ ...detail, rig: { ...detail.rig, neckBaseDepth: 1.1 } })).toThrow()
   })
   it('parks an unchained neck\'s spare joints at neckMid, so its head hangs from them as it did from neckMid', () => {
     const m = buildDetailedBird(TEST_SPEC)
@@ -125,6 +169,49 @@ describe('the chained neck', () => {
     ]) {
       m.pose(posed(patch))
       lengths().forEach((l, i) => expect(Math.abs(l - rest[i]!), JSON.stringify(patch)).toBeLessThan(0.0001))
+    }
+  })
+  it('stretches by neckStretch going erect: every segment longer by the same share, all of it at 1, none at the trace or below', () => {
+    const m = buildDetailedBird({ ...TEST_HERON_SPEC, detail: { ...TEST_HERON_DETAIL, neckStretch: 1.3 } })
+    const lengths = () => CHAIN.slice(1).map((n, i) => boneAt(m, n).distanceTo(boneAt(m, CHAIN[i]!)))
+    m.pose(posed())
+    const rest = lengths()
+    for (const [patch, k] of [
+      [{ neckExtend: 0 }, 1], [{ neckExtend: 0.3 }, 1], [{ neckExtend: 0.75 }, 1.15], [{ neckExtend: 1 }, 1.3],
+      [{ neckExtend: 1, reach: 1, leanX: 0.5 }, 1.3], [{ neckExtend: 2 }, 1.3],
+      // a reach doesn't stretch it, unless the species gives a reach a stretch of its own
+      [{ reach: 1, leanX: 0.5 }, 1], [{ neckExtend: 0.75, reach: 0.5, leanX: 0.25 }, 1.15],
+    ] as const) {
+      m.pose(posed(patch))
+      lengths().forEach((l, i) => expect(l / rest[i]!, JSON.stringify(patch)).toBeCloseTo(k, 9))
+    }
+  })
+  it('stretches by reachStretch as a reach goes in (smoothly), or by neckStretch, whichever is further', () => {
+    const m = buildDetailedBird({ ...TEST_HERON_SPEC, detail: { ...TEST_HERON_DETAIL, neckStretch: 1.4, reachStretch: 1.2 } })
+    const lengths = () => CHAIN.slice(1).map((n, i) => boneAt(m, n).distanceTo(boneAt(m, CHAIN[i]!)))
+    m.pose(posed())
+    const rest = lengths()
+    for (const [patch, k] of [
+      [{ reach: 1, leanX: 0.5 }, 1.2], [{ neckExtend: 0, reach: 1, leanX: 0.5 }, 1.2], [{ reach: 0.5, leanX: 0.25 }, 1.1],
+      [{ neckExtend: 1, reach: 1, leanX: 0.5 }, 1.4], [{ neckExtend: 0.6, reach: 1, leanX: 0.5 }, 1.2],
+    ] as const) {
+      m.pose(posed(patch))
+      lengths().forEach((l, i) => expect(l / rest[i]!, JSON.stringify(patch)).toBeCloseTo(k, 9))
+    }
+  })
+  it('stretches along the spine wherever the base joint sits (rig.neckBaseDepth)', () => {
+    const z = TEST_HERON_DETAIL.rig.neck!.map(() => 0)
+    const flat = { ...TEST_HERON_DETAIL, neckShapes: { hunch: z, erect: z, strike: z }, neckStretch: 1.3 }
+    const spine = (m: DetailedBirdModel, label: string) => m.anatomy.stations.find(s => s.label === label)!.position
+    for (const neckBaseDepth of [0, 0.8]) {
+      const m = buildDetailedBird({ ...TEST_HERON_SPEC, detail: { ...flat, rig: { ...flat.rig, neckBaseDepth } } })
+      m.pose(posed({ neckExtend: 1 }))
+      // unbent, each joint past the base lies on from the one before by 1.3 of their segment of the spine
+      expect(boneAt(m, CHAIN[1]!).distanceTo(spine(m, 'neckLow').clone().addScaledVector(spine(m, 'neckLow').clone().sub(spine(m, 'neckBase')), 0.3)), `${neckBaseDepth}`).toBeLessThan(1e-9)
+      CHAIN.slice(2).forEach((n, i) => {
+        const seg = spine(m, TEST_HERON_DETAIL.rig.neck![i + 2]!).clone().sub(spine(m, TEST_HERON_DETAIL.rig.neck![i + 1]!))
+        expect(boneAt(m, n).clone().sub(boneAt(m, CHAIN[i + 1]!)).distanceTo(seg.multiplyScalar(1.3)), `${neckBaseDepth} ${n}`).toBeLessThan(1e-9)
+      })
     }
   })
   it('folds no ring back over the one before it, and passes no skin through skin, in any shape or between them', () => {

@@ -95,13 +95,12 @@ export const CANADA_GOOSE: GooseSettings = {
   // 3-8 s (the Mallard's 4.2 s mean lengthened for a larger bird), 1-3 a bout, 3-10 s level between; 78 degrees (photo
   // 75-80); 2 strokes a second; 0.5 s over and 0.4 s back (estimates)
   tipUp: { count: [1, 3], seconds: [3, 8], gap: [3, 10], lean: 1.36, tail: 0.3, strokes: 2, down: 0.5, up: 0.4 },
-  // ring sizes (estimates): a goose's swirls larger than a Mallard's; `ahead` is where the bill goes in, about the
-  // bill tip's reach in front of the middle of the body (Task 6 sets it from the built bird)
-  rings: { tipUp: 0.8, headDip: 0.6, dabble: 0.3, dabbleEvery: [1, 2], ahead: 0.35, wade: 0.4 },
-  // standing, the float's waterline is about 0.14 m above the feet (belly 0.07-0.10 m up, plus the 0.06 m draft); it
-  // floats where the water is as deep as the swim zones (0.2 m: the draft and the leg, 0.17) (estimates; Task 6 sets
-  // `stand` from the built bird)
-  wade: { stand: 0.14, float: 0.2 },
+  // ring sizes (estimates): a goose's swirls larger than a Mallard's; `ahead` is where the bill goes in, the built
+  // bird's bill tip at the bottom of a head-dip, 0.341 m in front of the middle of the body
+  rings: { tipUp: 0.8, headDip: 0.6, dabble: 0.3, dabbleEvery: [1, 2], ahead: 0.34, wade: 0.4 },
+  // standing, the built bird's float waterline is 0.155 m above its feet (the root's rise ashore); it floats where the
+  // water is as deep as the swim zones (0.2 m: the draft and the leg, 0.17) (estimate)
+  wade: { stand: 0.155, float: 0.2 },
   trip: {
     // 5-20 min on the water, 20-60 min grazing (estimates; a family fed "for over an hour", Kortright 1942)
     water: [300, 1200], grass: [1200, 3600],
@@ -125,9 +124,9 @@ export const CANADA_GOOSE: GooseSettings = {
     bites: 0.9, bite: 0.012,
     // a slow step every 2-4 s, drifting 0.03-0.08 m/s (estimate)
     step: { every: [2, 4], speed: [0.03, 0.08] },
-    // the body tipped forward a little and the bill steeply down onto the grass (estimates; Task 6 sets them from the
-    // built bird against the grazing photo)
-    lean: 0.15, reachAngle: 1.2,
+    // the body tipped well forward, the tail high, and the bill steeply down onto the grass, as on the grazing photo:
+    // the built bird's bill tip then reaches the grass 0.24 m ahead of its toes (photo about 0.17)
+    lean: 0.5, reachAngle: 1.5,
     // the gander's and the goose's means sourced (8.4 and 10.7 s down, 8.0 and 5.6 s up), their ranges and the young's
     // bouts estimates: head-up about 0.49 of the time, 0.34, and 0.07
     bouts: {
@@ -138,9 +137,9 @@ export const CANADA_GOOSE: GooseSettings = {
     // edge birds look up for longer (Inglis & Lazarus 1981): 1.3 times (estimate)
     edge: 1.3,
   },
-  // standing relaxed, the crown about 0.23 m above the back, between the trace (0.5) and erect (1); walking a little
-  // lower (estimates; Task 6 sets `stand` from the built bird)
-  neck: { stand: 0.7, walk: 0.6 },
+  // standing relaxed, the built bird's crown 0.227 m above its back (photo 0.23), between the trace (0.5) and erect
+  // (1); walking a little lower, 0.199 m (estimate)
+  neck: { stand: 0.85, walk: 0.75 },
   // banks over 0.5 m high and steeper than 60 degrees stop geese (Cooper 1998); this walks no steeper than 1 in 2,
   // across no more than 8 m of bank between its water and its grass
   shore: { slope: 0.5, gap: 8 },

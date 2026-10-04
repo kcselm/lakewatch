@@ -12,6 +12,7 @@ import { GREBE, NECK as GREBE_NECK } from '../../behavior/grebe'
 import { PECK_BOTTOM } from '../../behavior/probe'
 import { STRIKE } from '../../behavior/wade'
 import { heronFor } from '../../behavior/heron'
+import { CANADA_GOOSE } from '../../behavior/goose'
 
 /** how far along its normal a point on the wing looks for the loft, each way, metres */
 const REACH = 0.05
@@ -147,6 +148,22 @@ const heron = (code: string): Record<string, Patch> => {
   }
 }
 
+/** a goose's poses, from its style's settings: afloat as a dabbler, and on its feet standing, walking, and grazing */
+const goose = (): Record<string, Patch> => {
+  const S = CANADA_GOOSE
+  return {
+    'tip-up': tipUp(S, DABBLER_NECK.tipUp),
+    'head-dip': headDip(S, DABBLER_NECK.headDip),
+    'surface dabble': reach(DABBLER_NECK.surfaceDabble, S.surface.reachAngle, 0, S.surface.lean),
+    alert: { neckExtend: DABBLER_NECK.alert },
+    loaf: { neckExtend: DABBLER_NECK.loaf },
+    standing: { afloat: 0, neckExtend: S.neck.stand },
+    'walking, the waddle at its full roll': { afloat: 0, gait: 1, strideDistance: 0, neckExtend: S.neck.walk },
+    grazing: { ...reach(0.5, S.graze.reachAngle, 0, S.graze.lean), afloat: 0 },
+    'looking up': { afloat: 0, neckExtend: 1 },
+  }
+}
+
 /**
  * The poses the game puts each detailed bird in, from its behaviour's own settings, at their fullest: every feeding
  * pose at its bottom, the neck at full stretch (alert) and drawn in (loafing), the tail cocked, the coot's head at
@@ -191,6 +208,7 @@ const POSES: Record<string, Record<string, Patch>> = {
   lesyel: { strike: bottom(STRIKE) },
   grbher3: heron('grbher3'),
   greegr: heron('greegr'),
+  cangoo: goose(),
 }
 
 /**

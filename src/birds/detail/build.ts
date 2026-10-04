@@ -141,10 +141,13 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   // A swimmer's body pivots at the origin, on the water under the middle of the body. Its legs gather, when hidden,
   // a quarter of the way up from the belly to the hips: inside the body and under the water.
   const pivot = swimming ? new THREE.Vector3() : hipMid
+  // the neck's base joint: on the spine, or rig.neckBaseDepth of the way down its section toward the throat side
+  const neckBase = profile.sampleAt(profile.uOf(detail.rig.neckBase))
+  const neckJoint = at(neckBase.point.clone().addScaledVector(neckBase.axis, -(detail.rig.neckBaseDepth ?? 0) * neckBase.down))
   const legsAt = swimming ? at(new THREE.Vector3(layout.hip.x, layout.bellyY + 0.25 * (layout.hip.y - layout.bellyY), 0)) : hipMid
   const joints: Joints = {
     root: pivot.clone(), body: pivot.clone(), legs: legsAt.clone(),
-    neck: spineAt(detail.rig.neckBase), neckMid: spineAt(detail.rig.neckMid), head: spineAt(detail.rig.head),
+    neck: neckJoint, neckMid: spineAt(detail.rig.neckMid), head: spineAt(detail.rig.head),
     bill: at(bill.base), tail: at(tail.root),
     wingFoldR: at(fold.wrist), wingFoldL: mirror(at(fold.wrist)),
     wingR: at(shoulder), wingL: mirror(at(shoulder)),
@@ -225,6 +228,12 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
   let anchor = 0
   const headRest = bones.head.position.clone()
   const neckMidRest = bones.neckMid.position.clone()
+  // a chained neck's joints past its base: where each sits from the joint before as traced, and its stretch, the spine
+  // between their stations (the base joint may sit off the spine, rig.neckBaseDepth, but the neck lengthens along it)
+  const stretch = detail.neckStretch ?? 1, reachStretch = detail.reachStretch ?? 1
+  const chainRest = (chainNames ?? []).slice(1).map((n, i) => [
+    n, bones[n].position.clone(), i === 0 ? spineAt(chain![1]!).sub(spineAt(chain![0]!)) : bones[n].position.clone(),
+  ] as const)
   const bodyLength = profile.length
   // for the reach: the bill tip from the head joint (the head bone carries no rotation at rest), and that line's
   // angle off the bill's own
@@ -350,12 +359,17 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string): Detailed
    * A chained neck, bent into its shapes: neckExtend blends each joint's bend from the hunch (0) through the trace (0.5)
    * to erect (1), and a reach blends it on toward the strike, then swings the whole neck about its base just far
    * enough for the bill to reach its mark and tips the head onto it, as reachDown does for a neck of two joints. The
-   * joints only turn, so the neck keeps its length.
+   * joints only turn, so the neck keeps its length, unless the species stretches it going erect (`neckStretch`) or
+   * reaching (`reachStretch`).
    */
   function poseChain(st: PoseState, names: readonly (NeckBone | 'head')[], shapes: NeckShapes) {
     const e = THREE.MathUtils.clamp(st.neckExtend, 0, 1)
     const reach = THREE.MathUtils.clamp(st.reach, 0, 1)
     const w = smooth(reach)
+    if (stretch !== 1 || reachStretch !== 1) {
+      const k = Math.max(1 + (stretch - 1) * Math.max(0, (e - 0.5) / 0.5), 1 + (reachStretch - 1) * w)
+      for (const [name, rest, along] of chainRest) bones[name].position.copy(rest).addScaledVector(along, k - 1)
+    }
     names.forEach((name, i) => {
       const bend = e < 0.5 ? shapes.hunch[i]! * (1 - e / 0.5) : shapes.erect[i]! * ((e - 0.5) / 0.5)
       bones[name].rotation.z = THREE.MathUtils.degToRad(bend + (shapes.strike[i]! - bend) * w)

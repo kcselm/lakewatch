@@ -107,6 +107,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   gadwal: { geometry: '0ae3390b', poses: 'c200f85d' },          // the Gadwall, detailed (Task 15); were d4acba2f, 420e1f19; tail base back to 47 mm (19b)
   grbher3: { geometry: 'd5f4b4fb', poses: 'cf739662' },        // the Great Blue Heron, detailed (herons Task 6)
   greegr: { geometry: 'c45dff17', poses: 'c4409809' },         // the Great Egret, detailed (herons Task 7)
+  cangoo: { geometry: 'b33c2b2a', poses: '78f1259e' },         // the Canada Goose, detailed (goose Task 6)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -153,6 +154,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   grbher3: '9105d375', 'grbher3:adult': '9105d375', 'grbher3:juvenile': 'e21bad72',
   // new: the Great Egret, one version (herons Task 7)
   greegr: '434a6321',
+  // new: the Canada Goose, one version (goose Task 6)
+  cangoo: 'f62dcc13',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {

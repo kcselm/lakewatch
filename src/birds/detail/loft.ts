@@ -6,7 +6,7 @@ import { chainBones } from './rig'
 export const RINGS = 64
 export const RADIAL = 24
 
-export interface LoftRig { neckBase: string; neckMid: string; head: string; tailBase?: string; neck?: string[] }
+export interface LoftRig { neckBase: string; neckMid: string; head: string; tailBase?: string; neck?: string[]; neckFrom?: string }
 
 export interface LoftResult {
   /** first vertex and vertex count of the loft */
@@ -25,7 +25,8 @@ export function ringT(theta: number): number {
 }
 
 /**
- * Skin weights along the spine: body until just before the neck base, then a linear hand-off
+ * Skin weights along the spine: body until just before the neck base (from `rig.neckFrom`, or 0.08 of the spine before
+ * it), then a linear hand-off
  * body -> neck -> neckMid -> head between the labelled stations (with a chained neck, from joint to joint along
  * `rig.neck`). Always sums to 1. With `rearToTail` (a bird with no tail), the rear of the body hands off from the tail
  * bone at the rear end to the body at the tail base, so cocking the tail cocks the stern.
@@ -36,9 +37,9 @@ export function loftWeights(u: number, profile: Profile, rig: LoftRig, rearToTai
     if (u <= 0) return [['tail', 1]]
     if (u < kT) return [['tail', 1 - u / kT], ['body', u / kT]]
   }
-  if (rig.neck) return chainWeights(u, profile, rig.neck)
+  if (rig.neck) return chainWeights(u, profile, rig.neck, rig.neckFrom)
   const kNB = profile.uOf(rig.neckBase), kNM = profile.uOf(rig.neckMid), kH = profile.uOf(rig.head)
-  const kB = Math.max(0, kNB - 0.08)
+  const kB = rig.neckFrom ? profile.uOf(rig.neckFrom) : Math.max(0, kNB - 0.08)
   const blend = (a: 'body' | 'neck' | 'neckMid', b: 'neck' | 'neckMid' | 'head', lo: number, hi: number): Weights => {
     const w = (u - lo) / (hi - lo)
     return [[a, 1 - w], [b, w]]
@@ -51,10 +52,10 @@ export function loftWeights(u: number, profile: Profile, rig: LoftRig, rearToTai
 }
 
 /** A chained neck's weights: body, then a linear hand-off from each joint of the chain to the next, then the head. */
-function chainWeights(u: number, profile: Profile, labels: string[]): Weights {
+function chainWeights(u: number, profile: Profile, labels: string[], from?: string): Weights {
   const bones = chainBones(labels.length)
   const k = labels.map(l => profile.uOf(l))
-  const kB = Math.max(0, k[0]! - 0.08)
+  const kB = from ? profile.uOf(from) : Math.max(0, k[0]! - 0.08)
   if (u <= kB) return [['body', 1]]
   if (u < k[0]!) { const w = (u - kB) / (k[0]! - kB); return [['body', 1 - w], [bones[0]!, w]] }
   for (let i = 0; i < k.length - 1; i++) {

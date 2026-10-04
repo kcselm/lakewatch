@@ -335,10 +335,11 @@ describe('the goose style: moving smoothly', () => {
   it('at 60 fps no part of the pose, afloat among them, jumps in a frame', () => {
     // A tip-up comes back level in 0.4 s along smoothstep: at most 1.5 x 1.36 / 0.4 / 60 = 0.085 rad a frame, and the
     // bill reaches the water, and points down, in 0.3 s: 1.5 / 0.3 / 60 = 0.083 of the way (the dabbler's easing). Wading,
-    // afloat changes with the depth under a bird walking at most 0.5 m/s up a 1 in 4 bank. A snap would move the
-    // whole range at once.
+    // afloat changes with the depth under a bird walking at most 0.5 m/s up a 1 in 4 bank, across the band from its
+    // standing depth to its floating one (with a tenth to spare). A snap would move the whole range at once.
+    const wading = (1.1 * 0.25 * 0.5) / 60 / (S.wade.float - S.wade.stand)
     const most: Record<keyof Kept, number> = {
-      neckExtend: 0.05, reach: 0.1, reachDepth: 0.04, reachAngle: 0.1, tailTilt: 0.05, paddle: 0.1, headBob: 0.01, gait: 0.12, afloat: 0.04,
+      neckExtend: 0.05, reach: 0.1, reachDepth: 0.04, reachAngle: 0.1, tailTilt: 0.05, paddle: 0.1, headBob: 0.01, gait: 0.12, afloat: wading,
       leanX: 0.1, leanZ: 0.1,
     }
     const r = run(10, 20 * 60, 60, QUICK, true)
