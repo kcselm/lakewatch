@@ -1,6 +1,6 @@
 import { OPTICS } from '../player/optics'
 
-export const VIEWS = ['side', 'front', 'top', 'three'] as const
+export const VIEWS = ['side', 'front', 'top', 'below', 'three'] as const
 export type View = (typeof VIEWS)[number]
 
 /** Field views: how the player sees the pair from the bank, through the game's optics (their fov and near plane). */
@@ -12,6 +12,9 @@ export const FIELD_VIEWS = {
   bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino35: { label: 'binoculars, 35 m (the geese on the flat)', distance: 35, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  // a flock crossing: with `raise`, the birds as high as the flock flies
+  scope120: { label: 'telescope, 120 m (a flock crossing)', distance: 120, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  bino120: { label: 'binoculars, 120 m (a flock crossing)', distance: 120, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
 } as const
 export type FieldView = keyof typeof FIELD_VIEWS | ''
 
@@ -34,6 +37,12 @@ export interface ViewerState {
   afloat: number
   /** 0 legs hidden .. 1 shown and paddling (a swimmer's) */
   paddle: number
+  /** a pouch under the bill, 0 slack .. 1 full; and a flight wing's glide, 0 flapping .. 1 held still */
+  pouch: number; glide: number
+  /** how high the birds are lifted off the ground, metres: a flock crosses 40-80 m up */
+  raise: number
+  /** the wings beat by themselves, at the species' wingbeat */
+  flap: boolean
   /** how far the birds sink below the surface, metres (a grebe's periscope) */
   sink: number
   /** the head pump, body lengths fore and aft, and the tail cocked up, radians */
@@ -52,10 +61,10 @@ export interface ViewerState {
 const NUMBERS = {
   neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
   depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
-  pitch: [-0.5, 1.4], afloat: [0, 1],
+  pitch: [-0.5, 1.4], afloat: [0, 1], pouch: [0, 1], glide: [0, 1], raise: [0, 80],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
-const FLAGS = ['walk', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
+const FLAGS = ['walk', 'flap', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
 const STRINGS = ['a', 'av', 'b', 'bv'] as const
 
 /** What the viewer can show: species codes it knows, and each one's plumages. */

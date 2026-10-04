@@ -182,3 +182,31 @@ describe('buildDetailedBird', () => {
     expect(() => buildDetailedBird(parseSpeciesSpec({ ...TEST_SPEC, detail: undefined }))).toThrow(/detail/)
   })
 })
+
+describe('a twin', () => {
+  it('shares its twin\'s mesh and anatomy at rest, with bones and a pose of its own', () => {
+    const a = buildDetailedBird(TEST_SPEC)
+    const b = buildDetailedBird(TEST_SPEC, undefined, a)
+    expect(b.mesh.geometry).toBe(a.mesh.geometry)
+    expect(b.mesh.skeleton).not.toBe(a.mesh.skeleton)
+    expect(b.anatomy.billTip.equals(a.anatomy.billTip)).toBe(true)
+    expect(b.radius).toBe(a.radius)
+    b.pose({ ...defaultPose(), neckExtend: 1 })
+    const head = (m: typeof a) => m.mesh.skeleton.bones.find(x => x.name === 'head')!.position.y
+    expect(head(b)).toBeGreaterThan(head(a))
+    // posed alike, a twin is the same bird to the bone
+    a.pose({ ...defaultPose(), neckExtend: 1 })
+    a.group.updateMatrixWorld(true); b.group.updateMatrixWorld(true)
+    a.mesh.skeleton.bones.forEach((bone, i) => expect(b.mesh.skeleton.bones[i]!.matrixWorld.equals(bone.matrixWorld), bone.name).toBe(true))
+  })
+  it('leaves the mesh to its twin to dispose of, and must be of its twin\'s species', () => {
+    const a = buildDetailedBird(TEST_SPEC)
+    let disposed = 0
+    a.mesh.geometry.addEventListener('dispose', () => { disposed++ })
+    buildDetailedBird(TEST_SPEC, undefined, a).dispose()
+    expect(disposed).toBe(0)
+    a.dispose()
+    expect(disposed).toBe(1)
+    expect(() => buildDetailedBird(TEST_SWIM_SPEC, undefined, a)).toThrow('a twin must be a bird of the same species')
+  })
+})

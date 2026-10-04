@@ -615,6 +615,10 @@ From the plan's "Decisions made while planning" (`docs/superpowers/plans/2026-09
   joint.
 - **The call rate:** eight geese at a call every 15-45 s each made a call every 3.75 s on average. It was set to 60-180 s
   each (an estimate) from that arithmetic; it was not listened to in this session.
+- **Merged with the pelican round:** a detailed species' flyover flock flies as detailed birds there; the goose's
+  detail block says `flock: 'block'`, so its V stays a block model until round 2 gives it a wing to fly on. With the
+  pelicans and the geese the water holds 50 birds, so the floaters' buffer (`MAX_FLOATERS`) grew from 48 to 56; the
+  title card counts 43 (26 atlases, 16 folded wings, the cast).
 - **Performance** (headless Chromium on this machine, the production build): the title card counts 40 (24 atlases, 15
   folded wings, the cast); Begin enabled about 5.5 s after the page loaded; `atlases 24: 219 ms each, 32.0 MB`; 32 fps
   by eye and 41 through the binoculars, which could not be aimed at the flat headlessly. The water round recorded

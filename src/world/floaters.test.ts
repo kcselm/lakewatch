@@ -92,11 +92,11 @@ describe('the whole cast in the water', () => {
         if (i > 10) fewest = Math.min(fewest, tracker.floaters.length)
         for (const f of tracker.floaters) if (!f.wading) fastest = Math.max(fastest, Math.hypot(f.vx, f.vz))
       }
-      expect(most).toBeLessThanOrEqual(45)
+      expect(most).toBeLessThanOrEqual(50)
       expect(most).toBeLessThan(MAX_FLOATERS)
       expect(fewest).toBeGreaterThanOrEqual(25)
       expect(fastest).toBeGreaterThanOrEqual(0.3)
       expect(fastest).toBeLessThanOrEqual(0.9)
     }
-  }, 120_000)
+  }, 240_000)
 })

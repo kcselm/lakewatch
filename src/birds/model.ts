@@ -38,12 +38,16 @@ export interface PoseState {
    * and the legs blend from the one to the other. Every other bird ignores it
    */
   afloat: number
+  /** 0 slack .. 1 full: how far a pouch under the bill (a pelican's) hangs; a bird without one ignores it */
+  pouch: number
+  /** 0 flapping .. 1 gliding: a flight wing held out still, in its glide; a bird without a flight wing ignores it */
+  glide: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
-    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, afloat: 1,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, afloat: 1, pouch: 0, glide: 0,
   }
 }
 

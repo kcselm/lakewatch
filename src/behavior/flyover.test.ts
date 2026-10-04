@@ -1,4 +1,4 @@
-import { formationOffsets, laneCrossing, createFlyover } from './flyover'
+import { formationOffsets, laneCrossing, createFlyover, flightFor, PELICAN_FLIGHT, type Bouts } from './flyover'
 import { makeRng } from '../catalog/rng'
 import type { LaneZone } from '../location/schema'
 
@@ -89,5 +89,125 @@ describe('createFlyover', () => {
   it('is deterministic per seed', () => {
     const a = run(5, 60).log, b = run(5, 60).log
     expect(a).toEqual(b)
+  })
+})
+
+describe('flap and glide', () => {
+  const bouts: Bouts = { flap: [3, 5], glide: [4, 8], delay: 0.4, ease: 0.5, sink: 0.6 }
+  const opts = { count: 6, formation: 'line' as const, everySeconds: [1, 2] as [number, number], wingbeatHz: 2.5, bouts }
+  const dt = 0.02
+
+  /** One crossing, from its first frame to its last: each frame's time and every member's glide, phase and height. */
+  function crossing(seed: number, o: Parameters<typeof createFlyover>[2] = opts) {
+    const c = createFlyover(lane, makeRng(seed), o)
+    while (c.state === 'waiting') c.update(dt)
+    const frames: { t: number; glide: number[]; phase: number[]; y: number[] }[] = []
+    for (let t = 0; c.state === 'crossing'; t += dt) {
+      frames.push({ t, glide: c.members.map(m => m.glide), phase: c.members.map(m => m.wingPhase), y: c.members.map(m => m.y) })
+      c.update(dt)
+    }
+    return frames
+  }
+  /** The times bird i goes from flapping into a glide. */
+  const starts = (frames: ReturnType<typeof crossing>, i: number) =>
+    frames.filter((f, k) => k > 0 && f.glide[i]! > 0 && frames[k - 1]!.glide[i] === 0).map(f => f.t)
+
+  it('the leader flaps and glides by turns, each for as long as its bouts say', () => {
+    const frames = crossing(3)
+    const gliding = frames.map(f => f.glide[0]! > 0)
+    expect(gliding[0]).toBe(false)
+    const runs: { gliding: boolean; seconds: number }[] = []
+    gliding.forEach(g => {
+      const last = runs[runs.length - 1]
+      if (last && last.gliding === g) last.seconds += dt
+      else runs.push({ gliding: g, seconds: dt })
+    })
+    expect(runs.length).toBeGreaterThanOrEqual(4)
+    // every bout but the last, which the crossing's end cuts short
+    for (const r of runs.slice(0, -1)) {
+      const [lo, hi] = r.gliding ? bouts.glide : bouts.flap
+      expect(r.seconds).toBeGreaterThan(lo - 3 * dt)
+      expect(r.seconds).toBeLessThan(hi + 3 * dt)
+    }
+  })
+  it('each bird behind starts its glide the delay after the bird ahead, so the bout passes down the line', () => {
+    const frames = crossing(4)
+    const lead = starts(frames, 0)
+    expect(lead.length).toBeGreaterThanOrEqual(2)
+    for (let i = 1; i < opts.count; i++) {
+      const mine = starts(frames, i)
+      expect(mine[0]! - lead[0]!).toBeCloseTo(i * bouts.delay, 1)
+      expect(mine[1]! - lead[1]!).toBeCloseTo(i * bouts.delay, 1)
+    }
+  })
+  it('eases into a glide and out of it, and holds the wings still between', () => {
+    const frames = crossing(5)
+    for (let k = 1; k < frames.length; k++) {
+      for (let i = 0; i < opts.count; i++) {
+        const g = frames[k]!.glide[i]!
+        expect(g).toBeGreaterThanOrEqual(0)
+        expect(g).toBeLessThanOrEqual(1)
+        // no jump: at most the smoothstep's steepest slope, 1.5 / ease, for a frame
+        expect(Math.abs(g - frames[k - 1]!.glide[i]!)).toBeLessThan((1.5 / bouts.ease) * dt + 1e-9)
+        if (g > 0) expect(frames[k]!.phase[i]).toBe(0)
+      }
+    }
+    expect(Math.max(...frames.map(f => f.glide[0]!))).toBe(1)
+  })
+  it('starts each bout of flapping with the wings level, every bird in turn', () => {
+    const frames = crossing(6)
+    for (let i = 0; i < opts.count; i++) {
+      const resumes = frames.filter((f, k) => k > 0 && f.glide[i] === 0 && frames[k - 1]!.glide[i]! > 0)
+      expect(resumes.length).toBeGreaterThanOrEqual(1)
+      for (const f of resumes) expect(f.phase[i]!).toBeLessThan(opts.wingbeatHz * dt + 1e-9)
+    }
+  })
+  it('sinks through a glide and regains it flapping, never by more than the sink', () => {
+    const still = crossing(7, { ...opts, bouts: { ...bouts, sink: 0 } })
+    const frames = crossing(7)
+    let deepest = 0
+    frames.forEach((f, k) => {
+      const sag = still[k]!.y[0]! - f.y[0]!
+      expect(sag).toBeGreaterThanOrEqual(-1e-9)
+      expect(sag).toBeLessThanOrEqual(bouts.sink + 1e-9)
+      deepest = Math.max(deepest, sag)
+    })
+    expect(deepest).toBeGreaterThan(0.9 * bouts.sink)
+    // back at its height before the next glide
+    const k = frames.findIndex((f, j) => j > 0 && f.glide[0]! > 0 && frames[j - 1]!.glide[0] === 0 && f.t > bouts.flap[1] + bouts.glide[0])
+    expect(still[k - 1]!.y[0]! - frames[k - 1]!.y[0]!).toBeCloseTo(0, 6)
+  })
+  it('leaves a flock with no bouts flapping all the way, each bird at its own phase, as it always has', () => {
+    const o = { count: 9, formation: 'vee' as const, everySeconds: [10, 20] as [number, number], wingbeatHz: 2.6 }
+    const a = createFlyover(lane, makeRng(2), o), b = createFlyover(lane, makeRng(2), { ...o, bouts: undefined })
+    for (let k = 0; k < 400; k++) {
+      a.update(0.1); b.update(0.1)
+      expect(a.members.map(m => [m.x, m.y, m.z, m.wingPhase, m.glide])).toEqual(b.members.map(m => [m.x, m.y, m.z, m.wingPhase, m.glide]))
+      expect(a.members.every(m => m.glide === 0)).toBe(true)
+    }
+    const c = createFlyover(lane, makeRng(2), o)
+    while (c.state === 'waiting') c.update(0.1)
+    expect(new Set(c.members.map(m => m.wingPhase.toFixed(3))).size).toBeGreaterThan(5)
+  })
+  it('a species with no style of its own flies with its neck stretched, at the defaults', () => {
+    expect(flightFor('cangoo')).toEqual({ neck: 1 })
+    expect(flightFor(undefined)).toEqual({ neck: 1 })
+    expect(flightFor('toString')).toEqual({ neck: 1 })
+  })
+  it("the pelican's line: the head on the shoulders, a wingspan and more between birds, and flapping 60-75% of the way", () => {
+    expect(flightFor('amwpel')).toBe(PELICAN_FLIGHT)
+    expect(PELICAN_FLIGHT.neck).toBe(0)
+    // 2.67 m from wingtip to wingtip: no two birds' wings overlap along the line
+    expect(PELICAN_FLIGHT.spacing! * Math.hypot(0.9, 0.35)).toBeGreaterThan(2.67)
+    const B = PELICAN_FLIGHT.bouts!
+    // a glide is long enough to settle into and come out of
+    expect(B.glide[0]).toBeGreaterThanOrEqual(2 * B.ease)
+    let flapping = 0, all = 0
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const frames = crossing(seed, { count: 9, formation: 'line', everySeconds: [1, 2], wingbeatHz: 2.7, speed: PELICAN_FLIGHT.speed, spacing: PELICAN_FLIGHT.spacing, bouts: B })
+      for (const f of frames) for (const g of f.glide) { all++; if (g === 0) flapping++ }
+    }
+    expect(flapping / all).toBeGreaterThan(0.6)
+    expect(flapping / all).toBeLessThan(0.75)
   })
 })

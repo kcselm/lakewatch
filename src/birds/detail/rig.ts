@@ -10,6 +10,8 @@ export const BONE_NAMES = [
   'neck3', 'neck4', 'neck5', 'neck6',
   // a version-only part that hangs from the head
   'plume',
+  // a flight wing's outer half, from the wrist out (after every earlier bone)
+  'handL', 'handR',
 ] as const
 export type BoneName = (typeof BONE_NAMES)[number]
 
@@ -36,6 +38,7 @@ export const BONE_PARENT: Record<BoneName, BoneName | null> = {
   curl: 'body',
   neck3: 'neckMid', neck4: 'neck3', neck5: 'neck4', neck6: 'neck5',
   plume: 'head',
+  handL: 'wingL', handR: 'wingR',
 }
 
 export type Joints = Record<BoneName, THREE.Vector3>

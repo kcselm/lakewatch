@@ -7,6 +7,7 @@ import { HERON_WATER } from '../behavior/heron'
 import { CANADA_GOOSE, findCrossing } from '../behavior/goose'
 import { FLAT } from '../world/heightfield'
 import { makeRng } from '../catalog/rng'
+import { PELICAN, dipSeconds } from '../behavior/pelican'
 import { pointInPolygon } from './zones'
 import type { Vec2 } from './schema'
 
@@ -162,6 +163,26 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
       expect(y, `(${x}, ${z})`).toBeLessThanOrEqual(-DOWITCHER_WATER[0])
       expect(y, `(${x}, ${z})`).toBeGreaterThanOrEqual(-DOWITCHER_WATER[1])
     }
+  })
+
+  it('keeps the far water deep enough that a dipping pelican never finds the bed, with room for the line to swim a whole bout', () => {
+    const water = loc.zones['far-water']
+    expect(water?.kind).toBe('polygon')
+    if (water?.kind !== 'polygon') return
+    const samples = samplePolygon(water.points, 0.5)
+    expect(samples.length).toBeGreaterThan(1000)
+    // the bill tip goes `depth` under; the bed at least 15 cm below that
+    for (const [x, z] of samples) expect(heightfield.sample(x, z), `(${x}, ${z})`).toBeLessThanOrEqual(-(PELICAN.dip.depth + 0.15))
+    // the longest bout's line, abreast, swimming the zone's long way, with as much water again to choose where
+    const birds = loc.cast.filter(e => e.zone === 'far-water').reduce((n, e) => n + e.count, 0)
+    const longest = PELICAN.feed.speed * (PELICAN.feed.first + (PELICAN.feed.dips[1] - 1) * PELICAN.feed.every[1] + PELICAN.feed.window + dipSeconds(PELICAN, true) + 1)
+    const [x0, x1, z0, z1] = bboxOf(water.points)
+    expect(Math.max(x1 - x0, z1 - z0)).toBeGreaterThan(1.5 * longest)
+    expect(Math.min(x1 - x0, z1 - z0)).toBeGreaterThan(4 * (birds - 1) * PELICAN.feed.spacing)
+    // and all of it inside the open water the ducks have: no bank, no shelf
+    const open = loc.zones['open-water']
+    if (open?.kind !== 'polygon') throw new Error('open-water is a polygon')
+    for (const [x, z] of water.points) expect(pointInPolygon(x + Math.sign(-x) * 0.01, z + (z < -40 ? 0.01 : -0.01), open.points), `(${x}, ${z})`).toBe(true)
   })
 
   it('the reeds zone matches the rendered reed bed bounds', () => {

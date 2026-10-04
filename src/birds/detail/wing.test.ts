@@ -1,3 +1,4 @@
+import { PELICAN, NECK as PELICAN_NECK } from '../../behavior/pelican'
 import * as THREE from 'three'
 import { SPECIES } from '../species'
 import { buildDetailedBird, type DetailedBirdModel } from './build'
@@ -209,6 +210,13 @@ const POSES: Record<string, Record<string, Patch>> = {
   grbher3: heron('grbher3'),
   greegr: heron('greegr'),
   cangoo: goose(),
+  amwpel: {
+    'the dip, the bill under': { reach: 1, reachDepth: PELICAN.dip.depth, reachAngle: PELICAN.dip.angle, leanX: PELICAN.dip.lean, neckExtend: PELICAN_NECK.feed },
+    'the pouch full': { neckExtend: PELICAN_NECK.feed, pouch: 1 },
+    swallow: { neckExtend: PELICAN_NECK.swallow, headPitch: PELICAN.dip.pitch },
+    alert: { neckExtend: PELICAN_NECK.alert },
+    'loaf, the head sunk': { neckExtend: PELICAN_NECK.sunk },
+  },
 }
 
 /**

@@ -52,6 +52,19 @@ describe('createCallScheduler', () => {
     expect(out.find(r => r.id === 2)?.prefer).toBe('call')
   })
 
+  it('never has a pelican call: adults are silent away from their colonies', () => {
+    const s = createCallScheduler(makeRng(5))
+    const birds = [bird(1, 'amwpel', 5), bird(2, 'amwpel', 6), bird(3, 'killde', 50)]
+    const ids = new Set<number>()
+    for (let now = 0; now < 3600; now += 0.5) for (const r of s.tick(now, birds, 0)) ids.add(r.id)
+    expect([...ids]).toEqual([3])
+    expect(CALL_SCHEDULES['amwpel']).toBeUndefined()
+    // and a scheduler told of no silent species lets it call, at the default cadence
+    const loud = createCallScheduler(makeRng(5), { silent: new Set() })
+    loud.tick(0, birds, 0)
+    expect(loud.tick(1e6, birds, 0).map(r => r.id)).toContain(1)
+  })
+
   it('is deterministic per seed', () => {
     const run = (seed: number) => {
       const s = createCallScheduler(makeRng(seed))

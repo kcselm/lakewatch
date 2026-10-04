@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { buildDetailedBird, type DetailedBirdModel } from './build'
 import { measure, tailTipNow } from './measure'
 import { loftWeights } from './loft'
+import { CURL_RADIUS } from './extras'
 import { createProfile } from './profile'
 import { signedVolume } from './mesher'
 import { detailSchema, type Part } from './spec'
@@ -118,7 +119,8 @@ describe('version-only parts', () => {
     const { base, top } = m.anatomy.parts[0]!
     const rump = m.anatomy.stations.find(s => s.label === 'rump')!.position
     const s = TEST_SWIM_DETAIL.profile.find(x => x.label === 'rump')!
-    expect(base.distanceTo(rump.clone().add(new THREE.Vector3(0, s.up, 0)))).toBeLessThan(0.002)
+    // on the back at its station, sunk into the feathers by no more than its own thickness
+    expect(base.distanceTo(rump.clone().add(new THREE.Vector3(0, s.up, 0)))).toBeLessThan(CURL_RADIUS + 0.0005)
     expect(top.distanceTo(base)).toBeCloseTo(CURL.height, 3)
     const rest = skinnedAt(m, inRegion(m, 'curl'))
     const p = defaultPose(); p.lean.x = 1.5

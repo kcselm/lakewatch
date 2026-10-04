@@ -174,6 +174,8 @@ export const SPEC: SpeciesSpec = {
     // where the water meets the bird on the photo (y = 953): low on the breast, along the lower flank, under the stern
     float: { waterline: -0.0425 },
     amphibious: true,
+    // the V overhead flies as block birds until round 2 gives the goose a wing to fly on
+    flock: 'block',
     // about 6 degrees toward the planted foot on a rear three-quarter photo (research 7.7, low confidence), less than a
     // duck's: the legs are nearer the middle of the body
     waddle: 5,

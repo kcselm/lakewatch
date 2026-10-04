@@ -6,6 +6,7 @@ import { ringT } from './loft'
 
 const RINGS = 16
 const RADIAL = 12
+const SQUARE_RADIAL = 20
 /** the bill's root starts this fraction of its length inside the head */
 const ROOT = 0.15
 /** a hook bends the last HOOK of the bill down */
@@ -15,6 +16,11 @@ const SHIELD_S = 8
 const SHIELD_T = 7
 /** the shield's rim sits this far inside the head, so its edge never flickers against the skin */
 const SHIELD_INSET = 0.0003
+/** the pouch's grid: rings along it (besides one at each of its outline's points), and points round each ring's hang */
+const POUCH_S = 24
+const POUCH_T = 9
+/** the pouch hangs from inside the bill's sides: this fraction of the bill's half-width out from its middle */
+const POUCH_WIDTH = 0.9
 
 export interface BillResult {
   /** where the bill leaves the forehead (profile frame, z = 0) */
@@ -47,6 +53,16 @@ export function billScale(bill: DetailSpec['bill'], sigma: number): { width: num
   }
   const last = p[p.length - 1]!
   return { width: last[1], depth: last[2] }
+}
+
+/**
+ * A point of the bill's cross-section at angle th (0 the culmen, pi/2 the right side), `d` deep and `w` wide from its
+ * centre: an ellipse, or with `section` a superellipse of that exponent, flat on top and squared at the sides.
+ */
+export function billOffset(th: number, d: number, w: number, section?: number): { n: number; z: number } {
+  if (!section) return { n: Math.cos(th) * d, z: Math.sin(th) * w }
+  const e = 2 / section, c = Math.cos(th), s = Math.sin(th)
+  return { n: Math.sign(c) * Math.abs(c) ** e * d, z: Math.sign(s) * Math.abs(s) ** e * w }
 }
 
 /**
@@ -89,22 +105,24 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
   const { billDepth, billWidth } = detail.measurements
   const rings: number[][] = []
   const sigmas = ringSigmas(detail.bill)
+  // a squared section needs more points round it to keep its corners
+  const radial = detail.bill.section ? SQUARE_RADIAL : RADIAL
   for (const sigma of sigmas) {
     const { p, tangent } = billCenter(detail, profile, sigma)
     const normal = new THREE.Vector2(-tangent.y, tangent.x)
     const f = billScale(detail.bill, sigma)
     const d = (billDepth / 2) * f.depth, w = (billWidth / 2) * f.width
     const row: number[] = []
-    for (let j = 0; j < RADIAL; j++) {
-      const th = (j / RADIAL) * Math.PI * 2
-      const n = Math.cos(th) * d, z = Math.sin(th) * w
+    for (let j = 0; j < radial; j++) {
+      const th = (j / radial) * Math.PI * 2
+      const { n, z } = billOffset(th, d, w, detail.bill.section)
       row.push(m.vertex(new THREE.Vector3(p.x + normal.x * n, p.y + normal.y * n, z), 'bill', Math.max(0, sigma), ringT(th), [['bill', 1]]))
     }
     rings.push(row)
   }
   for (let i = 0; i < rings.length - 1; i++) {
-    for (let j = 0; j < RADIAL; j++) {
-      const j1 = (j + 1) % RADIAL
+    for (let j = 0; j < radial; j++) {
+      const j1 = (j + 1) % radial
       m.quad(rings[i]![j]!, rings[i]![j1]!, rings[i + 1]![j1]!, rings[i + 1]![j]!)
     }
   }
@@ -112,8 +130,8 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
   const tip2 = billCenter(detail, profile, 1).p
   const rootV = m.vertex(new THREE.Vector3(root.x, root.y, 0), 'bill', 0, 0.5, [['bill', 1]])
   const tipV = m.vertex(new THREE.Vector3(tip2.x, tip2.y, 0), 'bill', 1, 0.5, [['bill', 1]])
-  for (let j = 0; j < RADIAL; j++) {
-    const j1 = (j + 1) % RADIAL
+  for (let j = 0; j < radial; j++) {
+    const j1 = (j + 1) % radial
     m.tri(rootV, rings[0]![j1]!, rings[0]![j]!)
     m.tri(tipV, rings[rings.length - 1]![j]!, rings[rings.length - 1]![j1]!)
   }
@@ -127,6 +145,88 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
     up: new THREE.Vector3(end.normal.x, end.normal.y, 0),
     indexFirst, indexCount: m.indexCount - indexFirst,
   }
+}
+
+/** How far below the bill's axis the pouch hangs at sigma, slack and full, metres: its outline, linear between points. */
+export function pouchDepth(pouch: NonNullable<DetailSpec['bill']['pouch']>, sigma: number): { rest: number; full: number } {
+  if (sigma <= pouch[0]![0]) return { rest: pouch[0]![1], full: pouch[0]![2] }
+  for (let i = 1; i < pouch.length; i++) {
+    const [s1, r1, f1] = pouch[i]!, [s0, r0, f0] = pouch[i - 1]!
+    if (sigma <= s1) { const k = (sigma - s0) / (s1 - s0); return { rest: r0 + (r1 - r0) * k, full: f0 + (f1 - f0) * k } }
+  }
+  const last = pouch[pouch.length - 1]!
+  return { rest: last[1], full: last[2] }
+}
+
+/** The pouch's paint frame: its length along the bill, and the length of its hang across at s (0..1 along it), slack, mm. */
+export function pouchFrame(detail: DetailSpec): { lengthMm: number; widthMm: (s: number) => number } {
+  const pouch = detail.bill.pouch!
+  const s0 = pouch[0]![0], s1 = pouch[pouch.length - 1]![0]
+  const { culmen, billWidth } = detail.measurements
+  return {
+    lengthMm: (s1 - s0) * culmen * 1000,
+    widthMm: s => {
+      const sigma = s0 + s * (s1 - s0)
+      const w = (billWidth / 2) * billScale(detail.bill, sigma).width * POUCH_WIDTH
+      // half an ellipse's rim, across the bill and down to the pouch's depth
+      return Math.max(1, Math.PI * Math.sqrt((w * w + pouchDepth(pouch, sigma).rest ** 2) / 2) * 1000)
+    },
+  }
+}
+
+export interface PouchResult {
+  /** its vertices, in the geometry */
+  first: number
+  count: number
+  indexFirst: number
+  indexCount: number
+}
+
+/**
+ * A pouch under the bill (`bill.pouch`): a closed keel hanging from inside the bill's sides, from the throat to near
+ * the tip, as deep at each point as its slack outline says. Its full outline is the geometry's morph target, so
+ * PoseState.pouch fills it without a bone. On the bill bone, painted as 'pouch': s runs along it, t across its hang.
+ */
+export function buildPouch(m: Mesher, detail: DetailSpec, profile: Profile): PouchResult | null {
+  const pouch = detail.bill.pouch
+  if (!pouch) return null
+  const first = m.count, indexFirst = m.indexCount
+  const s0 = pouch[0]![0], s1 = pouch[pouch.length - 1]![0]
+  const even = Array.from({ length: POUCH_S }, (_, i) => s0 + ((s1 - s0) * i) / (POUCH_S - 1))
+  const all = [...even, ...pouch.map(([s]) => s)].sort((a, b) => a - b)
+  const sigmas = all.filter((s, i) => i === 0 || s - all[i - 1]! > 1e-6)
+  const rings: number[][] = []
+  const centres: THREE.Vector3[] = []
+  for (const sigma of sigmas) {
+    const { p, tangent } = billCenter(detail, profile, sigma)
+    const normal = new THREE.Vector2(-tangent.y, tangent.x)
+    const w = (detail.measurements.billWidth / 2) * billScale(detail.bill, sigma).width * POUCH_WIDTH
+    const { rest, full } = pouchDepth(pouch, sigma)
+    const row: number[] = []
+    for (let j = 0; j < POUCH_T; j++) {
+      const th = (j / (POUCH_T - 1)) * Math.PI
+      const z = Math.cos(th) * w, hang = Math.sin(th)
+      const at = (depth: number) => new THREE.Vector3(p.x - normal.x * hang * depth, p.y - normal.y * hang * depth, z)
+      const v = m.vertex(at(rest), 'pouch', (sigma - s0) / (s1 - s0), j / (POUCH_T - 1), [['bill', 1]])
+      m.morph(v, at(full))
+      row.push(v)
+    }
+    rings.push(row)
+    centres.push(new THREE.Vector3(p.x, p.y, 0))
+  }
+  for (let i = 0; i < rings.length - 1; i++) {
+    const a = rings[i]!, b = rings[i + 1]!
+    for (let j = 0; j < POUCH_T - 1; j++) m.quad(a[j]!, a[j + 1]!, b[j + 1]!, b[j]!)
+    // the top, inside the bill
+    m.quad(a[POUCH_T - 1]!, a[0]!, b[0]!, b[POUCH_T - 1]!)
+  }
+  const back = m.vertex(centres[0]!, 'pouch', 0, 0.5, [['bill', 1]])
+  const front = m.vertex(centres[centres.length - 1]!, 'pouch', 1, 0.5, [['bill', 1]])
+  for (let j = 0; j < POUCH_T - 1; j++) {
+    m.tri(back, rings[0]![j]!, rings[0]![j + 1]!)
+    m.tri(front, rings[rings.length - 1]![j + 1]!, rings[rings.length - 1]![j]!)
+  }
+  return { first, count: m.count - first, indexFirst, indexCount: m.indexCount - indexFirst }
 }
 
 export interface ShieldResult {

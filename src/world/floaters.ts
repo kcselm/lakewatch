@@ -1,7 +1,7 @@
 import type { BirdInstance } from '../birds/registry'
 
-/** The cast has 45 birds in the water: 32 swimmers (eight of them geese, which go ashore), four herons, three yellowlegs, and six dowitchers. */
-export const MAX_FLOATERS = 48
+/** The cast has 50 birds in the water: 34 swimmers (eight of them geese, which go ashore, and five pelicans), four herons, three yellowlegs, and six dowitchers. */
+export const MAX_FLOATERS = 56
 
 /** a bird in the water: where, how fast it's going and which way, which way it faces (radians about y, as its model turns), its size, and whether it floats or stands */
 export interface Floater { id: number; x: number; z: number; vx: number; vz: number; heading: number; radius: number; wading: boolean }
