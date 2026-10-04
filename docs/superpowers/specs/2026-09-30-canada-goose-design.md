@@ -578,17 +578,66 @@ Begin, the longest pause, and the frame rate with the binoculars on the flat.
 It compares them against the build before this round, and the frame rate
 against the water round's on the Iris Xe.
 
-## Known soft spots, expected
+## Changed during implementation
 
-- **Behaviour on estimates:** the tip-up's length and reach, swimming speed,
-  spacing, the walk's speed, the waddle's size, and the cycle's lengths. None is
-  measured for the Canada Goose (research section 12), and each is marked in
-  the settings.
-- **Vigilance from elsewhere:** the bout lengths come from Cackling Geese with
-  small goslings in Alaska in summer, applied to an autumn family of Westerns.
-- **Floating heights from three photos**, mostly of birds that aren't from the
-  Northwest. There is no top view for the beam, so the draft has no direct
-  measure.
+From the plan's "Decisions made while planning" (`docs/superpowers/plans/2026-09-30-canada-goose.md`) and Task 6:
+
+- **An amphibious bird says so, `detail.amphibious: true`**, and is built floating; standing, its root rises by the
+  offset that puts its hips where a standing build puts them. Its legs grow from hidden as it comes ashore rather than
+  switching on. `PoseState` gains exactly `afloat`; `BirdInstance` gains `floating`, read from the bird's own pose.
+- **How `y` and `afloat` follow the ground** (`footing`): standing no deeper than `wade.stand`, floating from
+  `wade.float`, the body on the water and the feet leaving the bed between.
+- **The cast's new fields are `ashore` and `groups`**; the family and the loose unit are one flock; the way ashore is a
+  straight line across a bank no steeper than 1 in 2; the family's water time starts when the last of them settles.
+- **The rest pose is not the photo's.** The traced goose (`L10`) is calling, its head raised and its bill near level;
+  the test holds the resting bill 10-30 degrees down and the crown no more than 280 mm above the water. The outline's
+  head was turned 15 degrees down and carried forward and down, the upper neck bending to carry it, before tracing.
+- **The head and the neck's base are fans of rings.** Where the body turns into the neck and the neck into the head,
+  stations laid by eye or fitted folded the loft or passed its skin through itself. Each ring there runs straight out
+  from one point outside the skin (above the back behind the hindneck; below the throat), the spine an arc about it,
+  so the rings turn together and can't cross. The rear of the body was fitted to the outline as before.
+- **The legs hang from `flank`, not the traced hip station.** On the standing and grazing photos the legs stand at
+  0.60-0.65 of the body from the tail; the traced hip sat at 0.46.
+- **The neck stretches (`neckStretch`, `reachStretch`), a builder change the user chose.** The plan kept the neck's
+  length and asked the erect crown 250 mm above the back; the traced neck, drawn down into its feathers, reached at
+  most 200-240 mm, as the test goose had. A chained neck may now lengthen as it goes erect (the goose's 2.4 times:
+  crown 269 mm above the back) and as it reaches (1.7 times, to the grass). Default 1: no other bird moves.
+- **The neck turns at its base about its throat side (`rig.neckBaseDepth` 0.8), and its skin hands off from the body
+  close in (`rig.neckFrom`).** Grazing, the neck leaves the breast nearly level; turned about its spine it crushed the
+  breast's front, and the default hand-off (0.08 of the spine) bent the whole chest with it. Both default to what was.
+- **The style's built-bird settings:** `wade.stand` 0.155 m, `rings.ahead` 0.34 m, `neck.stand` 0.85 (crown 227 mm above
+  the back) and `neck.walk` 0.75, `graze.lean` 0.5 and `graze.reachAngle` 1.5: the grazing photo's body is tipped well
+  forward, and the bill then reaches the grass 0.24 m ahead of the toes (photo about 0.17, the test's bound 0.25). The
+  60 fps style test's limit on `afloat` is now derived from `wade` (the band from standing to floating narrowed).
+- **An amphibious bird's bare tibia is held to 8 mm, not 15%** (`species.test.ts`): built standing, its knee forward
+  under a deep belly, 8.4 mm of its tibia shows below the belly against `measurements.tibia`'s 15 mm, which the builder
+  lays along an upright tibia. The research's 15 mm is an estimate; its photos show the belly feathers nearly to the
+  joint.
+- **The call rate:** eight geese at a call every 15-45 s each made a call every 3.75 s on average. It was set to 60-180 s
+  each (an estimate) from that arithmetic; it was not listened to in this session.
+- **Performance** (headless Chromium on this machine, the production build): the title card counts 40 (24 atlases, 15
+  folded wings, the cast); Begin enabled about 5.5 s after the page loaded; `atlases 24: 219 ms each, 32.0 MB`; 32 fps
+  by eye and 41 through the binoculars, which could not be aimed at the flat headlessly. The water round recorded
+  36-46 fps by eye and 50-59 through the binoculars on the Iris Xe; headless rates say little about a real GPU, and the
+  build before this round was not measured beside it. The user's check in their own Chrome is the acceptance.
+
+## Known soft spots
+
+- **The ring budget** with the geese peaks at 56-61 of 64 at 60 fps (none pushed out, but little room left).
+- **The step:** `stepLength` 0.65 of the builder's leg, about 0.11 m, against the research's 0.13-0.18 m: longer steps
+  slide the stance foot.
+- **The stretched neck keeps its resting girth:** erect, the goose's neck is as thick as the fluffed resting one (the
+  photo's 61 mm), where a real alert goose's is slender. The black stocking hides the stretch itself.
+- **The chinstrap is laid in bands between the head's stations**, so its edges step a little in the telescope.
+- **The bill tip** lands 4.6 mm from the photo's, the bill's axis 17 degrees below level against the 22 the trace aimed
+  at (the spine's last chord sets it).
+- **The lawn's blades** read through the binoculars as dark arcs a few pixels long.
+- **The geese on the water and the loose unit share one flock:** the family keeps 0.8 m from the loose unit, not 1.5.
+- **The block flyover V**, unchanged until round 2.
+- **Behaviour on estimates:** the tip-up's length and reach, swimming speed, spacing, the walk's speed, the waddle's
+  size, the cycle's lengths, and the call rate. None is measured for the Canada Goose (research section 12).
+- **Vigilance from elsewhere:** the bout lengths come from Cackling Geese with small goslings in Alaska in summer.
+- **Floating heights from three photos**, mostly of birds that aren't from the Northwest; no top view for the beam.
 - **One size**, at the mean of the sexes; the gander is about 6% larger.
 - **No turning of the head to the side**, as for every bird so far.
 

@@ -39,7 +39,11 @@ may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
 `tilt`. A heron can give `rig.neck` (its neck's joints, three to seven
 station labels) and `neckShapes` (the hunch, erect, and strike, in degrees
 per joint), and a `plume` part hung from the head. `PoseState.headPitch`
-tips the head. A cast entry can give exact counts per plumage version.
+tips the head. A swimming species that also stands sets `amphibious` (its legs are built standing, and
+`PoseState.afloat` takes it from its float to its feet) and may set `waddle`, in degrees; a neck drawn down into its
+feathers at rest may lengthen going erect or reaching (`neckStretch`, `reachStretch`), its base
+handing off from the body at `rig.neckFrom` and turning about its throat side (`rig.neckBaseDepth`). A goose cast entry names the
+zone its family walks out to (`ashore`) and its `groups`, a family first. A cast entry can give exact counts per plumage version.
 The water's look is set in `src/world/`: `waterDepth.ts` (the depth bake and
 clarity), `ripples.ts` (ring speeds and lifetimes), `wake.ts`, `fresnel.ts`,
 `floaters.ts` (the birds in the water), `mirror.ts`, and `water.ts`, each
