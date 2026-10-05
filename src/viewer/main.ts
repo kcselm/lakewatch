@@ -12,6 +12,8 @@ import { layersFor } from '../birds/detail/spec'
 import { paintAtlas } from '../birds/paint/painter'
 import { ATLAS_SIZE } from '../birds/paint/atlas'
 import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './state'
+import { ensureAuthored } from '../birds/models'
+import { isDetailed } from '../birds/spec'
 
 // Dev-only model viewer (npm run dev, then /viewer.html). Not part of the game build.
 
@@ -79,7 +81,12 @@ function checkerTexture(): THREE.DataTexture {
   return checker
 }
 
+/** Build the pair, once any authored bird among them has loaded its model and maps. */
 function build(): void {
+  Promise.all([state.a, state.b].map(c => ensureAuthored(getSpec(c)))).then(buildNow).catch(err => console.error(err))
+}
+
+function buildNow(): void {
   for (const s of slots) { scene.remove(s.model.group); if (s.skeleton) scene.remove(s.skeleton); s.model.dispose() }
   const models = [[state.a, state.av], [state.b, state.bv]].map(([code, v]) => createBirdModel(getSpec(code!), v || undefined))
   const gap = Math.max(...models.map(m => m.radius)) * 1.15
@@ -244,7 +251,7 @@ const set = (patch: Partial<ViewerState>, rebuild = false) => {
   else { applyLook(); place() }
 }
 
-const species: [string, string][] = Object.values(SPECIES).map(s => [s.code, `${s.commonName}${s.detail ? ' *' : ''}`])
+const species: [string, string][] = Object.values(SPECIES).map(s => [s.code, `${s.commonName}${isDetailed(s) ? ' *' : ''}`])
 const variants = (code: string): [string, string][] => [['', '(default)'], ...Object.keys(getSpec(code).variants).map(v => [v, v] as [string, string])]
 for (const key of ['a', 'b'] as const) {
   const g = group(key === 'a' ? 'Left bird' : 'Right bird')

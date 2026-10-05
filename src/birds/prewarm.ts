@@ -5,6 +5,7 @@ import { expandCast } from './spawn'
 import { makeRng } from '../catalog/rng'
 import { placeFoldedWing } from './detail/wing'
 import { castAtlases, prepaint, type PrepaintOptions } from './paint/prepaint'
+import { castModels, loadModels, modelSteps, type ModelLoader } from './models'
 
 export interface PlaceFoldsOptions {
   /** yields to the browser; defaults to one animation frame, or a zero timeout without one */
@@ -62,14 +63,17 @@ export interface PrepareOptions extends PlaceFoldsOptions {
   worker?: PrepaintOptions['worker']
   /** builds the cast (main.tsx: `spawnCast`), once every atlas is painted and every fold placed; one step of the count */
   build?: () => void
+  /** fetches the authored birds' models and maps (models.ts: the browser's, by default) */
+  models?: ModelLoader
 }
 
 /**
  * Gets the cast's birds ready behind the title card. It paints every atlas the cast needs (`prepaint`, in the worker)
- * and, meanwhile, places every folded wing on the main thread (`placeFolds`). When both are done, it yields two frames,
- * so one draws the count, and runs `build`.
+ * and, meanwhile, places every folded wing on the main thread (`placeFolds`) and loads every authored bird's model and
+ * maps (`loadModels`). When all are done, it yields two frames, so one draws the count, and runs `build`.
  *
- * `onProgress` gets one count over all of it: the atlases still to paint, the species, and the build. The total is set
+ * `onProgress` gets one count over all of it: the atlases still to paint, the species, the models and their maps, and
+ * the build. The total is set
  * before anything starts, so it never changes, and the count reaches it once, when the build is done. Rejects if any
  * part does, and builds nothing if painting or placing does.
  *
@@ -81,10 +85,11 @@ export async function prepareBirds(loc: Location, opts: PrepareOptions = {}): Pr
   const next = opts.next ?? defaultNext
   const folds = { done: 0, total: detailedCastSpecies(loc, specs).length }
   const atlases = { done: 0, total: 0 }
+  const models = { done: 0, total: modelSteps(castModels(loc, specs)) }
   const built = { done: 0, total: opts.build ? 1 : 0 }
   const report = () => opts.onProgress?.(
-    atlases.done + folds.done + built.done,
-    atlases.total + folds.total + built.total,
+    atlases.done + folds.done + models.done + built.done,
+    atlases.total + folds.total + models.total + built.total,
   )
   // prepaint first: it reports its total before it awaits anything, so even the first count has the whole total
   const painting = prepaint(castAtlases(loc, specs), {
@@ -92,7 +97,8 @@ export async function prepareBirds(loc: Location, opts: PrepareOptions = {}): Pr
     onProgress: (done, total) => { atlases.done = done; atlases.total = total; report() },
   })
   const placing = placeFolds(loc, { next, specs, onProgress: done => { folds.done = done; report() } })
-  await Promise.all([painting, placing])
+  const loading = loadModels(loc, { specs, loader: opts.models, onProgress: done => { models.done = done; report() } })
+  await Promise.all([painting, placing, loading])
   if (!opts.build) return
   // the build blocks the main thread for a while, so draw the count first. The last atlas can arrive between frames,
   // and a frame's animation callbacks run before it is drawn: one frame to draw it, the build in the next.
