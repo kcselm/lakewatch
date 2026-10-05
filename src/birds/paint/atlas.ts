@@ -26,6 +26,7 @@ export const REGIONS: Record<Part, Rect> = {
   curl:       { x: 256, y: 416, w: 64,  h: 32 },
   plume:      { x: 320, y: 416, w: 64,  h: 32 },
   pouch:      { x: 384, y: 416, w: 128, h: 32 },
+  crest:      { x: 0,   y: 448, w: 64,  h: 32 },
 }
 
 /** Texture coordinates for part-local (s, t), both 0..1: s runs along the region's width, t up its height. */

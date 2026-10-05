@@ -203,13 +203,25 @@ export const TEST_PERCHER_DETAIL: DetailSpec = {
     wrist: [0.02, 0.03], droop: 40,
     outline: [[0, 0.05], [0.16, 0.17], [0.36, 0.18], [0.55, 0.16], [0.74, 0.094], [0.93, 0.036], [1, 0.01]],
   },
-  tail: { shape: 'square', angle: 9 },
+  // fanned to 140° at tailSpread 1, the braking bird's widest, so a hover's 100° is about 0.7
+  // (kingfisher-flight-and-plunge.md, sections 4.3 and 8.3)
+  tail: { shape: 'square', angle: 9, fan: 140 },
   perch: { radius: 0.0175 },
+  // the research's double crest, a tuft at the crown and one at the occiput, lying back along the head and raised 35°
+  // (belted-kingfisher.md, section 5.2: 30-40°), its top about 20 mm above the eye's centre lowered and 30 raised
+  // (section 10); and its 80 mm fish (section 7.1). Lengths and lies set by eye to those numbers
+  parts: [{
+    kind: 'crest',
+    lobes: [{ at: 'crown', dx: 0.004, length: 0.024, lie: 18 }, { at: 'occiput', dx: -0.002, length: 0.028, lie: -25 }],
+    raise: 35,
+  }],
+  fish: { length: 0.08 },
   plumage: [
     { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5a7a96', side: '#6f8ba3', bottom: '#f2f0ea' },
     { kind: 'fill', where: { part: 'wingFold' }, color: '#55728c' },
     { kind: 'fill', where: { part: 'bill' }, color: '#2a2a2c' },
     { kind: 'fill', where: { part: 'legs' }, color: '#5c5650' },
+    { kind: 'fill', where: { part: 'crest' }, color: '#55728c' },
   ],
   variants: {},
   sources: ['test fixture'],

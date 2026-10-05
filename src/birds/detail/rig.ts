@@ -12,6 +12,9 @@ export const BONE_NAMES = [
   'plume',
   // a flight wing's outer half, from the wrist out (after every earlier bone)
   'handL', 'handR',
+  // a crest's two lobes, hung from the head; then a fanning tail's outer columns of feathers (after every earlier bone)
+  'crest', 'crestBack',
+  'tailL3', 'tailL2', 'tailL1', 'tailR1', 'tailR2', 'tailR3',
 ] as const
 export type BoneName = (typeof BONE_NAMES)[number]
 
@@ -20,6 +23,12 @@ export const BONE_INDEX = Object.fromEntries(BONE_NAMES.map((n, i) => [n, i])) a
 /** The neck's joints from its base, in order; the head joint follows the last. A neck of two joints uses the first two. */
 export const NECK_BONES = ['neck', 'neckMid', 'neck3', 'neck4', 'neck5', 'neck6'] as const
 export type NeckBone = (typeof NECK_BONES)[number]
+
+/**
+ * The bone each column of a fanning tail's feathers rides, from its outer left (the bird's left, −z) to its outer
+ * right: the middle column stays on the tail bone, and the others turn about their roots.
+ */
+export const FAN_BONES = ['tailL3', 'tailL2', 'tailL1', 'tail', 'tailR1', 'tailR2', 'tailR3'] as const
 
 /** The bones at a neck chain's labels, base to head: the first `labels - 1` neck joints, then the head. */
 export function chainBones(labels: number): (NeckBone | 'head')[] {
@@ -39,6 +48,8 @@ export const BONE_PARENT: Record<BoneName, BoneName | null> = {
   neck3: 'neckMid', neck4: 'neck3', neck5: 'neck4', neck6: 'neck5',
   plume: 'head',
   handL: 'wingL', handR: 'wingR',
+  crest: 'head', crestBack: 'head',
+  tailL3: 'tail', tailL2: 'tail', tailL1: 'tail', tailR1: 'tail', tailR2: 'tail', tailR3: 'tail',
 }
 
 export type Joints = Record<BoneName, THREE.Vector3>

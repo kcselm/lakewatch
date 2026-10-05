@@ -4,8 +4,10 @@ const hex = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb')
 const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
+/** a crest's tuft: see detailSchema's `parts` */
+const crestLobe = z.object({ at: z.string(), dx: z.number().optional(), length: pos, lie: z.number().min(-45).max(45) })
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -30,7 +32,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -128,8 +130,14 @@ export const detailSchema = z.object({
     /** [s, height as a fraction of the chord], s from wrist (0) to tip (1) */
     outline: z.array(z.tuple([unit, z.number().min(0)])).min(3),
   }),
-  /** 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone */
-  tail: z.object({ shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional() }),
+  /**
+   * 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone.
+   * `fan`: degrees between the outer feathers with the tail fully fanned (PoseState.tailSpread 1), each column of
+   * feathers turning about its own root on a bone of its own; without it the tail never fans.
+   */
+  tail: z.object({
+    shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional(), fan: z.number().min(0).max(180).optional(),
+  }),
   /** 'webbed': a membrane between the three front toes (ducks); 'lobed': a flap along each toe segment (Coot, grebes) */
   feet: z.enum(['webbed', 'lobed']).optional(),
   /** lobed feet: how wide the middle toe is across its lobes at their widest, metres (default 0.2 × measurements.toe) */
@@ -142,13 +150,24 @@ export const detailSchema = z.object({
    * long trailing back from the top of the head at the station `at`, `droop` degrees below the horizontal in the
    * traced side view and sagging a little further toward their tips, on a bone that hangs from the head, so they go
    * wherever the head goes.
-   * Painted as the parts 'curl' and 'plume'. One part of each kind.
+   * 'crest': a shaggy crest in two `lobes`, a tuft at each lobe's station `at` (`dx` metres forward along the spine),
+   * each a few tapering strands `length` metres long, lying back `lie` degrees above straight back in the traced side
+   * view; each lobe on a bone of its own that hangs from the head ('crest' the first, 'crestBack' the second), which
+   * PoseState.crestRaise turns up about the lobe's base by `raise` degrees. A crest that names no `versions` is on every
+   * bird of the species.
+   * Painted as the parts 'curl', 'plume' and 'crest'. One part of each kind.
    */
   parts: z.array(z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('curl'), at: z.string(), dx: z.number().optional(), height: pos, versions: z.array(z.string().min(1)).min(1) }),
     z.object({
       kind: z.literal('plume'), at: z.string(), dx: z.number().optional(), length: pos,
       droop: z.number().min(-30).max(90), versions: z.array(z.string().min(1)).min(1),
+    }),
+    z.object({
+      kind: z.literal('crest'),
+      lobes: z.tuple([crestLobe, crestLobe]),
+      raise: z.number().min(0).max(60),
+      versions: z.array(z.string().min(1)).min(1).optional(),
     }),
   ])).optional(),
   stepLength: pos.optional(),
@@ -164,6 +183,11 @@ export const detailSchema = z.object({
    * and curls its toes round it. Required for a species whose posture is 'perched', and only for one.
    */
   perch: z.object({ radius: pos }).optional(),
+  /**
+   * A fish the bird can hold in its bill (PoseState.fish), crosswise or turned to swallow (PoseState.fishTurn): its
+   * length, metres. One fish shape serves every bird, scaled to this.
+   */
+  fish: z.object({ length: pos }).optional(),
   /**
    * A wing to fly on, in place of the plain spread wing: its own planform, and a wrist it bends at.
    * - `span`: shoulder to wingtip, metres. `rootX`: where the shoulder sits along the body, metres in the traced side
@@ -199,6 +223,7 @@ export const detailSchema = z.object({
     if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'flight outline points must run from the shoulder to the tip', path: ['flight', 'outline', i] })
     if (trail > lead) ctx.addIssue({ code: 'custom', message: "the wing's trailing edge lies behind its leading edge", path: ['flight', 'outline', i] })
   })
+  if (d.tail.fan !== undefined && d.tail.shape === 'none') ctx.addIssue({ code: 'custom', message: 'a bird without a tail has none to fan', path: ['tail', 'fan'] })
   if (d.flight && (d.flight.outline[0]![0] !== 0 || d.flight.outline.at(-1)![0] !== 1)) {
     ctx.addIssue({ code: 'custom', message: 'the flight outline runs from s = 0 to s = 1', path: ['flight', 'outline'] })
   }
@@ -213,9 +238,10 @@ export const detailSchema = z.object({
   need('occiput', ['profile'])
   need('eye', ['profile'])
   d.parts?.forEach((p, i) => {
-    need(p.at, ['parts', i, 'at'])
+    if (p.kind === 'crest') p.lobes.forEach((l, k) => need(l.at, ['parts', i, 'lobes', k, 'at']))
+    else need(p.at, ['parts', i, 'at'])
     if (d.parts!.findIndex(q => q.kind === p.kind) !== i) ctx.addIssue({ code: 'custom', message: `more than one ${p.kind}`, path: ['parts', i] })
-    for (const v of p.versions) {
+    for (const v of p.versions ?? []) {
       if (!(v in d.variants)) ctx.addIssue({ code: 'custom', message: `part version ${v} is not one of detail.variants`, path: ['parts', i, 'versions'] })
     }
   })

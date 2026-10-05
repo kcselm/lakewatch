@@ -8,13 +8,14 @@ import { buildBill, buildEyes, buildPouch, buildShield, type BillResult } from '
 import { buildFoldedWings, buildSpreadWings, buildFlightWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
-import { createBones, chainBones, NECK_BONES, type Joints, type NeckBone } from './rig'
+import { createBones, chainBones, FAN_BONES, NECK_BONES, type Joints, type NeckBone } from './rig'
 import { legOffsets, solveLeg, smooth, STANCE } from './gait'
 import { neckSwing, firstRoot, headPitchToGround } from './reach'
 import type { DetailSpec } from './spec'
 
 type NeckShapes = NonNullable<DetailSpec['neckShapes']>
-import { buildCurl, buildPlume } from './extras'
+import { buildCurl, buildPlume, buildCrest, type PartSpec, type PartResult, type CrestResult } from './extras'
+import { fishProp, FISH_GRIP, FISH_HOLD } from './fish'
 import { materialFor } from '../paint/painter'
 
 /** Key points of the built bird in group space at rest pose, for measurement and the viewer. */
@@ -68,6 +69,8 @@ export interface DetailedBirdModel extends BirdModel {
   spec: SpeciesSpec
   /** what it shares with every bird of its species; a twin is built from it */
   built: Built
+  /** the fish it holds in its bill when PoseState.fish says so, hung from the bill bone; null for a bird that holds none */
+  fish: THREE.Mesh | null
 }
 
 /** bone scale that hides a part: a skinned mesh cannot hide a piece of itself */
@@ -79,7 +82,20 @@ const PADDLE_SWING = 0.5
  * What every bird of a species shares, whatever its version: its mesh, where its joints sit, and its anatomy at rest.
  * A version-only part is built on every bird, and each bird's own bones show or hide it.
  */
-export interface Built { profile: Profile; layout: LegLayout; geometry: THREE.BufferGeometry; joints: Joints; anatomy: Anatomy }
+export interface Built {
+  profile: Profile; layout: LegLayout; geometry: THREE.BufferGeometry; joints: Joints; anatomy: Anatomy
+  /** a fanning tail: the axis its columns turn about, group space (the tail's up), and each one's turn at the full fan, radians */
+  fan: { axis: THREE.Vector3; turns: number[] } | null
+}
+
+/** a version-only part, or the crest, on the mesher */
+function buildPart(m: Mesher, p: PartSpec, profile: Profile): PartResult | CrestResult {
+  switch (p.kind) {
+    case 'curl': return buildCurl(m, p, profile)
+    case 'plume': return buildPlume(m, p, profile)
+    case 'crest': return buildCrest(m, p, profile)
+  }
+}
 
 function construct(spec: SpeciesSpec): Built {
   const detail = spec.detail
@@ -104,8 +120,9 @@ function construct(spec: SpeciesSpec): Built {
   const tail = buildTail(m, detail, profile)
   const feet = buildLegs(m, layout, { kind: detail.feet, lobeWidth: detail.lobeWidth })
   // built on every bird of the species; each bird shows only the ones its version has
-  const extras = (detail.parts ?? []).map(p => (p.kind === 'curl' ? buildCurl(m, p, profile) : buildPlume(m, p, profile)))
+  const extras = (detail.parts ?? []).map(p => buildPart(m, p, profile))
   const extra = (kind: string) => extras.find(e => e.kind === kind)
+  const crest = extra('crest') as CrestResult | undefined
 
   // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Perched: the same, the feet on the
   // branch's top (their perch point), which is under the hips. Swimming: the traced waterline on y = 0, and the middle
@@ -158,6 +175,11 @@ function construct(spec: SpeciesSpec): Built {
     tibiaL: mirror(hipR), tarsusL: mirror(kneeR), toesL: mirror(footR),
     curl: extra('curl') ? at(extra('curl')!.base) : pivot.clone(),
     plume: extra('plume') ? at(extra('plume')!.base) : spineAt(detail.rig.head),
+    // without a crest its bones sit on the head joint, with no skin; each lobe's turns about its own base
+    crest: crest ? at(crest.lobes[0]) : spineAt(detail.rig.head),
+    crestBack: crest ? at(crest.lobes[1]) : spineAt(detail.rig.head),
+    // a fanning tail's columns turn about their roots; any other tail's fan bones sit on the tail's root, with no skin
+    ...fanJoints(tail.fan?.roots.map(at) ?? null, at(tail.root)),
     ...neckJoints,
   }
   const headStart = profile.uOf('occiput')
@@ -199,7 +221,15 @@ function construct(spec: SpeciesSpec): Built {
     flightWing: flightWing && { first: flightWing.first, count: flightWing.count, wrist: at(flightWing.wrist), tip: at(flightWing.tip) },
     parts: extras.map(e => ({ kind: e.kind, base: at(e.base), top: at(e.top), shown: false })),
   }
-  return { profile, layout, geometry: m.geometry(), joints, anatomy }
+  const fan = tail.fan && { axis: tail.fan.axis.clone(), turns: tail.fan.turns }
+  return { profile, layout, geometry: m.geometry(), joints, anatomy, fan }
+}
+
+/** the fan bones' joints: each at its column's root, or all on the tail's root */
+function fanJoints(roots: THREE.Vector3[] | null, root: THREE.Vector3): Record<Exclude<(typeof FAN_BONES)[number], 'tail'>, THREE.Vector3> {
+  const out = {} as Record<Exclude<(typeof FAN_BONES)[number], 'tail'>, THREE.Vector3>
+  FAN_BONES.forEach((name, j) => { if (name !== 'tail') out[name] = roots ? roots[j]!.clone() : root.clone() })
+  return out
 }
 
 /**
@@ -214,7 +244,12 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   const built = twin ? twin.built : construct(spec)
   const { profile, layout, geometry, joints } = built
   const swimming = spec.posture === 'swimming', perched = spec.posture === 'perched'
-  const shown = (kind: string) => !!variant && !!detail.parts?.find(p => p.kind === kind)?.versions.includes(variant)
+  // a part that names its versions shows on those only; a crest that names none is on every bird of its species
+  const shown = (kind: string) => {
+    const part = detail.parts?.find(p => p.kind === kind)
+    if (!part) return false
+    return part.versions ? !!variant && part.versions.includes(variant) : true
+  }
   const anatomy: Anatomy = { ...built.anatomy, parts: built.anatomy.parts.map(e => ({ ...e, shown: shown(e.kind) })) }
   const { pouch, flightWing } = anatomy
   const chainNames = detail.rig.neck ? chainBones(detail.rig.neck.length) : null
@@ -232,6 +267,10 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   // a version-only part stays hidden on the versions without it (set after binding, so the bind pose is the whole bird)
   bones.curl.scale.setScalar(shown('curl') ? 1 : HIDDEN)
   bones.plume.scale.setScalar(shown('plume') ? 1 : HIDDEN)
+  for (const b of [bones.crest, bones.crestBack]) b.scale.setScalar(shown('crest') ? 1 : HIDDEN)
+  const crestRaise = THREE.MathUtils.degToRad(detail.parts?.find(p => p.kind === 'crest')?.raise ?? 0)
+  const fanBones = FAN_BONES.filter(n => n !== 'tail').map(n => bones[n])
+  const fanTurns = built.fan?.turns.filter((_, j) => FAN_BONES[j] !== 'tail') ?? null
 
   const parts: BirdParts = {
     body: bones.body, neck: bones.neck, head: bones.head, bill: bones.bill,
@@ -436,6 +475,26 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   const yawNeck: readonly NeckBone[] = chainNames ? chainNames.slice(0, -1) as NeckBone[] : ['neck', 'neckMid']
   const neckAxis = new THREE.Vector3(), yawTurn = new THREE.Quaternion(), headTurn = new THREE.Quaternion()
 
+  // The fish hangs from the bill bone, which carries no rotation at rest, so at rest its frame is the group's. It is
+  // gripped FISH_HOLD of the culmen back from the tip, on the bill's axis: crosswise, its head to the bird's right and
+  // its back up the bill's top, and turned about that top to lie head first along the bill, for the swallow.
+  const fish = detail.fish ? fishProp(detail.fish.length) : null
+  const fishAt = anatomy.billTip.clone().addScaledVector(anatomy.billDir, -FISH_HOLD * detail.measurements.culmen).sub(joints.bill)
+  const billSide = anatomy.billDir.clone().cross(anatomy.billUp).normalize()
+  const billTop = billSide.clone().cross(anatomy.billDir).normalize()
+  const crosswise = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(billSide, billTop, billSide.clone().cross(billTop)))
+  const fishGrip = new THREE.Vector3()
+
+  /** The fish shown while it is held, crosswise (fishTurn 0) to lengthwise head first (1), its grip kept on the bill. */
+  function holdFish(st: PoseState) {
+    if (!fish) return
+    fish.visible = st.fish >= 0.5
+    if (!fish.visible) return
+    // a quarter turn about the bill's top swings its head from the bird's right back toward the throat
+    fish.quaternion.setFromAxisAngle(billTop, -(Math.PI / 2) * THREE.MathUtils.clamp(st.fishTurn, 0, 1)).multiply(crosswise)
+    fish.position.copy(fishAt).sub(fishGrip.set(FISH_GRIP * detail!.fish!.length, 0, 0).applyQuaternion(fish.quaternion))
+  }
+
   function pose(st: PoseState) {
     // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body; a
     // percher's between its feet)
@@ -451,6 +510,14 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     if (pouch) mesh.morphTargetInfluences![0] = THREE.MathUtils.clamp(st.pouch, 0, 1)
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
     bones.tail.rotation.z = -st.tailTilt
+    // a fanning tail's columns each turn about the tail's up to their share of the fan
+    if (fanTurns) {
+      const w = THREE.MathUtils.clamp(st.tailSpread, 0, 1)
+      fanBones.forEach((b, i) => b.quaternion.setFromAxisAngle(built.fan!.axis, fanTurns[i]! * w))
+    }
+    // a crest's lobes rise about their bases: a negative turn about +z lifts a line pointing back
+    bones.crest.rotation.z = bones.crestBack.rotation.z = -crestRaise * THREE.MathUtils.clamp(st.crestRaise, 0, 1)
+    holdFish(st)
     // wings: folded shell at rest, the spread planform once the wings open
     const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)
     const open = spread > 0.05
@@ -479,9 +546,11 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   const size = box.getSize(new THREE.Vector3())
   mesh.computeBoundingSphere()
   mesh.boundingSphere!.radius *= 1.3            // poses reach a little past the rest bounds
+  // the fish goes on once the bounds are taken: they are the bird's own, and the fish is mostly hidden
+  if (fish) bones.bill.add(fish)
 
   return {
-    group, parts, pose, center, mesh, anatomy, profile, layout, spec, built,
+    group, parts, pose, center, mesh, anatomy, profile, layout, spec, built, fish,
     radius: Math.max(size.x, size.y) * 0.5,
     // a twin's mesh is its twin's to dispose of
     dispose() { if (!twin) geometry.dispose() },

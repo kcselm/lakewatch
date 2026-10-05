@@ -41,12 +41,21 @@ export interface PoseState {
   pouch: number
   /** 0 flapping .. 1 gliding: a flight wing held out still, in its glide; a bird without a flight wing ignores it */
   glide: number
+  /** 0 lowered .. 1 raised: a crest turned up about its base; a bird without one ignores it */
+  crestRaise: number
+  /** 0 closed .. 1 fully fanned: the tail spread about its base (a kingfisher hovering); a bird whose tail doesn't fan ignores it */
+  tailSpread: number
+  /** 0 none .. 1 held: a fish in the bill; a bird that holds none ignores it */
+  fish: number
+  /** 0 crosswise .. 1 lengthwise, head first: a held fish turned in the bill to be swallowed */
+  fishTurn: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
     paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, headYaw: 0, pouch: 0, glide: 0,
+    crestRaise: 0, tailSpread: 0, fish: 0, fishTurn: 0,
   }
 }
 
