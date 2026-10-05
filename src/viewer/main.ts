@@ -20,7 +20,7 @@ import { isDetailed } from '../birds/spec'
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
-  pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1,
+  pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, dry: 0, prop: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
@@ -288,12 +288,14 @@ select(pose, 'neck shape', [['', '(sliders)'], ...Object.keys(SHAPES).map(k => [
 slider(pose, 'afloat (1 floating, 0 on its feet: a goose)', state.afloat, v => set({ afloat: v }))
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
 slider(pose, 'head pitch, deg', THREE.MathUtils.radToDeg(state.pitch), v => set({ pitch: THREE.MathUtils.degToRad(v) }), -30, 80, 1)
-slider(pose, 'lean (tip-up 1.5)', state.lean, v => set({ lean: v }), 0, 1.6, 0.01)
+slider(pose, 'lean (tip-up 1.5, perched -0.7)', state.lean, v => set({ lean: v }), -0.9, 1.6, 0.01)
 slider(pose, 'tail up', state.tail, v => set({ tail: v }), -0.5, 1, 0.01)
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
 check(pose, 'flap', state.flap, v => set({ flap: v }))
 slider(pose, 'glide (a flight wing)', state.glide, v => set({ glide: v }))
+slider(pose, 'dry the wings (a flight wing)', state.dry, v => set({ dry: v }))
+slider(pose, 'tail propped', state.prop, v => set({ prop: v }))
 slider(pose, 'raise, m', state.raise, v => set({ raise: v }), 0, 80, 1)
 slider(pose, 'pouch', state.pouch, v => set({ pouch: v }))
 slider(pose, 'reach', state.reach, v => set({ reach: v }))
@@ -346,7 +348,7 @@ function frame(): void {
   const p = {
     ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
     reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
-    headPitch: state.pitch, afloat: state.afloat, pouch: state.pouch, glide: state.glide,
+    headPitch: state.pitch, afloat: state.afloat, pouch: state.pouch, glide: state.glide, dry: state.dry, tailProp: state.prop,
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
   p.lean.x = state.lean

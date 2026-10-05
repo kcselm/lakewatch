@@ -478,17 +478,46 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   /**
    * A flight wing through its beat: the inner wing swings about the shoulder either side of its lift, and the hand
    * about the wrist, behind it by its lag. A glide holds both still at the glide's angles. Positive angles are up.
+   * Drying (`dry`) adds the species' drying pose: each part swept back about the vertical, then raised or hung about
+   * the body's axis; a beat at a small `spread` flaps it slowly.
    */
-  function flyWings(st: PoseState, spread: number) {
+  function flyWings(st: PoseState, spread: number, dry: number) {
     const F = detail!.flight!
     const glide = THREE.MathUtils.clamp(st.glide, 0, 1)
     const phase = st.wingPhase * Math.PI * 2
     const beatS = F.beat.lift + F.beat.shoulder * Math.sin(phase)
     const beatH = F.beat.hand * Math.sin(phase - F.beat.lag * Math.PI * 2)
-    const shoulder = THREE.MathUtils.degToRad(beatS + (F.glide.shoulder - beatS) * glide) * spread
-    const hand = THREE.MathUtils.degToRad(beatH + (F.glide.hand - beatH) * glide) * spread
+    const D = F.dry ?? { shoulder: 0, sweep: 0, hand: 0, handSweep: 0 }
+    const deg = THREE.MathUtils.degToRad
+    const shoulder = deg(beatS + (F.glide.shoulder - beatS) * glide) * spread + deg(D.shoulder) * dry
+    const hand = deg(beatH + (F.glide.hand - beatH) * glide) * spread + deg(D.hand) * dry
     bones.wingL.rotation.x = shoulder; bones.wingR.rotation.x = -shoulder
     bones.handL.rotation.x = hand; bones.handR.rotation.x = -hand
+    // swept back: the left wing (on -z) turns positive about y, the right negative
+    bones.wingL.rotation.y = deg(D.sweep) * dry; bones.wingR.rotation.y = -deg(D.sweep) * dry
+    bones.handL.rotation.y = deg(D.handSweep) * dry; bones.handR.rotation.y = -deg(D.handSweep) * dry
+  }
+
+  const tailVec = anatomy.tailTip.clone().sub(anatomy.tailRoot)
+  const tR = new THREE.Vector3(), tT = new THREE.Vector3()
+  /**
+   * The tail turned down (`prop` of the way) until its tip rests on y = 0, the ground or perch under the feet, once
+   * the body has turned: a raised body's tail reaches down to the perch. A tail too short to reach turns as far as it
+   * can, straight down.
+   */
+  function propTail(prop: number) {
+    group.updateMatrixWorld(true)
+    toGroup.copy(group.matrixWorld).invert()
+    inGroup(bones.tail, tR)
+    tT.copy(tailVec).applyMatrix4(bones.tail.matrixWorld).applyMatrix4(toGroup).sub(tR)
+    const len = Math.hypot(tT.x, tT.y)
+    if (len < 1e-9) return
+    // the side view's angle of the tail now and with its tip on y = 0, both taken in the back half (pointing back)
+    const now = Math.atan2(tT.y, tT.x)
+    const want = Math.PI - Math.asin(THREE.MathUtils.clamp(-tR.y / len, -1, 1))
+    let turn = want - (now < 0 ? now + 2 * Math.PI : now)
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn))
+    bones.tail.rotation.z += prop * turn
   }
 
   function pose(st: PoseState) {
@@ -508,12 +537,15 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     if (pouch) mesh.morphTargetInfluences![0] = THREE.MathUtils.clamp(st.pouch, 0, 1)
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
     bones.tail.rotation.z = -st.tailTilt
-    // wings: folded shell at rest, the spread planform once the wings open
+    const prop = THREE.MathUtils.clamp(st.tailProp, 0, 1)
+    if (prop > 0) propTail(prop)
+    // wings: folded shell at rest, the spread planform once the wings open (to fly, or to dry)
     const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)
-    const open = spread > 0.05
+    const dry = flightWing && detail!.flight?.dry ? THREE.MathUtils.clamp(st.dry, 0, 1) : 0
+    const open = spread > 0.05 || dry > 0.05
     for (const b of [bones.wingFoldL, bones.wingFoldR]) b.scale.setScalar(open ? HIDDEN : 1)
     for (const b of [bones.wingL, bones.wingR]) b.scale.setScalar(open ? 1 : HIDDEN)
-    if (flightWing) flyWings(st, spread)
+    if (flightWing) flyWings(st, spread, dry)
     else {
       const flap = Math.sin(st.wingPhase * Math.PI * 2) * 0.9 * spread
       bones.wingL.rotation.x = flap

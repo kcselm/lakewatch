@@ -42,12 +42,23 @@ export interface PoseState {
   pouch: number
   /** 0 flapping .. 1 gliding: a flight wing held out still, in its glide; a bird without a flight wing ignores it */
   glide: number
+  /**
+   * 0 folded .. 1 held out to dry: a flight wing raised and opened in the species' drying pose (flight.dry, a
+   * cormorant's), wingPhase and wingSpread adding a slow flap to it; a bird without one ignores it
+   */
+  dry: number
+  /**
+   * 0 .. 1: how far the tail turns down from where tailTilt puts it toward resting its tip on the ground or perch under
+   * the feet (y = 0), as a prop; a perched cormorant's, its body raised
+   */
+  tailProp: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
     paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, afloat: 1, pouch: 0, glide: 0,
+    dry: 0, tailProp: 0,
   }
 }
 

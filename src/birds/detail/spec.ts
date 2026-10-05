@@ -219,6 +219,9 @@ export const detailSchema = z.object({
    * - `beat`: a wingbeat, degrees: the inner wing swings `shoulder` either side of `lift` (positive: up), the hand
    *   `hand` either side of the inner wing's line, `lag` of a beat behind it.
    * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's.
+   * - `dry`: the wing held out to dry (a cormorant's), degrees: the inner wing swept `sweep` back and raised `shoulder`
+   *   above level, the hand swept `handSweep` further back and turned `hand` from the inner wing's line (negative:
+   *   hanging). PoseState.dry holds it; a bird without it ignores PoseState.dry.
    * Painted as 'wingSpread' above and 'wingUnder' below: s along the span, t from the leading edge (0) to the trailing.
    */
   flight: z.object({
@@ -229,6 +232,10 @@ export const detailSchema = z.object({
     fingers: z.object({ count: z.number().int().min(2).max(8), from: z.number().min(0.5).max(0.95), fill: z.number().min(0.3).max(0.95) }).optional(),
     beat: z.object({ shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit }),
     glide: z.object({ shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45) }),
+    dry: z.object({
+      shoulder: z.number().min(-30).max(80), sweep: z.number().min(0).max(80),
+      hand: z.number().min(-90).max(30), handSweep: z.number().min(0).max(90),
+    }).optional(),
   }).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
@@ -306,7 +313,7 @@ export type DetailSpec = z.infer<typeof detailSchema>
  *   cast with no plumage).
  * - `neck`: how many labels the model's neck chain has, its base to its head (chainBones): the loader checks the model's
  *   joints against it.
- * - `flight`: a flight wing's wingbeat and glide; its planform is the model's.
+ * - `flight`: a flight wing's wingbeat, glide, and drying pose; its planform is the model's.
  */
 export const authoredSchema = z.object({
   model: z.string().regex(/^[a-z0-9-]+$/, 'a folder name under public/models/'),
@@ -321,7 +328,10 @@ export const authoredSchema = z.object({
   amphibious: detailSchema.shape.amphibious,
   flock: detailSchema.shape.flock,
   waddle: detailSchema.shape.waddle,
-  flight: z.object({ beat: detailSchema.shape.flight.unwrap().shape.beat, glide: detailSchema.shape.flight.unwrap().shape.glide }).optional(),
+  flight: z.object({
+    beat: detailSchema.shape.flight.unwrap().shape.beat, glide: detailSchema.shape.flight.unwrap().shape.glide,
+    dry: detailSchema.shape.flight.unwrap().shape.dry,
+  }).optional(),
   sources: detailSchema.shape.sources,
 }).superRefine((d, ctx) => {
   if (d.neck !== undefined) {

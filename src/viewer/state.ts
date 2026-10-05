@@ -24,7 +24,7 @@ export interface ViewerState {
   b: string; bv: string
   view: View
   field: FieldView
-  /** lean is the body's pitch, radians: a peck's 0.8, a dabbler's tip-up about 1.5 */
+  /** lean is the body's pitch, radians: a peck's 0.8, a dabbler's tip-up about 1.5; negative raises it (a perched cormorant's -0.7) */
   neck: number; lean: number; spread: number; phase: number; reach: number
   /**
    * a reach's aim below the ground or water, metres (negative aims above it: a heron's strike into the water over the
@@ -39,6 +39,8 @@ export interface ViewerState {
   paddle: number
   /** a pouch under the bill, 0 slack .. 1 full; and a flight wing's glide, 0 flapping .. 1 held still */
   pouch: number; glide: number
+  /** a flight wing held out to dry, 0 folded .. 1 (a cormorant's), and the tail propped on the perch, 0 .. 1 */
+  dry: number; prop: number
   /** how high the birds are lifted off the ground, metres: a flock crosses 40-80 m up */
   raise: number
   /** the wings beat by themselves, at the species' wingbeat */
@@ -59,9 +61,9 @@ export interface ViewerState {
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
-  neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
+  neck: [0, 1], lean: [-0.9, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
   depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
-  pitch: [-0.5, 1.4], afloat: [0, 1], pouch: [0, 1], glide: [0, 1], raise: [0, 80],
+  pitch: [-0.5, 1.4], afloat: [0, 1], pouch: [0, 1], glide: [0, 1], raise: [0, 80], dry: [0, 1], prop: [0, 1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
 const FLAGS = ['walk', 'flap', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const

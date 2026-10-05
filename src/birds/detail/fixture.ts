@@ -251,7 +251,10 @@ export const TEST_AUTHORED_SPEC: SpeciesSpec = parseSpeciesSpec({
     neck: 7,
     neckShapes: { hunch: [-20, 10, 10, 0, 0, 0, 0], erect: [10, -5, -5, 0, 0, 0, 0], strike: [-30, -10, 0, 0, 0, 0, 0] },
     amphibious: true,
-    flight: { beat: { shoulder: 40, lift: 5, hand: 20, lag: 0.1 }, glide: { shoulder: 3, hand: -5 } },
+    flight: {
+      beat: { shoulder: 40, lift: 5, hand: 20, lag: 0.1 }, glide: { shoulder: 3, hand: -5 },
+      dry: { shoulder: 30, sweep: 25, hand: -60, handSweep: 20 },
+    },
     sources: ['test fixture'],
   },
 })
