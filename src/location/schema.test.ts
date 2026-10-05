@@ -40,6 +40,23 @@ describe('parseLocation', () => {
       expect(() => parseLocation({ ...base, cast: [{ ...base.cast[0], plumage }] }), JSON.stringify(plumage)).toThrow(/plumage/)
     }
   })
+  describe('a perches zone', () => {
+    const snag = { name: 'snag', on: 'snag', position: [23.7, -48], height: 4.1, radius: 0.05, facing: 180 }
+    const near = { name: 'near', on: 'branch', position: [-27, -17], height: 2.6, radius: 0.018, facing: 33 }
+    const withPerches = (perches: unknown[]) => ({ ...base, zones: { ...base.zones, perches: { kind: 'perches', perches } } })
+    it('takes named perches, each with its point, height, radius, facing, and what it is on', () => {
+      const zone = parseLocation(withPerches([snag, near])).zones['perches']
+      expect(zone).toEqual({ kind: 'perches', perches: [snag, near] })
+    })
+    it('rejects an empty list', () => {
+      expect(() => parseLocation(withPerches([]))).toThrow(/at least one perch/)
+    })
+    it('rejects a perch with no height or radius, a facing outside 0..360, or on something unknown', () => {
+      for (const bad of [{ height: 0 }, { radius: -0.01 }, { facing: 360 }, { facing: -10 }, { on: 'post' }, { name: '' }]) {
+        expect(() => parseLocation(withPerches([{ ...near, ...bad }])), JSON.stringify(bad)).toThrow()
+      }
+    })
+  })
   it('rejects wind strength outside 0..1', () => {
     const bad = { ...base, wind: { ...base.wind, strength: 1.5 } }
     expect(() => parseLocation(bad)).toThrow()

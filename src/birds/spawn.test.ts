@@ -1,4 +1,4 @@
-import { expandCast, flockEntries, spawnCast, speciesTraits, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
+import { expandCast, flockEntries, spawnCast, speciesTraits, perchesOf, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
 import { makeRng } from '../catalog/rng'
 import { BirdRegistry, type BirdInstance } from './registry'
 import { Wind } from '../world/wind'
@@ -341,6 +341,56 @@ describe('spawnCast divers', () => {
     } finally {
       BEHAVIORS.swim = real
     }
+  })
+})
+
+describe('spawnCast perches', () => {
+  const perchLoc = (behavior: 'hover' = 'hover'): Location => ({
+    ...loc([{ species: 'belkin1', behavior, zone: 'perches', count: 1, plumage: 'female' }]),
+    zones: {
+      perches: {
+        kind: 'perches', perches: [
+          { name: 'snag', on: 'snag', position: [23.7, -48], height: 4.1, radius: 0.05, facing: 180 },
+          { name: 'near', on: 'branch', position: [-27, -17], height: 2.6, radius: 0.018, facing: 33 },
+        ],
+      },
+    },
+  })
+  const deps = () => ({ registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed: 1 })
+
+  it('turns each perch into a world point and the heading a bird on it faces', () => {
+    const zone = perchLoc().zones['perches']
+    if (zone?.kind !== 'perches') throw new Error('perches')
+    const out = perchesOf(zone)
+    expect(out.map(p => [p.name, p.position, p.radius])).toEqual([['snag', [23.7, 4.1, -48], 0.05], ['near', [-27, 2.6, -17], 0.018]])
+    // a heading is 0 toward +x and counter-clockwise from above; a bearing 0 toward -z and clockwise
+    expect(Math.cos(out[0]!.heading)).toBeCloseTo(0, 9)       // facing 180: toward +z
+    expect(-Math.sin(out[0]!.heading)).toBeCloseTo(1, 9)
+    expect(Math.cos(out[1]!.heading)).toBeCloseTo(Math.sin(33 * Math.PI / 180), 9)
+    expect(-Math.sin(out[1]!.heading)).toBeCloseTo(-Math.cos(33 * Math.PI / 180), 9)
+  })
+  it('hands the bird the whole list, and the first perch as the one it starts on', () => {
+    const real = BEHAVIORS.hover
+    const seen: unknown[] = []
+    BEHAVIORS.hover = (ctx, x, z): BehaviorController => {
+      seen.push(ctx.perches, ctx.perch, [x, z])
+      return { name: 'hover', state: 'perch', x, y: 0, z, heading: 0, update() {} }
+    }
+    try {
+      spawnCast(perchLoc(), deps())
+    } finally {
+      BEHAVIORS.hover = real
+    }
+    const zone = perchLoc().zones['perches']
+    if (zone?.kind !== 'perches') throw new Error('perches')
+    expect(seen).toEqual([perchesOf(zone), [23.7, 4.1, -48], [23.7, -48]])
+  })
+  it("keeps today's hover on the first perch", () => {
+    const d = deps()
+    const world = spawnCast(perchLoc(), d)
+    world.update(1 / 30, d.wind)
+    const bird = d.registry.all()[0]!
+    expect(bird.model.group.position.toArray()).toEqual([23.7, 4.1, -48])
   })
 })
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { render } from 'preact'
-import { loadLocation, type Vec3 } from './location'
+import { loadLocation } from './location'
 import { World } from './world/scene'
 import { createDevOverlay } from './hud/devOverlay'
 import { createZoneOutlines } from './hud/zoneOutlines'
@@ -14,7 +14,7 @@ import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
-import { createTree, createSnag, createTreeLine } from './world/trees'
+import { createTree, createSnag, createDeadBranch, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
 import { prepareBirds } from './birds/prewarm'
@@ -204,12 +204,12 @@ world.add(createTreeLine(heightfield, world.palette))
 for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
   world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
 }
-const perches: Record<string, Vec3> = {}
 const snagZone = loc.zones['snag']
-if (snagZone?.kind === 'point') {
-  const snag = createSnag(snagZone.position)
-  world.scene.add(snag.object)
-  perches['snag'] = [snag.perchPoint.x, snag.perchPoint.y, snag.perchPoint.z]
+if (snagZone?.kind === 'point') world.scene.add(createSnag(snagZone.position).object)
+// a perch on the snag is a place on its branch; every other perch is a dead branch of its own, leaning from the bank
+for (const zone of Object.values(loc.zones)) {
+  if (zone.kind !== 'perches') continue
+  for (const p of zone.perches) if (p.on === 'branch') world.scene.add(createDeadBranch(p, surface).object)
 }
 
 const flockRng = makeRng(77)
@@ -247,7 +247,7 @@ const spawnEvents: SpawnEvents = {
 prepareBirds(loc, {
   worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
   onProgress: (done, total) => painting.set({ done, total }),
-  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches })),
+  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents })),
 }).then(() => {
   painting.set({ ready: true })
 }).catch(err => {

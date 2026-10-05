@@ -13,5 +13,5 @@ export const BEHAVIORS: Record<'swim' | 'wade' | 'probe' | 'perch' | 'hover', Be
   hover: createHover,
 }
 
-export type { BehaviorContext, BehaviorController, BehaviorFactory } from './types'
+export type { BehaviorContext, BehaviorController, BehaviorFactory, Perch } from './types'
 export { turnToward, approach, polygonOf, perchOf } from './types'

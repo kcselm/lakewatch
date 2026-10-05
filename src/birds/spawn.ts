@@ -1,9 +1,9 @@
 import * as THREE from 'three'
-import type { Location, Behavior, LaneZone, Vec3, CastEntry } from '../location/schema'
+import type { Location, Behavior, LaneZone, Vec3, CastEntry, PerchesZone } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
-import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
+import { BEHAVIORS, type BehaviorContext, type BehaviorController, type Perch } from '../behavior'
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
@@ -33,8 +33,6 @@ export interface SpawnDeps {
   ripples: RippleBuffer
   seed: number
   events?: SpawnEvents
-  /** world-space perch points by zone name; point zones not listed here perch at their own position */
-  perches?: Record<string, Vec3>
 }
 
 export interface Individual { species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string }
@@ -103,6 +101,19 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
 const STANDING: Behavior[] = ['wade', 'probe']
 
 /**
+ * A perches zone's perches as a bird uses them: each a world point (its height is above the water, y = 0), and its
+ * facing, a compass bearing as the location gives it (0 toward -z, clockwise), turned into a controller's heading.
+ */
+export function perchesOf(zone: PerchesZone): Perch[] {
+  return zone.perches.map(p => ({
+    name: p.name,
+    position: [p.position[0], p.height, p.position[1]] as Vec3,
+    radius: p.radius,
+    heading: Math.PI / 2 - (p.facing * Math.PI) / 180,
+  }))
+}
+
+/**
  * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, and
  * how it feeds. A species with no spec flaps at 5 Hz.
  */
@@ -136,11 +147,12 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
 
   for (const ind of expandCast(loc, rng)) {
     const zone = loc.zones[ind.zone]!
-    const point = zone.kind === 'point'
-    const perch: Vec3 | undefined = point ? (deps.perches?.[ind.zone] ?? zone.position) : undefined
+    // a perching bird sits at its point zone; a bird of a perches zone has them all, and starts on the first
+    const perches = zone.kind === 'perches' ? perchesOf(zone) : undefined
+    const perch: Vec3 | undefined = zone.kind === 'point' ? zone.position : perches?.[0]?.position
     const model = hasSpec(ind.species)
       ? createBirdModel(getSpec(ind.species), ind.variant)
-      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
+      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : perch ? 'perched' : 'swimming')
     const swim = ind.behavior === 'swim' && zone.kind === 'polygon'
     const traits = speciesTraits(ind.species)
     const company = swim ? companyOf(traits.foraging, ind.species) : undefined
@@ -164,6 +176,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
+      perches,
       neighbours: swim ? () => swimmers : heron ? () => herons : undefined,
       ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),

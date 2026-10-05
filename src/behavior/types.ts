@@ -62,6 +62,17 @@ export interface Spin {
  */
 export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'heading' | 'state' | 'spacing' | 'group' | 'submerged'>
 
+/** A perch as a bird on it uses it: where its feet grip, the branch's radius there, and the way it faces the water. */
+export interface Perch {
+  readonly name: string
+  /** world space, the top of the branch; the water is y = 0 */
+  readonly position: Vec3
+  /** metres */
+  readonly radius: number
+  /** radians, as a controller's heading (0 = +x, counter-clockwise seen from above): out over the water, across the branch */
+  readonly heading: number
+}
+
 export interface BehaviorContext {
   zone: Zone
   rng: Rng
@@ -70,8 +81,10 @@ export interface BehaviorContext {
   /** a ring on the water at (x, z); `size` (0..1, default 1) for a smaller ring than a swimming bird's */
   onRipple?: (x: number, z: number, size?: number) => void
   group?: FlockGroup
-  /** world-space perch point for perch and hover; the spawner resolves it from the point zone */
+  /** world-space perch point for perch and hover; the spawner takes it from the point zone, or a perches zone's first */
   perch?: Vec3
+  /** a bird of a perches zone: every perch it may use, the first the one it starts on; the spawner fills it */
+  perches?: readonly Perch[]
   /** for behaviors that flap; each behavior applies its own default when unset (perch 5, hover 6) */
   wingbeatHz?: number
   /** how the bird feeds; probe treats a missing style as sandpiper, swim as dabbler */

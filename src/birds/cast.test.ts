@@ -30,7 +30,7 @@ describe('the whole cast on the water', () => {
       const ripples = new RippleBuffer()
       const spawn = ripples.spawn.bind(ripples)
       ripples.spawn = (x: number, z: number, size?: number) => { if (ripples.rings.length >= MAX_RIPPLES) dropped++; spawn(x, z, size) }
-      const world = spawnCast(ringers(), { registry: new BirdRegistry(), wind, ground: () => -1, ripples, seed, perches: { snag: [22, 3, -48] } })
+      const world = spawnCast(ringers(), { registry: new BirdRegistry(), wind, ground: () => -1, ripples, seed })
       for (let i = 0; i < 600 * 10; i++) {
         world.update(0.1, wind)
         ripples.update(0.1)
@@ -45,7 +45,7 @@ describe('the whole cast on the water', () => {
   it('hides each diving bird exactly while it is under the water, and never offers a hidden bird as a target', () => {
     const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
     const registry = new BirdRegistry()
-    const world = spawnCast(ringers(), { registry, wind, ground: () => -1, ripples: new RippleBuffer(), seed: 42, perches: { snag: [22, 3, -48] } })
+    const world = spawnCast(ringers(), { registry, wind, ground: () => -1, ripples: new RippleBuffer(), seed: 42 })
     let hidden = 0
     for (let i = 0; i < 300 * 10; i++) {
       world.update(0.1, wind)

@@ -9,7 +9,7 @@ export type CastSpecs = Readonly<Record<string, Pick<SpeciesSpec, 'variants' | '
 
 const ZONE_KIND_FOR_BEHAVIOR = {
   swim: 'polygon', wade: 'polygon', probe: 'polygon',
-  perch: 'point', hover: 'point', flyover: 'lane',
+  perch: 'point', hover: 'perches', flyover: 'lane',
 } as const
 
 export function validateCast(loc: Location, birds: readonly Bird[], specs: CastSpecs = SPECIES): string[] {
@@ -17,6 +17,15 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
 
   for (const [name, zone] of Object.entries(loc.zones)) {
     if (zone.kind === 'polygon' && !isConvexPolygon(zone.points)) errors.push(`zone ${name}: polygon must be convex`)
+    if (zone.kind === 'perches') {
+      const seen = new Set<string>()
+      for (const p of zone.perches) {
+        if (seen.has(p.name)) errors.push(`zone ${name}: perch ${p.name} is listed twice`)
+        seen.add(p.name)
+        // the snag is built at its point zone, and a perch on it is a place on its branch
+        if (p.on === 'snag' && loc.zones['snag']?.kind !== 'point') errors.push(`zone ${name}: perch ${p.name} is on the snag, but there is no snag point zone`)
+      }
+    }
   }
 
   const byCode = new Map(birds.map(b => [b.speciesCode, b]))
