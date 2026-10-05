@@ -34,8 +34,11 @@ export interface SpawnDeps {
   ripples: RippleBuffer
   seed: number
   events?: SpawnEvents
-  /** world-space perch points by zone name; point zones not listed here perch at their own position */
-  perches?: Record<string, Vec3>
+  /**
+   * world-space perch points by zone name: one, which every bird of the zone shares, or a list, from which each bird
+   * of the zone takes the next of its own (the stumps'); point zones not listed here perch at their own position
+   */
+  perches?: Record<string, Vec3 | Vec3[]>
 }
 
 /**
@@ -144,11 +147,22 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   const units = new Map<string, GooseUnit[]>()
   const birds: LiveBird[] = []
   const flocks: LiveFlock[] = []
+  /** how many birds have taken a perch from each zone's list */
+  const taken = new Map<string, number>()
+  const perchFor = (name: string, fallback: Vec3): Vec3 => {
+    const p = deps.perches?.[name]
+    if (!p) return fallback
+    if (!Array.isArray(p[0])) return p as Vec3
+    const list = p as Vec3[], k = taken.get(name) ?? 0
+    if (k >= list.length) throw new Error(`${name}: more birds than its ${list.length} perches`)
+    taken.set(name, k + 1)
+    return list[k]!
+  }
 
   for (const ind of expandCast(loc, rng)) {
     const zone = loc.zones[ind.zone]!
     const point = zone.kind === 'point'
-    const perch: Vec3 | undefined = point ? (deps.perches?.[ind.zone] ?? zone.position) : undefined
+    const perch: Vec3 | undefined = point ? perchFor(ind.zone, zone.position) : undefined
     const model = hasSpec(ind.species)
       ? createBirdModel(getSpec(ind.species), ind.variant)
       : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')

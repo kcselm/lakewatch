@@ -10,6 +10,7 @@ import { makeRng } from '../catalog/rng'
 import { PELICAN, dipSeconds } from '../behavior/pelican'
 import { pointInPolygon } from './zones'
 import type { Vec2 } from './schema'
+import { STUMPS } from '../world/trees'
 
 function bboxOf(points: readonly Vec2[]): [number, number, number, number] {
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity
@@ -185,6 +186,20 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
     for (const [x, z] of water.points) expect(pointInPolygon(x + Math.sign(-x) * 0.01, z + (z < -40 ? 0.01 : -0.01), open.points), `(${x}, ${z})`).toBe(true)
   })
 
+  it('stands the stumps the cormorants perch on in water, and keeps the water round them deep enough to dive in, all over', () => {
+    const stumps = loc.zones['stumps']!
+    expect(stumps.kind).toBe('point')
+    if (stumps.kind !== 'point') return
+    for (const s of STUMPS) expect(heightfield.sample(stumps.position[0] + s.dx, stumps.position[2] + s.dz)).toBeLessThan(-1)
+    const water = loc.zones['cormorant-water']!
+    expect(water.kind).toBe('polygon')
+    if (water.kind !== 'polygon') return
+    // a valley lake 1-5 m deep is fished to the bottom (research 7.1): a metre at least, so a dive goes under
+    for (const [x, z] of samplePolygon(water.points)) expect(heightfield.sample(x, z), `(${x}, ${z})`).toBeLessThan(-1)
+    // within a few metres of the stumps, so the fisher is seen from where the others perch
+    const [cx, , cz] = stumps.position
+    for (const [x, z] of water.points) expect(Math.hypot(x - cx, z - cz)).toBeLessThan(12)
+  })
   it('the reeds zone matches the rendered reed bed bounds', () => {
     const reeds = loc.zones['reeds']
     expect(reeds?.kind).toBe('polygon')

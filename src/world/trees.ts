@@ -64,6 +64,46 @@ export function createSnag(position: Vec3): { object: THREE.Group; perchPoint: T
   return { object: group, perchPoint }
 }
 
+/**
+ * Drowned stumps standing in the water, where cormorants perch: each a weathered trunk from the bed (`ground`) up out of
+ * the water, flat-topped where it broke, around `center`. `perches` are their tops' middles, one per stump, in STUMPS'
+ * order.
+ */
+export const STUMPS: { dx: number; dz: number; top: number; radius: number }[] = [
+  // offsets from the zone's point, metres; the top's height above the water; the trunk's radius at the top
+  { dx: 0, dz: 0, top: 0.9, radius: 0.16 },
+  { dx: 1.7, dz: 0.8, top: 1.4, radius: 0.2 },
+  { dx: -1.4, dz: 1.3, top: 0.55, radius: 0.13 },
+  { dx: 0.8, dz: -1.6, top: 1.15, radius: 0.17 },
+]
+
+export function createStumps(center: Vec3, ground: (x: number, z: number) => number): { object: THREE.Group; perches: THREE.Vector3[] } {
+  const group = new THREE.Group()
+  const mat = new THREE.MeshStandardMaterial({ color: '#8c8478', roughness: 1, flatShading: true })
+  const perches: THREE.Vector3[] = []
+  STUMPS.forEach((s, i) => {
+    const x = center[0] + s.dx, z = center[2] + s.dz
+    const bed = Math.min(ground(x, z), -0.2)
+    const height = s.top - bed
+    // wider toward the bed; a few sides, as the snag has
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(s.radius, s.radius * 1.5, height, 7), mat)
+    trunk.position.set(x, bed + height / 2, z)
+    trunk.rotation.y = i * 1.3
+    trunk.castShadow = true
+    group.add(trunk)
+    // a broken-off side branch on the taller two, standing a little out of the trunk below the top
+    if (s.top > 1) {
+      const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.45, 5), mat)
+      stub.position.set(x + s.radius * 0.9, s.top - 0.35, z)
+      stub.rotation.z = -0.9
+      stub.rotation.y = i * 1.3
+      group.add(stub)
+    }
+    perches.push(new THREE.Vector3(x, s.top, z))
+  })
+  return { object: group, perches }
+}
+
 /** Layered silhouettes on the far shore that fade into the fog. */
 export function createTreeLine(hf: Heightfield, palette: ScenePalette): WorldModule & { object: THREE.Group } {
   const group = new THREE.Group()

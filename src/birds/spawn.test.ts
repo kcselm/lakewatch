@@ -397,3 +397,26 @@ describe('spawnCast rings', () => {
     expect(ripples.rings.map(r => r.size)).toEqual([STYLES.dowitcher.ripple.size])
   })
 })
+
+describe('perches from a list (the stumps)', () => {
+  const deps = (perches: Record<string, [number, number, number] | [number, number, number][]>) => ({
+    registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5 }), ground: () => -1,
+    ripples: new RippleBuffer(), seed: 3, perches,
+  })
+  const tops: [number, number, number][] = [[1, 0.9, 3], [2.7, 1.4, 3.8], [-0.4, 0.55, 4.3]]
+  it('gives each bird of the zone its own perch, in the list\'s order', () => {
+    const d = deps({ snag: tops })
+    const world = spawnCast(loc([{ species: 'rewbla', behavior: 'perch', zone: 'snag', count: 3, plumage: 'male' }]), d)
+    world.update(0.1, d.wind)
+    const at = d.registry.all().map(b => `${b.model.group.position.x.toFixed(2)},${b.model.group.position.z.toFixed(2)}`)
+    expect(at.sort()).toEqual(tops.map(([x, , z]) => `${x.toFixed(2)},${z.toFixed(2)}`).sort())
+  })
+  it('refuses more birds than perches', () => {
+    expect(() => spawnCast(loc([{ species: 'rewbla', behavior: 'perch', zone: 'snag', count: 4, plumage: 'male' }]), deps({ snag: tops })))
+      .toThrow(/more birds than its 3 perches/)
+  })
+  it('still shares one perch among every bird of a zone that has only one', () => {
+    const d = deps({ snag: [1, 2, 3] })
+    expect(() => spawnCast(loc([{ species: 'rewbla', behavior: 'perch', zone: 'snag', count: 2, plumage: 'male' }]), d)).not.toThrow()
+  })
+})

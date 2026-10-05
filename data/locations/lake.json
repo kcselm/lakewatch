@@ -19,6 +19,8 @@
     "goose-flat":  { "kind": "polygon", "points": [[31, -9], [43, -9], [43, -22.6], [31, -10.9]] },
     "goose-water": { "kind": "polygon", "points": [[28, -14.5], [35, -21.5], [32, -27], [24, -20]] },
     "snag":       { "kind": "point",   "position": [22, 0, -48] },
+    "stumps":     { "kind": "point",   "position": [-14, 0, -30] },
+    "cormorant-water": { "kind": "polygon", "points": [[-22, -24], [-6, -24], [-6, -34], [-22, -34]] },
     "reed-perch":   { "kind": "point", "position": [-8, 1.9, -5] },
     "reed-perch-2": { "kind": "point", "position": [-13, 1.8, -9] },
     "sky":        { "kind": "lane",    "from": [-160, 0, -90], "to": [160, 0, -60], "altitude": [40, 80] }

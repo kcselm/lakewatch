@@ -14,7 +14,7 @@ import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
-import { createTree, createSnag, createTreeLine } from './world/trees'
+import { createTree, createSnag, createStumps, createTreeLine } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
 import { prepareBirds } from './birds/prewarm'
@@ -210,12 +210,18 @@ world.add(createTreeLine(heightfield, world.palette))
 for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
   world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
 }
-const perches: Record<string, Vec3> = {}
+const perches: Record<string, Vec3 | Vec3[]> = {}
 const snagZone = loc.zones['snag']
 if (snagZone?.kind === 'point') {
   const snag = createSnag(snagZone.position)
   world.scene.add(snag.object)
   perches['snag'] = [snag.perchPoint.x, snag.perchPoint.y, snag.perchPoint.z]
+}
+const stumpsZone = loc.zones['stumps']
+if (stumpsZone?.kind === 'point') {
+  const stumps = createStumps(stumpsZone.position, (x, z) => surface.sample(x, z))
+  world.scene.add(stumps.object)
+  perches['stumps'] = stumps.perches.map(p => [p.x, p.y, p.z] as Vec3)
 }
 
 const flockRng = makeRng(77)
