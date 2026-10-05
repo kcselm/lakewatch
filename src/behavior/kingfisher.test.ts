@@ -120,6 +120,7 @@ describe('the kingfisher style', () => {
     expect(hoverHz(S, 40)).toBeGreaterThanOrEqual(6)
   })
 
+  // the four-hour and half-hour runs check every frame: beside a full run they take longer than the suite's 20 s
   describe('over four hours on the lake', () => {
     const HOURS = 4
     const { frames, rings, sprays, calls, splashes } = record(7, 3600 * HOURS)
@@ -211,7 +212,7 @@ describe('the kingfisher style', () => {
         if (f.state === 'under') expect(f.y).toBeLessThan(0)
         else expect(f.y).toBeGreaterThanOrEqual(-1e-9)
       }
-    })
+    }, 60_000)
     it('shows a fish only after a catch, carries it to a perch, and swallows it there', () => {
       let holding = false
       for (const r of all) {
@@ -352,7 +353,7 @@ describe('the kingfisher style', () => {
       expect(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) / dt, `position in ${b.state} at ${b.t}`).toBeLessThanOrEqual(S.fly.speed[1] + 0.5)
     }
     expect(swallowed).toBeGreaterThan(0)
-  })
+  }, 60_000)
 
   it('holds every beat to six frames or more, even when the frame rate drops', () => {
     const c = createKingfisher(ctxFor(5), 0, 0)

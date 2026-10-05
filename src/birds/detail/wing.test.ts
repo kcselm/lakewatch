@@ -13,6 +13,7 @@ import { GREBE, NECK as GREBE_NECK } from '../../behavior/grebe'
 import { PECK_BOTTOM } from '../../behavior/probe'
 import { STRIKE } from '../../behavior/wade'
 import { heronFor } from '../../behavior/heron'
+import { KINGFISHER } from '../../behavior/kingfisher'
 
 /** how far along its normal a point on the wing looks for the loft, each way, metres */
 const REACH = 0.05
@@ -198,6 +199,14 @@ const POSES: Record<string, Record<string, Patch>> = {
     swallow: { neckExtend: PELICAN_NECK.swallow, headPitch: PELICAN.dip.pitch },
     alert: { neckExtend: PELICAN_NECK.alert },
     'loaf, the head sunk': { neckExtend: PELICAN_NECK.sunk },
+  },
+  // on its perch (behavior/kingfisher.ts): the bill at billRest + lean - bill
+  belkin1: {
+    'peering down': { leanX: 0.1, headPitch: KINGFISHER.billRest + 0.1 - KINGFISHER.peer.bill[1] },
+    'leaning out to plunge': { leanX: KINGFISHER.perchPlunge.leanTo, headPitch: KINGFISHER.billRest + KINGFISHER.perchPlunge.leanTo - KINGFISHER.peer.bill[1] },
+    'the head turned': { headYaw: KINGFISHER.idle.turn.yaw[1], crestRaise: 1 },
+    'the tail flicked': { tailTilt: KINGFISHER.idle.flick.tilt[1] },
+    swallowing: { headPitch: KINGFISHER.handle.pitch[1], fish: 1, fishTurn: 1 },
   },
 }
 

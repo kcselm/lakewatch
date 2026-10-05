@@ -50,13 +50,34 @@ export interface LegLayout {
   perch: number | null
 }
 
+/**
+ * The lowest point of the body's side view straight below `x`: where the lower outline (each section's spine point less
+ * its `down` along its axis) crosses x, the lowest crossing if it crosses more than once; null if it never does.
+ */
+function underside(profile: Profile, x: number): number | null {
+  const N = 400
+  let best: number | null = null, prev: THREE.Vector2 | null = null
+  for (let i = 0; i <= N; i++) {
+    const s = profile.sampleAt(i / N)
+    const p = s.point.clone().addScaledVector(s.axis, -s.down)
+    if (prev && prev.x !== p.x && (prev.x - x) * (p.x - x) <= 0) {
+      const y = prev.y + ((x - prev.x) / (p.x - prev.x)) * (p.y - prev.y)
+      if (best === null || y < best) best = y
+    }
+    prev = p
+  }
+  return best
+}
+
 export function legLayout(detail: DetailSpec, profile: Profile, posture: 'standing' | 'swimming' | 'perched' = 'standing'): LegLayout {
   const swimming = posture === 'swimming'
   const perch = posture === 'perched' ? detail.perch?.radius ?? null : null
   if (posture === 'perched' && perch === null) throw new Error('a perched bird needs detail.perch, the branch its toes curl round')
   const s = profile.sampleAt(profile.uOf(detail.rig.hip))
   const hip = new THREE.Vector3(s.point.x, s.point.y - s.down * HIP_DEPTH, s.halfWidth * HIP_SPREAD)
-  const bellyY = s.point.y - s.down
+  // a percher's body slants, so the belly under its hip is where the body's lower outline passes below it, not the
+  // hip station's own `down`, which lies along a normal leaning toward the breast
+  const bellyY = perch === null ? s.point.y - s.down : underside(profile, s.point.x) ?? s.point.y - s.down
   const m = detail.measurements
   const tibia = (hip.y - bellyY) + m.tibia
   const standHeight = STAND * (tibia + m.tarsus)
@@ -69,7 +90,10 @@ export function legLayout(detail: DetailSpec, profile: Profile, posture: 'standi
   }
   // perched, the bird crouches over its feet, but never so low that the intertarsal joint drops below them (into the
   // branch): at sqrt(tibia² - tarsus²) the tarsus lies level
-  const height = perch === null ? standHeight : Math.max(PERCH_STAND * (tibia + m.tarsus), Math.sqrt(Math.max(0, tibia ** 2 - m.tarsus ** 2)))
+  // a traced branch top sets the crouch: the foot joint its toes' radius above it, the legs no straighter than standing
+  const top = detail.perch?.top
+  const crouch = top === undefined ? PERCH_STAND * (tibia + m.tarsus) : Math.min(STAND * (tibia + m.tarsus), hip.y - (top + footY))
+  const height = perch === null ? standHeight : Math.max(crouch, Math.sqrt(Math.max(0, tibia ** 2 - m.tarsus ** 2)))
   const target = { x: hip.x, y: hip.y - height }
   const { joint, foot } = solveLeg({ x: hip.x, y: hip.y }, target, tibia, m.tarsus)
   return {

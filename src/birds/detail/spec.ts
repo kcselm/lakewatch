@@ -179,10 +179,12 @@ export const detailSchema = z.object({
    */
   float: z.object({ waterline: z.number() }).optional(),
   /**
-   * A percher's branch: its radius, metres. The builder sets the bird's feet on the branch's top at y = 0, crouched,
-   * and curls its toes round it. Required for a species whose posture is 'perched', and only for one.
+   * A percher's branch: its radius, metres, and optionally `top`, the height of the branch's top under the hips in the
+   * traced side view (the profile frame), where the reference photo's feet stand. The builder sets the bird's feet on
+   * the branch's top at y = 0 and curls its toes round it: reaching down to `top` as far as the legs allow, or without
+   * it crouched. Required for a species whose posture is 'perched', and only for one.
    */
-  perch: z.object({ radius: pos }).optional(),
+  perch: z.object({ radius: pos, top: z.number().optional() }).optional(),
   /**
    * A fish the bird can hold in its bill (PoseState.fish), crosswise or turned to swallow (PoseState.fishTurn): its
    * length, metres. One fish shape serves every bird, scaled to this.

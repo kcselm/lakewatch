@@ -108,6 +108,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   grbher3: { geometry: 'd5f4b4fb', poses: 'cf739662' },        // the Great Blue Heron, detailed (herons Task 6)
   greegr: { geometry: 'c45dff17', poses: 'c4409809' },         // the Great Egret, detailed (herons Task 7)
   amwpel: { geometry: '97b7e899', poses: '090f7a1e' },         // the American White Pelican, detailed (the pelican round)
+  belkin1: { geometry: '08eb3202', poses: '91be1992' },        // the Belted Kingfisher, detailed and perched (the kingfisher round)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -156,6 +157,8 @@ const EXPECTED_ATLAS: Record<string, string> = {
   greegr: '434a6321',
   // new: the American White Pelican's two versions (the pelican round); with no version it paints the adult's
   amwpel: '1e4378fc', 'amwpel:adult': '1e4378fc', 'amwpel:juvenile': '72d8102c',
+  // new: the Belted Kingfisher's two versions (the kingfisher round); with no version it paints the female's
+  belkin1: 'd138ec16', 'belkin1:female': 'd138ec16', 'belkin1:male': 'bbf02c32',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {
