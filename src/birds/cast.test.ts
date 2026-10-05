@@ -1,3 +1,5 @@
+import { CORMORANT } from '../behavior/cormorant'
+import { stumpPerches } from '../world/trees'
 import { spawnCast } from './spawn'
 import { BirdRegistry } from './registry'
 import { Wind } from '../world/wind'
@@ -11,9 +13,12 @@ import { targetCandidates } from '../player/candidates'
  * strikes. The geese never find a bank to walk up here (the ground is a metre down everywhere), so they spend all their
  * time on the water, dipping and tipping up: the most they can ring it.
  */
+/** the snag's perch, and the stumps' (main.tsx builds them; here, where they would be) */
+const PERCHES = { snag: [22, 3, -48] as [number, number, number], stumps: stumpPerches([-14, 0, -30]) }
+
 function ringers() {
   const lake = loadLocation()
-  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr', 'cangoo', 'amwpel']
+  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr', 'cangoo', 'amwpel', 'doccor']
   // not the flock in the sky, which rings nothing
   return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species) && e.behavior !== 'flyover') }
 }
@@ -33,7 +38,7 @@ describe('the whole cast on the water', () => {
       const ripples = new RippleBuffer()
       const spawn = ripples.spawn.bind(ripples)
       ripples.spawn = (x: number, z: number, size?: number) => { if (ripples.rings.length >= MAX_RIPPLES) dropped++; spawn(x, z, size) }
-      const world = spawnCast(ringers(), { registry: new BirdRegistry(), wind, ground: () => -1, ripples, seed, perches: { snag: [22, 3, -48] } })
+      const world = spawnCast(ringers(), { registry: new BirdRegistry(), wind, ground: () => -1, ripples, seed, perches: PERCHES })
       for (let i = 0; i < 600 * 10; i++) {
         world.update(0.1, wind)
         ripples.update(0.1)
@@ -48,14 +53,14 @@ describe('the whole cast on the water', () => {
   it('hides each diving bird exactly while it is under the water, and never offers a hidden bird as a target', () => {
     const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
     const registry = new BirdRegistry()
-    const world = spawnCast(ringers(), { registry, wind, ground: () => -1, ripples: new RippleBuffer(), seed: 42, perches: { snag: [22, 3, -48] } })
+    const world = spawnCast(ringers(), { registry, wind, ground: () => -1, ripples: new RippleBuffer(), seed: 42, perches: PERCHES })
     let hidden = 0
     for (let i = 0; i < 300 * 10; i++) {
       world.update(0.1, wind)
       for (const b of registry.all()) {
         if (b.behavior !== 'swim') continue
-        // a coot or grebe all the way down sits 0.4 m under; anything less is still in sight
-        const down = b.model.group.position.y <= -0.4 + 1e-9
+        // a coot or grebe all the way down sits 0.4 m under, a cormorant 0.5; anything less is still in sight
+        const down = b.model.group.position.y <= -(b.species === 'doccor' ? CORMORANT.entry.depth : 0.4) + 1e-9
         if (b.model.group.visible === down) expect.fail(`${b.species} ${b.id} at y ${b.model.group.position.y} is ${b.model.group.visible ? 'shown' : 'hidden'}`)
         if (down) hidden++
       }

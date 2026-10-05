@@ -183,7 +183,8 @@ export function createCormorant(ctx: BehaviorContext, startX: number, startZ: nu
     get state() { return state },
     get x() { return b.x }, get z() { return b.z }, get heading() { return b.heading },
     get y() { return -depth },
-    get submerged() { return depth >= S.entry.depth },
+    // all the way under; a nanometre spare, as the slide's ease ends a hair short of the depth
+    get submerged() { return depth >= S.entry.depth - 1e-9 },
     spacing: S.spacing.other,
     group: b.flock.group,
     update(dt: number, pose: PoseState) {

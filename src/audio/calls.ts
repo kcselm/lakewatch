@@ -34,7 +34,7 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
  * Species that never call here. An American White Pelican is silent away from its colony
  * (docs/research/2026-09-30-american-white-pelican.md, section 7.6).
  */
-export const SILENT: ReadonlySet<string> = new Set(['amwpel'])
+export const SILENT: ReadonlySet<string> = new Set(['amwpel', 'doccor'])
 
 export const MAX_SIMULTANEOUS_CALLS = 3
 

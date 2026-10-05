@@ -1,3 +1,4 @@
+import { stumpPerches } from './trees'
 import * as THREE from 'three'
 import { FloaterTracker, MAX_FLOATERS } from './floaters'
 import type { BirdInstance } from '../birds/registry'
@@ -82,7 +83,7 @@ describe('the whole cast in the water', () => {
     for (const seed of [42, 7, 11]) {
       const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
       const registry = new BirdRegistry()
-      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { snag: [22, 3, -48] } })
+      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { snag: [22, 3, -48], stumps: stumpPerches([-14, 0, -30]) } })
       const tracker = new FloaterTracker()
       let most = 0, fewest = Infinity, fastest = 0
       for (let i = 0; i < 120 * 10; i++) {
@@ -92,7 +93,7 @@ describe('the whole cast in the water', () => {
         if (i > 10) fewest = Math.min(fewest, tracker.floaters.length)
         for (const f of tracker.floaters) if (!f.wading) fastest = Math.max(fastest, Math.hypot(f.vx, f.vz))
       }
-      expect(most).toBeLessThanOrEqual(50)
+      expect(most).toBeLessThanOrEqual(51)
       expect(most).toBeLessThan(MAX_FLOATERS)
       expect(fewest).toBeGreaterThanOrEqual(25)
       expect(fastest).toBeGreaterThanOrEqual(0.3)

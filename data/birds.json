@@ -2367,6 +2367,7 @@
     "family": "Phalacrocoracidae",
     "familyCommon": "Cormorants and Shags",
     "habitats": [
+      "wetland",
       "shoreline"
     ],
     "frequency": 0.525,

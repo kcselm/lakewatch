@@ -1,6 +1,9 @@
 import type { BirdInstance } from '../birds/registry'
 
-/** The cast has 50 birds in the water: 34 swimmers (eight of them geese, which go ashore, and five pelicans), four herons, three yellowlegs, and six dowitchers. */
+/**
+ * The cast has 51 birds in the water: 35 swimmers (eight of them geese, which go ashore, five pelicans, and a cormorant
+ * fishing; the three on the stumps stand above it), four herons, three yellowlegs, and six dowitchers.
+ */
 export const MAX_FLOATERS = 56
 
 /** a bird in the water: where, how fast it's going and which way, which way it faces (radians about y, as its model turns), its size, and whether it floats or stands */

@@ -77,26 +77,44 @@ export const STUMPS: { dx: number; dz: number; top: number; radius: number }[] =
   { dx: 0.8, dz: -1.6, top: 1.15, radius: 0.17 },
 ]
 
+/** The stumps' perches round `center`, in STUMPS' order, without building them (for the spawner's tests). */
+export function stumpPerches(center: Vec3): Vec3[] {
+  return STUMPS.map(s => [center[0] + s.dx, s.top, center[2] + s.dz] as Vec3)
+}
+
 export function createStumps(center: Vec3, ground: (x: number, z: number) => number): { object: THREE.Group; perches: THREE.Vector3[] } {
   const group = new THREE.Group()
-  const mat = new THREE.MeshStandardMaterial({ color: '#8c8478', roughness: 1, flatShading: true })
+  // weathered wood, darker than the snag where the water has kept it wet
+  const mat = new THREE.MeshStandardMaterial({ color: '#5f5a52', roughness: 1, flatShading: true })
+  const rng = makeRng(53)
   const perches: THREE.Vector3[] = []
   STUMPS.forEach((s, i) => {
     const x = center[0] + s.dx, z = center[2] + s.dz
     const bed = Math.min(ground(x, z), -0.2)
     const height = s.top - bed
-    // wider toward the bed; a few sides, as the snag has
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(s.radius, s.radius * 1.5, height, 7), mat)
+    // wider toward the bed, its sides uneven: each ring of the trunk pushed in or out a little, the top's flat
+    const geometry = new THREE.CylinderGeometry(s.radius, s.radius * 1.5, height, 9, 6)
+    const pos = geometry.getAttribute('position') as THREE.BufferAttribute
+    const bumps = Array.from({ length: 9 * 7 }, () => 0.8 + 0.35 * rng())
+    for (let k = 0; k < pos.count; k++) {
+      const vx = pos.getX(k), vz = pos.getZ(k), r = Math.hypot(vx, vz)
+      if (r < 1e-6) continue
+      const a = Math.round(((Math.atan2(vz, vx) + Math.PI) / (2 * Math.PI)) * 9) % 9
+      const ring = Math.round(((pos.getY(k) + height / 2) / height) * 6)
+      const f = bumps[ring * 9 + a]!
+      pos.setX(k, vx * f); pos.setZ(k, vz * f)
+    }
+    geometry.computeVertexNormals()
+    const trunk = new THREE.Mesh(geometry, mat)
     trunk.position.set(x, bed + height / 2, z)
     trunk.rotation.y = i * 1.3
     trunk.castShadow = true
     group.add(trunk)
     // a broken-off side branch on the taller two, standing a little out of the trunk below the top
     if (s.top > 1) {
-      const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.45, 5), mat)
-      stub.position.set(x + s.radius * 0.9, s.top - 0.35, z)
-      stub.rotation.z = -0.9
-      stub.rotation.y = i * 1.3
+      const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.045, 0.3, 5), mat)
+      stub.position.set(x + Math.cos(i * 1.3) * s.radius, s.top - 0.4, z - Math.sin(i * 1.3) * s.radius)
+      stub.rotation.set(0, i * 1.3, -1.0)
       group.add(stub)
     }
     perches.push(new THREE.Vector3(x, s.top, z))

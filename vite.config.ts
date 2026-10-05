@@ -7,6 +7,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'],
+    // every authored bird's model, loaded before each test file (src/birds/models.setup.ts)
+    setupFiles: ['src/birds/models.setup.ts'],
     // the swim simulations run seconds each; side by side on a busy machine they pass the 5 s default
     testTimeout: 20_000,
   },

@@ -46,7 +46,9 @@
     { "species": "lobdow",  "behavior": "probe",   "zone": "bench",     "count": 6 },
     { "species": "pecsan",  "behavior": "probe",   "zone": "mudflat",   "count": 2 },
     { "species": "amwpel",  "behavior": "flyover", "zone": "sky",       "count": 9, "everySeconds": [200, 480], "formation": "line", "plumage": { "adult": 9 } },
-    { "species": "amwpel",  "behavior": "swim",    "zone": "far-water", "count": 5, "plumage": { "adult": 4, "juvenile": 1 } }
+    { "species": "amwpel",  "behavior": "swim",    "zone": "far-water", "count": 5, "plumage": { "adult": 4, "juvenile": 1 } },
+    { "species": "doccor",  "behavior": "perch",   "zone": "stumps",    "count": 3, "plumage": { "adult": 2, "juvenile": 1 } },
+    { "species": "doccor",  "behavior": "swim",    "zone": "cormorant-water", "count": 1, "plumage": { "adult": 1 } }
   ],
   "ambience": ["water-lapping", "wind-reeds", "distant-frogs"]
 }
