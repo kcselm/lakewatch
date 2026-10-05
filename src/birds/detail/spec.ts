@@ -160,6 +160,11 @@ export const detailSchema = z.object({
    */
   float: z.object({ waterline: z.number() }).optional(),
   /**
+   * A percher's branch: its radius, metres. The builder sets the bird's feet on the branch's top at y = 0, crouched,
+   * and curls its toes round it. Required for a species whose posture is 'perched', and only for one.
+   */
+  perch: z.object({ radius: pos }).optional(),
+  /**
    * A wing to fly on, in place of the plain spread wing: its own planform, and a wrist it bends at.
    * - `span`: shoulder to wingtip, metres. `rootX`: where the shoulder sits along the body, metres in the traced side
    *   view (unset: just behind the folded wing's wrist, as the plain wing's).

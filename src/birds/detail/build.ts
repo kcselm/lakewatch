@@ -8,7 +8,7 @@ import { buildBill, buildEyes, buildPouch, buildShield, type BillResult } from '
 import { buildFoldedWings, buildSpreadWings, buildFlightWings, shoulderAt } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
-import { createBones, chainBones, type Joints, type NeckBone } from './rig'
+import { createBones, chainBones, NECK_BONES, type Joints, type NeckBone } from './rig'
 import { legOffsets, solveLeg, smooth, STANCE } from './gait'
 import { neckSwing, firstRoot, headPitchToGround } from './reach'
 import type { DetailSpec } from './spec'
@@ -84,11 +84,11 @@ export interface Built { profile: Profile; layout: LegLayout; geometry: THREE.Bu
 function construct(spec: SpeciesSpec): Built {
   const detail = spec.detail
   if (!detail) throw new Error(`${spec.code}: no detail block`)
-  const swimming = spec.posture === 'swimming'
-  if (!swimming && spec.posture !== 'standing') throw new Error(`${spec.code}: the detailed builder builds standing and swimming birds only (posture ${spec.posture})`)
+  const swimming = spec.posture === 'swimming', perched = spec.posture === 'perched'
   if (swimming && !detail.float) throw new Error(`${spec.code}: a swimming bird needs detail.float, its waterline`)
+  if (perched && !detail.perch) throw new Error(`${spec.code}: a perched bird needs detail.perch, the branch its toes curl round`)
   const profile = createProfile(detail.profile)
-  const layout = legLayout(detail, profile, swimming)
+  const layout = legLayout(detail, profile, spec.posture)
 
   const m = new Mesher()
   const tailless = detail.tail.shape === 'none'
@@ -107,9 +107,10 @@ function construct(spec: SpeciesSpec): Built {
   const extras = (detail.parts ?? []).map(p => (p.kind === 'curl' ? buildCurl(m, p, profile) : buildPlume(m, p, profile)))
   const extra = (kind: string) => extras.find(e => e.kind === kind)
 
-  // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Swimming: the traced waterline on
-  // y = 0, and the middle of the body at the water (midway between where the water meets it at the stern and at the
-  // breast, in the side view) over the origin, where it pivots
+  // profile frame -> group space. Standing: hips over the origin, feet on y = 0. Perched: the same, the feet on the
+  // branch's top (their perch point), which is under the hips. Swimming: the traced waterline on y = 0, and the middle
+  // of the body at the water (midway between where the water meets it at the stern and at the breast, in the side
+  // view) over the origin, where it pivots
   let offset: THREE.Vector3
   if (swimming) {
     const wl = detail.float!.waterline
@@ -140,9 +141,11 @@ function construct(spec: SpeciesSpec): Built {
   const hipMid = at(layout.hip).setZ(0)
   const hipR = at(layout.hip), kneeR = at(layout.knee), footR = at(layout.foot)
   // A swimmer's body pivots at the origin, on the water under the middle of the body. Its legs gather, when hidden,
-  // a quarter of the way up from the belly to the hips: inside the body and under the water.
-  const pivot = swimming ? new THREE.Vector3() : hipMid
-  const legsAt = swimming ? at(new THREE.Vector3(layout.hip.x, layout.bellyY + 0.25 * (layout.hip.y - layout.bellyY), 0)) : hipMid
+  // a quarter of the way up from the belly to the hips: inside the body and under the water. A percher's body pivots
+  // between its feet, and its legs hang from there, so it leans over its branch and never off it.
+  const footMid = at(layout.foot).setZ(0)
+  const pivot = swimming ? new THREE.Vector3() : perched ? footMid : hipMid
+  const legsAt = swimming ? at(new THREE.Vector3(layout.hip.x, layout.bellyY + 0.25 * (layout.hip.y - layout.bellyY), 0)) : perched ? footMid : hipMid
   const joints: Joints = {
     root: pivot.clone(), body: pivot.clone(), legs: legsAt.clone(),
     neck: spineAt(detail.rig.neckBase), neckMid: spineAt(detail.rig.neckMid), head: spineAt(detail.rig.head),
@@ -210,7 +213,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   if (twin && twin.spec !== spec) throw new Error(`${spec.code}: a twin must be a bird of the same species`)
   const built = twin ? twin.built : construct(spec)
   const { profile, layout, geometry, joints } = built
-  const swimming = spec.posture === 'swimming'
+  const swimming = spec.posture === 'swimming', perched = spec.posture === 'perched'
   const shown = (kind: string) => !!variant && !!detail.parts?.find(p => p.kind === kind)?.versions.includes(variant)
   const anatomy: Anatomy = { ...built.anatomy, parts: built.anatomy.parts.map(e => ({ ...e, shown: shown(e.kind) })) }
   const { pouch, flightWing } = anatomy
@@ -316,6 +319,16 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   }
 
   /**
+   * A percher's legs: they turn with the body about the pivot between the feet, so the hips stay on them however the
+   * bird leans, and the toes turn back, so they keep their grip on the branch. The pivot lies on the line between the
+   * feet, so a pitch (lean.x) leaves them exactly where they were; a roll (lean.z) tips each a little with the body.
+   */
+  function perchLegs() {
+    bones.legs.quaternion.copy(bones.body.quaternion)
+    for (const toes of [bones.toesR, bones.toesL]) toes.quaternion.copy(bones.body.quaternion).invert()
+  }
+
+  /**
    * A chained neck, bent into its shapes: neckExtend blends each joint's bend from the hunch (0) through the trace (0.5)
    * to erect (1), and a reach blends it on toward the strike, then swings the whole neck about its base just far
    * enough for the bill to reach its mark and tips the head onto it, as reachDown does for a neck of two joints. The
@@ -386,13 +399,54 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     bones.handL.rotation.x = hand; bones.handR.rotation.x = -hand
   }
 
+  /**
+   * The head turned `yaw` about the neck's axis: the line from the last neck joint before the head to the head joint,
+   * as the neck is posed before the turn. Positive turns the bill to the bird's left.
+   *
+   * A real neck twists along its length, and a skin turned in one step where it meets the head creases there (a big
+   * head on a short neck worst: the kingfisher's). So the neck's joints, from the base up, take the turn between them
+   * in equal shares, each about the line from itself to the head joint, which leaves the head joint where it was; then
+   * the head turns only what is left for it to end up turned exactly `yaw` about the neck's axis. The skin twists
+   * along the whole neck, from where it leaves the body to the head.
+   */
+  function turnHead(yaw: number) {
+    group.updateMatrixWorld(true)
+    bones.head.getWorldPosition(pH)
+    bones[yawNeck.at(-1)!].getWorldPosition(pN)
+    axisTo(pH, pN, bones.head)
+    const target = bones.head.getWorldQuaternion(headTurn).premultiply(yawTurn.setFromAxisAngle(neckAxis, yaw))
+    for (const name of yawNeck) {
+      group.updateMatrixWorld(true)
+      bones[name].getWorldPosition(pN)
+      if (pN.distanceToSquared(pH) < 1e-12) continue
+      axisTo(pH, pN, bones[name])
+      const local = neckAxis.applyQuaternion(bones[name].parent!.getWorldQuaternion(yawTurn).invert())
+      bones[name].quaternion.premultiply(yawTurn.setFromAxisAngle(local, yaw / yawNeck.length))
+    }
+    group.updateMatrixWorld(true)
+    bones.head.quaternion.copy(bones.head.parent!.getWorldQuaternion(yawTurn).invert().multiply(target))
+  }
+  /** neckAxis: the world direction from `from` to `to`; up the bone's parent if they coincide */
+  function axisTo(to: THREE.Vector3, from: THREE.Vector3, b: THREE.Bone) {
+    neckAxis.subVectors(to, from)
+    if (neckAxis.lengthSq() < 1e-12) neckAxis.set(0, 1, 0).applyQuaternion(b.parent!.getWorldQuaternion(yawTurn))
+    neckAxis.normalize()
+  }
+  /** the neck joints that share a headYaw, base to head: a chained neck's, or neck and neckMid */
+  const yawNeck: readonly NeckBone[] = chainNames ? chainNames.slice(0, -1) as NeckBone[] : ['neck', 'neckMid']
+  const neckAxis = new THREE.Vector3(), yawTurn = new THREE.Quaternion(), headTurn = new THREE.Quaternion()
+
   function pose(st: PoseState) {
-    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body)
+    // lean.x pitches the nose down, lean.z rolls; the body pivots over the hips (a swimmer's on the water, mid-body; a
+    // percher's between its feet)
     bones.body.rotation.set(st.lean.z, 0, -st.lean.x)
+    // the neck sets only its joints' and the head's turns in the side view: clear any headYaw the last pose left
+    for (const b of [...NECK_BONES, 'head'] as const) { bones[b].rotation.x = 0; bones[b].rotation.y = 0 }
     if (chainNames) poseChain(st, chainNames, detail!.neckShapes!)
     else poseNeck(st)
     // positive raises the bill: the head turns last, after the neck's shape and any reach
     bones.head.rotation.z += st.headPitch
+    if (st.headYaw) turnHead(st.headYaw)
     // a pouch fills toward its full outline: the geometry's one morph target
     if (pouch) mesh.morphTargetInfluences![0] = THREE.MathUtils.clamp(st.pouch, 0, 1)
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
@@ -410,6 +464,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     }
     // legs
     if (swimming) { paddleLegs(st); return }
+    // a percher stays on its branch: it doesn't walk
+    if (perched) { perchLegs(); return }
     if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
     const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
     setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, right.x, right.y)

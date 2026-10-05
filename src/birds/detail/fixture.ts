@@ -167,3 +167,54 @@ export const TEST_HERON_DETAIL: DetailSpec = {
 export const TEST_HERON_SPEC: SpeciesSpec = parseSpeciesSpec({
   ...TEST_SPEC, code: 'testheron', commonName: 'Test Heron', length: 0.8, detail: TEST_HERON_DETAIL,
 })
+
+/**
+ * A test percher for the perched posture: about a Belted Kingfisher's size (docs/research/2026-09-30-belted-kingfisher.md,
+ * sections 2.6, 6 and 9: 325 mm bill tip to tail tip with the body 31° below level toward the tail, the eye 124 mm
+ * above the perch's top, the tail tip 157 mm behind it and 47 mm below, the bill 4° below level), a big head on a short
+ * neck, on a branch 35 mm across. Its outline is set by eye from those numbers for the builder's tests, not traced: the
+ * kingfisher's own tracing never breaks them.
+ */
+export const TEST_PERCHER_DETAIL: DetailSpec = {
+  measurements: {
+    length: 0.325, culmen: 0.0595, billDepth: 0.016, billWidth: 0.011,
+    tarsus: 0.0114, tibia: 0.008, toe: 0.0158, wingChord: 0.164, tail: 0.093,
+  },
+  profile: [
+    { label: 'rear',     x: -0.092, y: -0.065, up: 0.005, down: 0.005, halfWidth: 0.006 },
+    { label: 'rump',     x: -0.084, y: -0.059, up: 0.010, down: 0.010, halfWidth: 0.012 },
+    { label: 'tailBase', x: -0.073, y: -0.051, up: 0.016, down: 0.016, halfWidth: 0.018 },
+    { label: 'hip',      x: 0,      y: 0,      up: 0.030, down: 0.032, halfWidth: 0.026 },
+    { label: 'flank',    x: 0.010,  y: 0.015,  up: 0.030, down: 0.033, halfWidth: 0.027 },
+    { label: 'breast',   x: 0.018,  y: 0.030,  up: 0.027, down: 0.031, halfWidth: 0.025 },
+    { label: 'neckBase', x: 0.022,  y: 0.045,  up: 0.020, down: 0.023, halfWidth: 0.020 },
+    { label: 'neckMid',  x: 0.025,  y: 0.056,  up: 0.018, down: 0.020, halfWidth: 0.018 },
+    { label: 'nape',     x: 0.028,  y: 0.064,  up: 0.019, down: 0.019, halfWidth: 0.019 },
+    { label: 'occiput',  x: 0.033,  y: 0.071,  up: 0.020, down: 0.019, halfWidth: 0.020 },
+    { label: 'crown',    x: 0.041,  y: 0.076,  up: 0.020, down: 0.019, halfWidth: 0.021 },
+    { label: 'eye',      x: 0.051,  y: 0.079,  up: 0.018, down: 0.018, halfWidth: 0.020 },
+    { label: 'lores',    x: 0.064,  y: 0.079,  up: 0.012, down: 0.012, halfWidth: 0.013 },
+    { label: 'billBase', x: 0.072,  y: 0.078,  up: 0.008, down: 0.008, halfWidth: 0.0055 },
+  ],
+  rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },
+  bill: { taper: 1, curve: -0.01 },
+  eye: { radius: 0.0045, t: 0.4, iris: '#3a2618' },
+  wing: {
+    wrist: [0.02, 0.03], droop: 40,
+    outline: [[0, 0.05], [0.16, 0.17], [0.36, 0.18], [0.55, 0.16], [0.74, 0.094], [0.93, 0.036], [1, 0.01]],
+  },
+  tail: { shape: 'square', angle: 9 },
+  perch: { radius: 0.0175 },
+  plumage: [
+    { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5a7a96', side: '#6f8ba3', bottom: '#f2f0ea' },
+    { kind: 'fill', where: { part: 'wingFold' }, color: '#55728c' },
+    { kind: 'fill', where: { part: 'bill' }, color: '#2a2a2c' },
+    { kind: 'fill', where: { part: 'legs' }, color: '#5c5650' },
+  ],
+  variants: {},
+  sources: ['test fixture'],
+}
+
+export const TEST_PERCHER_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, code: 'testpercher', commonName: 'Test Percher', length: 0.325, posture: 'perched', detail: TEST_PERCHER_DETAIL,
+})

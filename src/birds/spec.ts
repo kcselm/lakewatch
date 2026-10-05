@@ -50,7 +50,10 @@ export const speciesSpecSchema = z.object({
   detail: detailSchema.optional(),
 }).superRefine((s, ctx) => {
   // what the detailed builder refuses, refused at load
-  if (s.detail && s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: a detail block builds standing and swimming birds only, not perched`, path: ['posture'] })
+  if (s.detail && s.posture === 'perched' && !s.detail.perch) ctx.addIssue({ code: 'custom', message: `${s.code}: a perched bird's detail block needs detail.perch, the branch its toes curl round`, path: ['detail', 'perch'] })
+  if (s.detail?.perch && s.posture !== 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: detail.perch is for a perched bird, not a ${s.posture} one`, path: ['detail', 'perch'] })
+  // a web or lobes spread flat on the ground; a percher's toes curl round its branch
+  if (s.detail?.feet && s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: a perched bird's toes curl round its perch, so it has plain feet, not ${s.detail.feet}`, path: ['detail', 'feet'] })
   if (s.detail && s.posture === 'swimming' && !s.detail.float) ctx.addIssue({ code: 'custom', message: `${s.code}: a swimming bird's detail block needs detail.float, its waterline`, path: ['detail', 'float'] })
   for (const k of Object.keys(s.detail?.variants ?? {})) {
     if (!(k in s.variants)) ctx.addIssue({ code: 'custom', message: `detail variant ${k} is not one of the species' variants`, path: ['detail', 'variants', k] })

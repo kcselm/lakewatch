@@ -5,8 +5,8 @@ import { loftWeights, RINGS, RADIAL } from './loft'
 import { createProfile } from './profile'
 import { chainBones, NECK_BONES } from './rig'
 import { billTipNow, billAngleNow, crownNow, measure } from './measure'
-import { posedFold, passThrough } from './neck.testkit'
-import { TEST_HERON_DETAIL, TEST_HERON_SPEC, TEST_SPEC } from './fixture'
+import { posedFold, passThrough, posedCreases } from './neck.testkit'
+import { TEST_HERON_DETAIL, TEST_HERON_SPEC, TEST_PERCHER_SPEC, TEST_SPEC } from './fixture'
 import { defaultPose, type PoseState } from '../model'
 
 type Patch = Partial<Omit<PoseState, 'lean'>> & { leanX?: number }
@@ -21,6 +21,7 @@ const boneAt = (m: DetailedBirdModel, name: string) => {
   m.group.updateMatrixWorld(true)
   return m.mesh.skeleton.bones.find(b => b.name === name)!.getWorldPosition(new THREE.Vector3())
 }
+const bone = (m: DetailedBirdModel, name: string) => m.mesh.skeleton.bones.find(b => b.name === name)!
 const CHAIN = chainBones(TEST_HERON_DETAIL.rig.neck!.length)
 const SHAPES = TEST_HERON_DETAIL.neckShapes!
 
@@ -180,6 +181,81 @@ describe('headPitch', () => {
       })
     })
   }
+})
+
+describe('headYaw', () => {
+  /** the neck's axis at the head as posed: from the joint the head hangs from to the head joint, group space */
+  const neckAxis = (m: DetailedBirdModel) => boneAt(m, 'head').sub(boneAt(m, 'neck6')).normalize()
+  for (const [name, spec] of [['a chained neck', TEST_HERON_SPEC], ['a neck of two joints', TEST_SPEC], ['a perched bird', TEST_PERCHER_SPEC]] as const) {
+    it(`turns the head about the neck's axis, the bill to the bird's left, moving nothing below the neck, on ${name}`, () => {
+      const m = buildDetailedBird(spec)
+      const bones = () => m.mesh.skeleton.bones.map(b => b.matrixWorld.clone())
+      m.pose(posed({ neckExtend: 0.7 })); m.group.updateMatrixWorld(true)
+      const ahead = bones(), tip = billTipNow(m), head = boneAt(m, 'head'), axis = neckAxis(m)
+      const facing = bone(m, 'head').getWorldQuaternion(new THREE.Quaternion())
+      m.pose(posed({ neckExtend: 0.7, headYaw: 0.6 })); m.group.updateMatrixWorld(true)
+      const turned = bones(), now = billTipNow(m)
+      // the bird faces +x with its right side toward +z: its left is -z
+      expect(now.z).toBeLessThan(tip.z - 0.01)
+      // turned about the axis through the head joint: the tip keeps its place along the axis and its distance from it,
+      // and has gone 0.6 rad round it
+      const along = (p: THREE.Vector3) => p.clone().sub(head).dot(axis)
+      const off = (p: THREE.Vector3) => p.clone().sub(head).addScaledVector(axis, -along(p))
+      expect(along(now)).toBeCloseTo(along(tip), 9)
+      expect(off(now).length()).toBeCloseTo(off(tip).length(), 9)
+      expect(off(now).angleTo(off(tip))).toBeCloseTo(0.6, 6)
+      // the head joint stays put, and the head is turned exactly that, whatever share of it the neck's joints took
+      expect(boneAt(m, 'head').distanceTo(head)).toBeLessThan(1e-12)
+      const turn = bone(m, 'head').getWorldQuaternion(new THREE.Quaternion()).multiply(facing.invert())
+      expect(turn.angleTo(new THREE.Quaternion().setFromAxisAngle(axis, 0.6))).toBeLessThan(1e-9)
+      // the neck twists with it; nothing below the neck moves
+      const fromNeck = (b: THREE.Object3D | null): boolean => !!b && (b.name === 'neck' || fromNeck(b.parent))
+      m.mesh.skeleton.bones.forEach((b, i) => {
+        if (fromNeck(b)) return
+        expect(turned[i]!.equals(ahead[i]!), b.name).toBe(true)
+      })
+    })
+  }
+  it('turns the head after headPitch: the pitched bill swings round the neck, keeping its pitch to the axis', () => {
+    const m = buildDetailedBird(TEST_PERCHER_SPEC)
+    m.pose(posed({ headPitch: -0.7 }))
+    const head = boneAt(m, 'head'), axis = neckAxis(m)
+    const tip = billTipNow(m).sub(head)
+    m.pose(posed({ headPitch: -0.7, headYaw: -0.9 }))
+    const now = billTipNow(m).sub(head)
+    expect(now.z).toBeGreaterThan(tip.z + 0.01)
+    expect(now.dot(axis)).toBeCloseTo(tip.dot(axis), 9)
+  })
+  // the research's head turn: "the head turned slowly 30-60° one way and back" (belted-kingfisher.md, section 6)
+  const TURN = THREE.MathUtils.degToRad(60)
+  for (const [name, spec] of [['a perched bird, a big head on a short neck', TEST_PERCHER_SPEC], ['a neck of two joints', TEST_SPEC]] as const) {
+    it(`twists the neck's skin along it, with no crease where it meets the head, on ${name}`, { timeout: 60000 }, () => {
+      const m = buildDetailedBird(spec)
+      for (const pose of [{}, { neckExtend: 1, headPitch: 0.4 }, { neckExtend: 0.3 }]) {
+        m.pose(posed(pose))
+        const fold = posedFold(m), through = passThrough(m).depth, creases = posedCreases(m)
+        for (const yaw of [0.6, -0.6, 1, -1, TURN, -TURN]) {
+          m.pose(posed({ ...pose, headYaw: yaw }))
+          // the skin no more folded or passed through than unturned, and nowhere bent more than 25° sharper; turned
+          // all at the head joint, the perched bird's skin creased 46° sharper where the neck meets the head
+          expect(posedFold(m), `${JSON.stringify(pose)} ${yaw}`).toBeLessThanOrEqual(fold + 1e-4)
+          if (Math.abs(yaw) === TURN) expect(passThrough(m).depth, `${JSON.stringify(pose)} ${yaw}`).toBeLessThanOrEqual(through + 1e-4)
+          posedCreases(m).forEach((c, i) => expect(c - creases[i]!, `${JSON.stringify(pose)} ${yaw} ring ${i}`).toBeLessThan(25))
+        }
+      }
+    })
+  }
+  it('leaves nothing behind: posed back to headYaw 0, every bone is where it was, on every neck', () => {
+    for (const spec of [TEST_HERON_SPEC, TEST_SPEC, TEST_PERCHER_SPEC]) {
+      const fresh = buildDetailedBird(spec), m = buildDetailedBird(spec)
+      for (const patch of [{ neckExtend: 0.3, reach: 0.6, headPitch: 0.2 }, {}]) {
+        m.pose(posed({ ...patch, headYaw: 1.1 }))
+        m.pose(posed(patch)); fresh.pose(posed(patch))
+        m.group.updateMatrixWorld(true); fresh.group.updateMatrixWorld(true)
+        m.mesh.skeleton.bones.forEach((b, i) => expect(b.matrixWorld.equals(fresh.mesh.skeleton.bones[i]!.matrixWorld), `${spec.code} ${b.name}`).toBe(true))
+      }
+    }
+  })
 })
 
 describe('crownNow', () => {
