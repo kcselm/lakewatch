@@ -2,7 +2,9 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { createLighting } from '../world/lighting'
 import { paletteFor } from '../world/palette'
-import { SPECIES, getSpec, hasSpec } from '../birds/species'
+import { SPECIES } from '../birds/species'
+import type { SpeciesSpec } from '../birds/spec'
+import { TEST_FLIER_SPEC, TEST_PERCHER_SPEC } from '../birds/detail/fixture'
 import { createBirdModel } from '../birds/factory'
 import { defaultPose, type BirdModel } from '../birds/model'
 import type { DetailedBirdModel } from '../birds/detail/build'
@@ -18,11 +20,29 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
-  pouch: 0, glide: 0, raise: 0, flap: false,
+  pouch: 0, glide: 0, raise: 0, flap: false, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
 const STROKES = 2.4
+/**
+ * a hover's wingbeat over the flapping one: 8.5 Hz in the scene's wind over 7 Hz cruising, for a Belted Kingfisher
+ * (docs/research/2026-09-30-kingfisher-flight-and-plunge.md, section 8.4: hz = 7 + (8.5 - 7) × wingStroke; Estimate)
+ */
+const HOVER_BEAT = 8.5 / 7
+/** a perch prop's length, metres: a stretch of branch either side of the bird's feet, set by eye */
+const BRANCH = 0.3
+// the game's species, and the builder's test birds beside them, to look at what its tests hold before a species is
+// traced on it
+const CATALOG: Record<string, SpeciesSpec> = { ...SPECIES, [TEST_PERCHER_SPEC.code]: TEST_PERCHER_SPEC, [TEST_FLIER_SPEC.code]: TEST_FLIER_SPEC }
+const TEST_BIRDS = new Set([TEST_PERCHER_SPEC.code, TEST_FLIER_SPEC.code])
+/** Own keys only, so "constructor" or "toString" from a hand-edited link is never a species. */
+const hasSpec = (code: string) => Object.hasOwn(CATALOG, code)
+function getSpec(code: string): SpeciesSpec {
+  if (!hasSpec(code)) throw new Error(`No species spec for ${code}`)
+  return CATALOG[code]!
+}
+const specOf = (model: BirdModel) => getSpec(model.group.name.split(':')[1]!)
 let state = parseState(location.hash, DEFAULTS, { has: hasSpec, variants: c => Object.keys(getSpec(c).variants) })
 const save = () => history.replaceState(null, '', stateHash(state))
 // a pasted or bookmarked link: start over from its state (replaceState above never fires this)
@@ -59,7 +79,12 @@ interface Slot {
   /** a detailed bird's own copy of its material, so viewer toggles never touch the game's shared one */
   material?: THREE.MeshStandardMaterial
   painted?: THREE.Texture | null
+  /** a percher's branch, lying on the ground under its feet */
+  perch?: THREE.Mesh
+  /** where its wings are in their beat while they flap by themselves */
+  beat: number
 }
+const branchMaterial = new THREE.MeshStandardMaterial({ color: '#6b5d4f', roughness: 1 })
 let slots: Slot[] = []
 let checker: THREE.DataTexture | null = null
 /** the left bird's spine, drawn through its profile when stations are shown */
@@ -80,14 +105,28 @@ function checkerTexture(): THREE.DataTexture {
 }
 
 function build(): void {
-  for (const s of slots) { scene.remove(s.model.group); if (s.skeleton) scene.remove(s.skeleton); s.model.dispose() }
+  for (const s of slots) {
+    scene.remove(s.model.group)
+    if (s.skeleton) scene.remove(s.skeleton)
+    if (s.perch) { scene.remove(s.perch); s.perch.geometry.dispose() }
+    s.model.dispose()
+  }
   const models = [[state.a, state.av], [state.b, state.bv]].map(([code, v]) => createBirdModel(getSpec(code!), v || undefined))
   const gap = Math.max(...models.map(m => m.radius)) * 1.15
   slots = models.map((model, i) => {
     const base = new THREE.Vector3(i === 0 ? -gap : gap, 0, 0)
+    const slot: Slot = { model, base, beat: 0 }
+    // a percher stands on its branch's top at y = 0: the branch lies across its feet on the ground, the bird on it
+    const radius = specOf(model).detail?.perch?.radius
+    if (radius) {
+      base.y = 2 * radius
+      slot.perch = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, BRANCH, 16).rotateX(Math.PI / 2), branchMaterial)
+      slot.perch.position.set(base.x, radius, 0)
+      slot.perch.castShadow = slot.perch.receiveShadow = true
+      scene.add(slot.perch)
+    }
     model.group.position.copy(base)
     scene.add(model.group)
-    const slot: Slot = { model, base }
     if ('mesh' in model) {
       const d = model as DetailedBirdModel
       slot.material = (d.mesh.material as THREE.MeshStandardMaterial).clone()
@@ -125,6 +164,8 @@ function applyLook(): void {
   grid.visible = !state.float && ground.visible
   spine.visible = state.stations
   for (const s of slots) {
+    // and a percher's branch, lying on the ground, would hide it from below
+    if (s.perch) s.perch.visible = ground.visible
     if (s.skeleton) s.skeleton.visible = state.skel
     if (s.material) {
       s.material.wireframe = state.wire
@@ -176,7 +217,7 @@ function place(): void {
     camera.fov = 20
     // back off far enough to fit both birds side by side, with room for the panel
     // spread wings reach well past the bird at rest: a flight wing's span each side, where a bird has one
-    const reach = (s: Slot) => Math.max(s.model.radius, state.spread > 0.05 ? (getSpec(s.model.group.name.split(':')[1]!).detail?.flight?.span ?? 0) * 1.1 : 0)
+    const reach = (s: Slot) => Math.max(s.model.radius, state.spread > 0.05 ? (specOf(s.model).detail?.flight?.span ?? 0) * 1.1 : 0)
     const span = Math.abs(slots[0]!.base.x - slots[1]!.base.x) + 2 * Math.max(...slots.map(reach))
     const d = (span / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5
     const at = { side: [0, 0, d], front: [d, 0, 0], top: [0, d, 0.001], below: [0, -d, 0.001], three: [d * 0.6, d * 0.3, d * 0.75] }[state.view]
@@ -244,7 +285,7 @@ const set = (patch: Partial<ViewerState>, rebuild = false) => {
   else { applyLook(); place() }
 }
 
-const species: [string, string][] = Object.values(SPECIES).map(s => [s.code, `${s.commonName}${s.detail ? ' *' : ''}`])
+const species: [string, string][] = Object.values(CATALOG).map(s => [s.code, `${s.commonName}${s.detail ? ' *' : ''}${TEST_BIRDS.has(s.code) ? ' (test)' : ''}`])
 const variants = (code: string): [string, string][] => [['', '(default)'], ...Object.keys(getSpec(code).variants).map(v => [v, v] as [string, string])]
 for (const key of ['a', 'b'] as const) {
   const g = group(key === 'a' ? 'Left bird' : 'Right bird')
@@ -265,24 +306,41 @@ check(cam, 'float (the lake)', state.float, v => set({ float: v }))
 check(cam, 'see-through water', state.see, v => set({ see: v }))
 const pose = group('Pose')
 // a chained neck's shapes, to set each against its photo: the hunch, the trace, erect, and the bottom of a strike
-const SHAPES: Record<string, Partial<ViewerState>> = {
+/** the left bird's flight.pitch, radians: the lean that levels a body traced upright on its perch */
+const flightPitch = () => THREE.MathUtils.degToRad(getSpec(state.a).detail?.flight?.pitch ?? 0)
+const SHAPES: Record<string, Partial<ViewerState> | (() => Partial<ViewerState>)> = {
   hunch: { neck: 0, reach: 0, pitch: 0 }, trace: { neck: 0.5, reach: 0, pitch: 0 }, erect: { neck: 1, reach: 0, pitch: 0 },
   swallow: { neck: 1, reach: 0, pitch: 0.9 }, strike: { neck: 0.5, reach: 1, lean: 0.5, pitch: 0 },
   // a pelican's: the bill under in a dip, up again with the pouch full, and in flight with the neck folded back
   dip: { neck: 0.5, reach: 1, lean: 0.15, pitch: 0, pouch: 0 }, full: { neck: 0.5, reach: 0, lean: 0, pitch: 0, pouch: 1 },
   fly: { neck: 0, reach: 0, lean: 0, pitch: 0, pouch: 0, spread: 1 },
+  // a percher's (the left bird's): on its branch, and away from it with its legs up and its body levelled, flapping,
+  // gliding on half-closed wings, or hovering 55° nose up with its tail fanned 100° of 140°
+  // (kingfisher-flight-and-plunge.md, section 4.3: the body 55° up, 50-60, and the tail 100°, 90-120; by eye)
+  perch: { lean: 0, spread: 0, stroke: 0, glide: 0, fan: 0, legs: 0, flap: false },
+  flap: () => ({ lean: flightPitch(), spread: 1, stroke: 0, glide: 0, fan: 0, legs: 1, flap: true }),
+  glide: () => ({ lean: flightPitch(), spread: 1, stroke: 0, glide: 1, fan: 0, legs: 1, flap: false }),
+  hover: () => ({ lean: flightPitch() - THREE.MathUtils.degToRad(55), spread: 1, stroke: 1, glide: 0, fan: 0.7, legs: 1, flap: true }),
 }
 select(pose, 'neck shape', [['', '(sliders)'], ...Object.keys(SHAPES).map(k => [k, k] as [string, string])], '', v => {
-  if (SHAPES[v]) { set(SHAPES[v]!); location.reload() }
+  const shape = SHAPES[v]
+  if (shape) { set(typeof shape === 'function' ? shape() : shape); location.reload() }
 })
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
 slider(pose, 'head pitch, deg', THREE.MathUtils.radToDeg(state.pitch), v => set({ pitch: THREE.MathUtils.degToRad(v) }), -30, 80, 1)
-slider(pose, 'lean (tip-up 1.5)', state.lean, v => set({ lean: v }), 0, 1.6, 0.01)
+slider(pose, 'head turn, deg (+ to its left)', THREE.MathUtils.radToDeg(state.yaw), v => set({ yaw: THREE.MathUtils.degToRad(v) }), -90, 90, 1)
+slider(pose, 'crest raised', state.crest, v => set({ crest: v }))
+slider(pose, 'lean (tip-up 1.5; below 0 nose up)', state.lean, v => set({ lean: v }), -1, 1.6, 0.01)
 slider(pose, 'tail up', state.tail, v => set({ tail: v }), -0.5, 1, 0.01)
+slider(pose, 'tail fan', state.fan, v => set({ fan: v }))
 slider(pose, 'wing spread', state.spread, v => set({ spread: v }))
 slider(pose, 'wing phase', state.phase, v => set({ phase: v }))
 check(pose, 'flap', state.flap, v => set({ flap: v }))
+slider(pose, 'wing stroke (0 flap .. 1 hover)', state.stroke, v => set({ stroke: v }))
 slider(pose, 'glide (a flight wing)', state.glide, v => set({ glide: v }))
+slider(pose, 'legs up (a percher in flight)', state.legs, v => set({ legs: v }))
+slider(pose, 'fish', state.fish, v => set({ fish: v }))
+slider(pose, 'fish turned (0 across .. 1 to swallow)', state.turn, v => set({ turn: v }))
 slider(pose, 'raise, m', state.raise, v => set({ raise: v }), 0, 80, 1)
 slider(pose, 'pouch', state.pouch, v => set({ pouch: v }))
 slider(pose, 'reach', state.reach, v => set({ reach: v }))
@@ -320,7 +378,7 @@ group('Measurements, mm').appendChild(readout)
 // --- loop ----------------------------------------------------------------------------------------
 const labels = document.getElementById('labels')!
 const WALK_LOOP = 1.2            // metres before the walk starts over
-let stride = 0, paddlePhase = 0, flapPhase = 0
+let stride = 0, paddlePhase = 0
 let last = performance.now()
 const tmp = new THREE.Vector3()
 
@@ -330,12 +388,11 @@ function frame(): void {
   last = now
   if (state.walk) stride += state.speed * dt
   if (state.paddle > 0) paddlePhase = (paddlePhase + STROKES * dt) % 1
-  // flapping, each bird at its own species' wingbeat; the left bird's phase is the one kept
-  if (state.flap) flapPhase += dt
   const p = {
     ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
     reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
-    headPitch: state.pitch, pouch: state.pouch, glide: state.glide,
+    headPitch: state.pitch, headYaw: state.yaw, pouch: state.pouch, glide: state.glide, wingStroke: state.stroke,
+    tailSpread: state.fan, crestRaise: state.crest, fish: state.fish, fishTurn: state.turn, legsUp: state.legs,
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
   p.lean.x = state.lean
@@ -343,7 +400,14 @@ function frame(): void {
     s.model.group.position.copy(s.base)
     s.model.group.position.y += state.raise - state.sink
     if (state.walk) s.model.group.position.x += stride % WALK_LOOP
-    if (state.flap) p.wingPhase = (flapPhase * getSpec(s.model.group.name.split(':')[1]!).wingbeatHz) % 1
+    // flapping, each bird at its own species' wingbeat, quickening toward a hover's as its stroke blends to one; the
+    // phase runs on from where it was, so moving the stroke slider never jumps the wings
+    if (state.flap) {
+      const spec = specOf(s.model)
+      const hover = spec.detail?.flight?.hover ? 1 + (HOVER_BEAT - 1) * state.stroke : 1
+      s.beat = (s.beat + spec.wingbeatHz * hover * dt) % 1
+      p.wingPhase = s.beat
+    }
     s.model.pose(p)
   }
   fitNear()

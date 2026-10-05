@@ -23,7 +23,10 @@ export interface ViewerState {
   b: string; bv: string
   view: View
   field: FieldView
-  /** lean is the body's pitch, radians: a peck's 0.8, a dabbler's tip-up about 1.5 */
+  /**
+   * lean is the body's pitch, radians, positive nose down: a peck's 0.8, a dabbler's tip-up about 1.5; a bird traced
+   * upright on a perch flies level at its flight.pitch, and hovers nose up at about that less 0.96 (55 degrees), below 0
+   */
   neck: number; lean: number; spread: number; phase: number; reach: number
   /**
    * a reach's aim below the ground or water, metres (negative aims above it: a heron's strike into the water over the
@@ -40,6 +43,14 @@ export interface ViewerState {
   raise: number
   /** the wings beat by themselves, at the species' wingbeat */
   flap: boolean
+  /** a flight wing's stroke, 0 flapping .. 1 hovering; and the tail fanned, 0 closed .. 1 fully */
+  stroke: number; fan: number
+  /** the head turned about the neck after its pitch, radians, positive to the bird's left; and a crest raised, 0 .. 1 */
+  yaw: number; crest: number
+  /** a fish held in the bill, 0 none .. 1 held, and turned in it, 0 crosswise .. 1 lengthwise to swallow */
+  fish: number; turn: number
+  /** a percher's legs, 0 down on its branch .. 1 tucked up in flight */
+  legs: number
   /** how far the birds sink below the surface, metres (a grebe's periscope) */
   sink: number
   /** the head pump, body lengths fore and aft, and the tail cocked up, radians */
@@ -56,9 +67,10 @@ export interface ViewerState {
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
-  neck: [0, 1], lean: [0, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
+  neck: [0, 1], lean: [-1, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
   depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
   pitch: [-0.5, 1.4], pouch: [0, 1], glide: [0, 1], raise: [0, 80],
+  stroke: [0, 1], fan: [0, 1], yaw: [-1.6, 1.6], crest: [0, 1], fish: [0, 1], turn: [0, 1], legs: [0, 1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
 const FLAGS = ['walk', 'flap', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
