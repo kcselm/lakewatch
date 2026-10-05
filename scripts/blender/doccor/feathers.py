@@ -4,7 +4,8 @@ overlapping cards on the surface, each pointing back, in staggered rows like shi
 Every feather has its own 0..1 UV, so one material gives each its bronze centre, dark shaft and black margin. These are
 the high-detail source: baked to the game mesh's colour and normal maps, not exported themselves.
 
-Run inside Blender after body.py and wings.py: exec(open(path).read()).
+build.py runs it after body.py and wings.py: build() lays `doccor.feathersL` and `doccor.feathersR`; paint(version)
+colours them.
 """
 import math
 import random
@@ -12,6 +13,7 @@ import bpy
 import bmesh
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
+from palette import PALETTE
 
 random.seed(7)
 
@@ -28,11 +30,12 @@ def feather_size(x):
     return 0.016 + 0.020 * u  # length; the width is 0.72 of it
 
 
-def card(bm, uv, at, normal, back, length, lift):
-    """One feather: a rounded blade from its base (hidden under the feathers before it) back to its tip."""
+def card(bm, uv, at, normal, back, length, lift, ratio=0.72):
+    """One feather: a rounded blade from its base (hidden under the feathers before it) back to its tip, `ratio` of
+    its length wide."""
     side = normal.cross(back).normalized()
     back = side.cross(normal).normalized()
-    width = 0.72 * length
+    width = ratio * length
     n_l, n_w = 8, 6
     grid = []
     for i in range(n_l + 1):
@@ -104,8 +107,10 @@ def scatter(targets, side):
     return ob, count
 
 
-def feather_material():
-    mat = bpy.data.materials.get('doccor.feather') or bpy.data.materials.new('doccor.feather')
+def feather_material(version='adult', name='doccor.feather', centre_color=None, edge_color=None):
+    """A feather card's material: `centre_color` inside, `edge_color` toward its outline (the version's scaled back's,
+    unless given)."""
+    mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     mat.use_nodes = True
     t = mat.node_tree
     t.nodes.clear()
@@ -141,16 +146,17 @@ def feather_material():
     edge = math_node('SUBTRACT', 0.5, across, (-200, 100))
     tip = math_node('SUBTRACT', 1.0, sep.outputs['Y'], (-500, -100))
     margin = math_node('MINIMUM', edge, math_node('MULTIPLY', tip, 0.9, (-350, -100)), (-50, 0))
-    # bronze inside, black toward the edge (a bold margin, as the field marks show it); a soft dark shaft down the middle
-    inside = math_node('MULTIPLY', math_node('SUBTRACT', margin, 0.19, (100, 0)), 9.0, (250, 0), clamp=True)
+    # the centre's colour inside, the edge's toward the outline: a bold margin, as the field marks show it, ramped over
+    # the outer part of the feather rather than stepped, so the bake reads as scales and not tiles; a soft dark shaft
+    inside = math_node('MULTIPLY', math_node('SUBTRACT', margin, 0.1, (100, 0)), 4.5, (250, 0), clamp=True)
     shaft = math_node('MULTIPLY', math_node('SUBTRACT', 0.035, across, (100, 200)), 40.0, (250, 200), clamp=True)
     tone = math_node('MULTIPLY', inside, math_node('SUBTRACT', 1.0, math_node('MULTIPLY', shaft, 0.6, (300, 300)), (400, 300)), (450, 100))
     mix = t.nodes.new('ShaderNodeMix')
     mix.data_type = 'RGBA'
     mix.location = (450, -100)
     ins = {s.identifier: s for s in mix.inputs}
-    ins['A_Color'].default_value = (*(0.007, 0.007, 0.0091), 1)  # black edges #141418
-    ins['B_Color'].default_value = (*(0.1022, 0.0887, 0.0802), 1)  # grey-brown to bronze centres #5a5450
+    ins['A_Color'].default_value = (*(edge_color or PALETTE[version]['edge']), 1)
+    ins['B_Color'].default_value = (*(centre_color or PALETTE[version]['scale']), 1)
     t.links.new(tone, ins['Factor_Float'])
     t.links.new({s.identifier: s for s in mix.outputs}['Result_Color'], bsdf.inputs['Base Color'])
     bsdf.inputs['Roughness'].default_value = 0.55
@@ -158,13 +164,22 @@ def feather_material():
     return mat
 
 
-for o in [o for o in bpy.data.objects if o.name.startswith('doccor.feathers')]:
-    bpy.data.objects.remove(o, do_unlink=True)
-fm = feather_material()
-body = bpy.data.objects['doccor.body']
-made = []
-for side, wing in ((1, 'doccor.wingFoldL'), (-1, 'doccor.wingFoldR')):
-    ob, n = scatter([body, bpy.data.objects[wing]], side)
-    ob.data.materials.append(fm)
-    made.append(n)
-print('feathers', made)
+def build():
+    random.seed(7)
+    for o in [o for o in bpy.data.objects if o.name.startswith('doccor.feathers')]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    body = bpy.data.objects['doccor.body']
+    out = []
+    for side, wing in ((1, 'doccor.wingFoldL'), (-1, 'doccor.wingFoldR')):
+        ob, _ = scatter([body, bpy.data.objects[wing]], side)
+        out.append(ob)
+    return out
+
+
+def paint(version):
+    """The laid feathers' material for a version."""
+    m = feather_material(version)
+    for side in 'LR':
+        ob = bpy.data.objects['doccor.feathers' + side]
+        ob.data.materials.clear()
+        ob.data.materials.append(m)

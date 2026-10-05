@@ -4,7 +4,7 @@ A dense chain of ellipsoids along a spline through the stations below, voxel-rem
 no section can fold the way a lofted ring can. Blender units are metres; +X is forward, +Z up, the bird's right on -Y
 (glTF's export turns Blender's -Y into three.js's +Z). Built floating: the body's middle at the origin.
 
-Run inside Blender: exec(open(path).read()).
+build.py runs it: build() makes `doccor.body`.
 """
 import bpy
 import bmesh
@@ -94,6 +94,3 @@ def build():
         p.use_smooth = True
     return ob
 
-
-body = build()
-print('doccor.body', len(body.data.vertices), 'verts', tuple(round(d, 3) for d in body.dimensions))

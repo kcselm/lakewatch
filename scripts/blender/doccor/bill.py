@@ -3,7 +3,7 @@
 The bill is lofted from rings along its length, which is straight enough that no ring folds: the upper mandible ending
 in a hook over the lower's tip. Each eye is a small sphere set into the head's side.
 
-Run inside Blender after body.py: exec(open(path).read()).
+build.py runs it after body.py: build() makes `doccor.bill`, `doccor.eyeL`, and `doccor.eyeR`.
 """
 import math
 import bpy
@@ -11,7 +11,8 @@ import bmesh
 from mathutils import Vector, Matrix
 
 BILL_BASE = Vector((0.160, 0.0, 0.190))
-BILL_LENGTH = 0.057  # the culmen
+# the culmen, 57 mm, runs from the base to the hook's tip, 6 mm below the bill's line: this long along the line
+BILL_LENGTH = 0.0552
 BILL_PITCH = math.radians(15)  # swimming, the bill held about 15 degrees up
 RINGS = 24
 SIDES = 16
@@ -21,7 +22,7 @@ EYE_RADIUS = 0.0055
 
 # fraction of the culmen from the base: width, depth (mm), from the research's bill profile
 PROFILE = [(0.0, 12, 17), (0.5, 9, 11), (0.7, 8, 10), (0.88, 6, 9), (1.0, 2, 6)]
-HOOK = 0.006
+HOOK = 0.0045  # the nail hooks about 6 mm below the mandible's lower outline (research 5.1); less on the culmen's line
 
 
 def bill_section(t):
@@ -104,8 +105,7 @@ def build_eyes():
     return out
 
 
-for o in [o for o in bpy.data.objects if o.name.startswith(('doccor.bill', 'doccor.eye'))]:
-    bpy.data.objects.remove(o, do_unlink=True)
-bill = build_bill()
-eyes = build_eyes()
-print('bill', tuple(round(d, 4) for d in bill.dimensions))
+def build():
+    for o in [o for o in bpy.data.objects if o.name.startswith(('doccor.bill', 'doccor.eye'))]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    return build_bill(), build_eyes()

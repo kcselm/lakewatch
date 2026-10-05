@@ -4,7 +4,7 @@ Each folded wing is a grid laid in the side view and dropped onto the body along
 wing's thickness, so it hugs whatever shape body.py made. Past the body's end its primaries run on free, tapering to
 the tip over the tail. The tail is twelve stiff rectrices fanned a little from the tail root.
 
-Run inside Blender after body.py: exec(open(path).read()).
+build.py runs it after body.py: build() makes `doccor.wingFoldL`, `doccor.wingFoldR`, and `doccor.tail`.
 """
 import math
 import bpy
@@ -120,9 +120,8 @@ def tail():
     return ob
 
 
-for o in [o for o in bpy.data.objects if o.name.startswith(('doccor.wingFold', 'doccor.tail'))]:
-    bpy.data.objects.remove(o, do_unlink=True)
-body = bpy.data.objects['doccor.body']
-folded = [folded_wing(body, 1), folded_wing(body, -1)]
-tail_ob = tail()
-print('wings', [tuple(round(d, 3) for d in w.dimensions) for w in folded], 'tail', tuple(round(d, 3) for d in tail_ob.dimensions))
+def build():
+    for o in [o for o in bpy.data.objects if o.name.startswith(('doccor.wingFold', 'doccor.tail'))]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    body = bpy.data.objects['doccor.body']
+    return [folded_wing(body, 1), folded_wing(body, -1)], tail()

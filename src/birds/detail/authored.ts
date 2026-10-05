@@ -17,6 +17,8 @@ export const MARKS = ['billBase', 'billTip', 'tailRoot', 'tailTip', 'wrist', 'wi
 
 /** within this of the bill's base along the bill, a bill vertex is on its base ring (metres) */
 const BASE_RING = 0.0015
+/** a landmark on a part lies within this of one of its vertices (metres) */
+const LANDMARK = 0.005
 /** a joint this close to the one before it along the neck is parked there, with no length (metres) */
 const PARKED = 1e-4
 
@@ -86,12 +88,27 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
   const skinVerts = verts('skin')
   const bodyVerts = skinVerts.filter(i => strongest(i) === 'body')
   const headVerts = skinVerts.filter(i => strongest(i) === 'head')
+  // the back's skin: weighted almost wholly to the body...
+  const weightOn = (i: number, bone: BoneName) => {
+    const si = geometry.getAttribute('skinIndex'), sw = geometry.getAttribute('skinWeight')
+    let w = 0
+    for (let k = 0; k < 4; k++) if (si.getComponent(i, k) === BONE_INDEX[bone]) w += sw.getComponent(i, k)
+    return w
+  }
+  // ...and behind the neck: the rearmost skin that leans most on a neck bone
+  const neckRear = Math.min(...skinVerts.filter(i => (NECK_BONES as readonly string[]).includes(strongest(i))).map(i => at(i).x))
+  const backPts = bodyVerts.filter(i => weightOn(i, 'body') > 0.9 && at(i).x < neckRear).map(at)
   const bodyPts = bodyVerts.map(at)
   const under = bodyPts.filter(v => Math.abs(v.x - hipR.x) < 0.01)
   const bellyY = under.length ? Math.min(...under.map(v => v.y)) : Math.min(...bodyPts.map(v => v.y))
   const neckY = joints.neck.y
   const breastFront = bodyPts.filter(v => v.y < neckY).reduce((a, v) => (v.x > a.x ? v : a), new THREE.Vector3(-Infinity, 0, 0)).clone()
-  const billDir = marks.billTip.clone().sub(marks.billBase).normalize()
+  // the landmarks and the mesh must agree: a mesh moved apart from its skeleton (an armature moved as an object, whose
+  // transform the export then bakes into the vertices a second time) leaves the bill's tip off the bill
+  const billPts = verts('bill').map(at)
+  const offTip = Math.min(...billPts.map(v => v.distanceTo(marks.billTip)))
+  if (!(offTip < LANDMARK)) throw new Error(`${spec.code}: mark_billTip is ${(offTip * 1000).toFixed(1)} mm from the bill: the mesh and the skeleton disagree`)
+  const billDir = billDirection(billPts, marks.billBase, marks.billTip)
   const billUp = new THREE.Vector3(-billDir.y, billDir.x, 0).normalize()
   const billBaseRing = verts('bill').map(at).filter(v => Math.abs(v.clone().sub(marks.billBase).dot(billDir)) < BASE_RING)
   const fold = verts('wingFold').map(at)
@@ -108,7 +125,8 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
     hip: hipR, knee: kneeR, foot: footR, bellyY,
     bodyLowY: Math.min(...bodyPts.map(v => v.y)),
     wingLowY: fold.length ? Math.min(...fold.map(v => v.y)) : bellyY,
-    backTopY: Math.max(...bodyPts.map(v => v.y)),
+    // the back: the body's own skin, clear of the neck, as a lofted bird's is the loft's behind its neck base
+    backTopY: Math.max(...(backPts.length ? backPts : bodyPts).map(v => v.y)),
     breastFront, waterline: { back: water[0], front: water[1] },
     head: headVerts.map(at), crown: headVerts, rings: 0,
     stations: [], spine: [],
@@ -169,6 +187,21 @@ function groupSpace(skin: THREE.SkinnedMesh, fileNames: string[]): THREE.BufferG
   out.setIndex(tris.flat())
   out.computeBoundingSphere()
   return out
+}
+
+/**
+ * The bill's direction at its base, as a lofted bird's billDir is: through the middle of its base and the middle of its
+ * middle, so a hooked tip (dropping below that line) doesn't tip it. Base to tip, for a bill with no vertices there.
+ */
+function billDirection(bill: THREE.Vector3[], base: THREE.Vector3, tip: THREE.Vector3): THREE.Vector3 {
+  const along = tip.clone().sub(base), length = along.length()
+  along.normalize()
+  const mean = (lo: number, hi: number) => {
+    const pts = bill.filter(v => { const s = v.clone().sub(base).dot(along) / length; return s >= lo && s <= hi })
+    return pts.length ? pts.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(pts.length) : null
+  }
+  const near = mean(0, 0.15), mid = mean(0.4, 0.6)
+  return near && mid && mid.distanceTo(near) > 1e-6 ? mid.sub(near).normalize() : along
 }
 
 /** Each part's run of vertices and of triangle indices, once groupSpace has sorted them. */

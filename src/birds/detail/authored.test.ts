@@ -146,6 +146,11 @@ describe('the authored loader refuses a model that doesn\'t fit', () => {
     s2.getObjectByName('wingL')!.attach(s2.getObjectByName('handR')!)
     expect(() => authoredBuilt(S, s2)).toThrow(/handR's parent is wingL/)
   })
+  it('a mesh apart from its skeleton: the tip of the bill off the bill', async () => {
+    const s = await fresh()
+    s.getObjectByName('mark_billTip')!.position.y += 0.04
+    expect(() => authoredBuilt(S, s)).toThrow(/mark_billTip is .* from the bill/)
+  })
   it('a missing landmark', async () => {
     const s = await fresh()
     s.getObjectByName('mark_tailTip')!.removeFromParent()
