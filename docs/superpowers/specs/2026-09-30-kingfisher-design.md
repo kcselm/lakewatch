@@ -1,7 +1,7 @@
 # Belted Kingfisher: design spec
 
 Date: 2026-09-30
-Status: approved; amended after the research and the pelican round's merge
+Status: built; amended after the research and the pelican round's merge; what changed during implementation and the soft spots at the end
 Builds on: `2026-09-30-pelican-design.md` (the flight wing: `detail.flight`,
 the hand bones, the beat, `glide`), `2026-09-30-water-design.md` (rings sized by what made them, the
 water's clarity), `2026-09-27-herons-design.md` (the head-hung part,
@@ -554,6 +554,74 @@ machine, two loads each, noted as saying little about a real GPU): the atlases'
 count and memory, the time to Begin, the longest pause, and the frame rate with
 the binoculars on the near perch and the telescope on a hover. It compares
 them against the build before this round.
+
+As built (headless Chromium on this machine with software rendering, the production build, two loads each,
+alternating, against `master` at `5f1fb6c`, the Canada Goose round):
+
+| | Begin enabled | atlases | per atlas | fps by eye |
+|---|---|---|---|---|
+| Before this round (`5f1fb6c`) | 6.4-6.9 s | 26, 34.7 MB | 106-114 ms | 21-23 |
+| This round | 6.6-7.4 s | 28, 37.3 MB | 132-135 ms | 20-21 |
+
+On the dev server, aimed at the kingfisher (on its first perch, the snag, 53.5 m out) with the dev hook, both builds
+held 21 fps through the binoculars and 20 through the telescope. Software rendering says little about a real GPU, and
+the readings are per load, not the longest pause, which was not measured; the binoculars on the near perch and the
+telescope on a hover need the bird to fly there, which a headless run can't wait for. The user's check in their own
+Chrome is the acceptance.
+
+## Changed during implementation
+
+The round ran without a written plan: Tasks 1-8 were built in a scratch worktree, one commit each, and replayed onto
+this branch.
+
+- **The fold needed no elbow.** Two bones fold the wing onto the body: the inner wing swept 90 degrees back and twisted
+  90 degrees leading edge down, so it lies along the flank with its upper face out, and the hand swept 10 degrees
+  further (`detail.flight.fold`). A hand twisted with it, or an inner wing twisted less, held the wing out in a tent
+  over the back for the middle of the fold.
+- **The legs in flight are a pose value of their own,** `PoseState.legsUp`; the behaviour draws them up once the wings
+  are open and lowers them to land.
+- **The perched bird is traced on a straight spine.** Stations laid along the body's midline creased the loft at the
+  hip and the nape: an upright bird's spine turns there tighter than the body is deep. The kingfisher shows almost no
+  neck, so its spine runs straight from the tail base at 41 degrees up through the body and neck, then on one arc of
+  74 mm into the level bill; the arc's normals all meet at its centre, so no section crosses its neighbour, and the eye's
+  section passes through the photo's eye. Four stations between the tail base and the hip (`vent`, `thigh`, `belly`,
+  `foreBelly`) follow the back and the belly along the slant. Drawn back over the photo, the model's outline follows it
+  from the bill to the tail tip.
+- **A percher's belly and feet come from the trace.** The builder read the belly under the hip as the hip station's
+  `down`, which on a slanting body lies along a normal leaning toward the breast; the feet came out inside the belly.
+  A perched bird's belly is now where the body's lower outline passes under the hip, and `detail.perch.top` gives the
+  branch's top under the hips as the photo has it, so the legs reach down to it, no straighter than standing. Every
+  other bird builds as before.
+- **The widths are from a front-on bird** (iNaturalist 95480431): the breast about 66 mm across and the head 45 mm.
+  The first guess, 52 and 38, made a thin bird from the front.
+- **The collar and the bands are chains of stripes.** On the slanting body they run across the stations, so each is
+  painted as stripes through points read off the profile photo, not as bands between stations.
+- **The kingfisher behaviour's paths.** A flight up from the water may start over water only plunge-deep and beside
+  a perch, and has its first metres to get clear; under the water, hidden, the bird turns to rise over open water
+  8 m ahead. Without these it sometimes found no clear path home and flew the unchecked shortest way round over the
+  shallows; over 14 seeds of four hours it now never does.
+- **`hover` is gone,** replaced by `kingfisher`; the snag's point zone stays for the scene, and the kingfisher works
+  the `perches` zone: the snag's branch at 53.5 m, a near branch at 32.6 m, and a side branch at 58 m.
+- **The atlas is not enlarged.** The skin is 0.37 by 0.51 mm a texel, finer than a pixel at the near perch through the
+  telescope (1.05 mm). The spread wing is 0.96 mm a texel along the span and 1.81 across the chord; hovers in a
+  four-hour run came 26-60 m from the vantage (median 45 m), where a telescope pixel is 0.8-1.9 mm. Enlarging the wing's
+  regions would move every shipped bird's atlas; see the soft spots.
+- **The startup count** is 46: 28 atlases (the female and the male), 17 species' folded wings, and the cast.
+
+## Known soft spots
+
+- **The spread wing's texels show in the telescope at a close hover:** across the chord a texel is up to two pixels
+  for the nearest tenth of hovers (under 30 m). The wing beats at 8.5 Hz there; the white patch is 34 texels deep.
+- **Not yet seen in the game.** The bird was checked in the viewer (headless Chromium, side, front, top, below) and
+  against the photo's outline; the user's check through the binoculars and the telescope is the acceptance.
+- **The female is painted on the male's trace.** Her bands are placed by the research's description and the male's
+  photo; her own photos were used for colour.
+- **The strokes, glide and fold are the research's estimates,** set on the test bird and not tuned against the
+  hover and flight photos in the game.
+- **Under the water the bird changes pose while hidden** and comes up already in its rising pose and heading.
+- **The unchecked way home remains** as a last resort, though no long run has used it since the path fixes.
+- **The pace is compressed about four times** (see "Pace"); behaviour rates are estimates where the research says so.
+- **No juvenile version:** its rusty mottling is 1-2 pixels through the binoculars at 30 m.
 
 ## Build order
 
