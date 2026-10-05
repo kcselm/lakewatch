@@ -1,6 +1,7 @@
 import type { BehaviorContext, BehaviorController } from './types'
 import { turnToward, approach, perchOf } from './types'
 import type { PoseState } from '../birds/model'
+import { createCormorantPerch } from './cormorant'
 
 type State = 'sit' | 'shuffle' | 'stretch' | 'loop'
 
@@ -8,8 +9,12 @@ export const LOOP_SECONDS = 6
 const LOOP_RISE = 2.5
 const TWO_PI = Math.PI * 2
 
-/** Sit on a perch; shuffle, stretch, and now and then fly a short loop and land back on it. */
+/**
+ * Sit on a perch; shuffle, stretch, and now and then fly a short loop and land back on it. A cormorant perches in its
+ * own style: upright on its stump, drying its wings (cormorant.ts).
+ */
 export function createPerch(ctx: BehaviorContext, _startX: number, _startZ: number): BehaviorController {
+  if (ctx.foraging === 'cormorant') return createCormorantPerch(ctx)
   const [px, py, pz] = perchOf(ctx)
   const hz = ctx.wingbeatHz ?? 5
   let x = px, y = py, z = pz, heading = ctx.rng() * TWO_PI
