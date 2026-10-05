@@ -35,7 +35,7 @@ screenshot tests.
 | Platform | Browser, Vite + TypeScript, deployed to Cloudflare Pages |
 | 3D | Three.js, imperative render loop |
 | 2D overlay | Preact for the field guide and life list; plain DOM for the HUD |
-| Bird models | Procedural geometry in code: block specs first, then a detailed builder (traced profile, measurements, painted field marks) species by species; GLTF behind the same interface remains possible |
+| Bird models | Procedural geometry in code: block specs first, then a detailed builder (traced profile, measurements, painted field marks) species by species; and authored birds, made in Blender on the detailed builder's skeleton and loaded as glTF, posed by the same code (the Double-crested Cormorant first) |
 | Media | Reuse the birdsong-quiz harvest pipeline (eBird, xeno-canto, iNaturalist), CC non-commercial with attribution |
 | Movement | Fixed vantage point, look only |
 | Identification | Field guide picker limited to the location's species |
@@ -149,7 +149,8 @@ bar is telling a Greater Yellowlegs from a Lesser.
 
 The player stands on a low bank. Left foreground: reed bed. Right
 foreground: mudflat curving away, and past it a low grassy flat that slopes gently into the
-water, where the geese graze. Middle: open water. Far side: a shallow
+water, where the geese graze. Middle: open water, and left of centre a cluster of drowned stumps standing in it, where
+the cormorants perch. Far side: a shallow
 wading shelf along the waterline where the herons feed, a snag in the water, a gravel bar, a tree line under the sky. Placement is designed
 for three viewing distances: naked-eye foreground, binocular mid-water,
 telescope far shore.
@@ -181,6 +182,7 @@ Each is a module with one job and an `update(dt, wind)` entry point.
 - **Vegetation**: instanced reed and grass blades with vertex-shader sway. A grazed lawn of short blades on the geese's flat.
   Gusts roll across the bed as a moving front rather than in sync. Noise
   tint so the bed is not uniform.
+- **Stumps**: four drowned stumps standing in open water left of centre (`createStumps`), each top a cormorant's perch.
 - **Trees and snag**: low-poly canopy clusters with subtle sway; far tree
   line as layered silhouettes fading into fog.
 - **Sky**: gradient dome, sun disc, soft cloud billboards drifting with the
@@ -238,8 +240,12 @@ Three implementations:
   see `2026-09-30-pelican-design.md`. The Canada Goose on the lake is amphibious: it floats
   and stands, `afloat` passing it between the two at the shore; see `2026-09-30-canada-goose-design.md`. Its flyover
   stays a block model.
-- **GLTF**: loads a Blender export whose node names follow the part
-  convention. The species file points at the file; nothing else changes.
+- **Authored**: a detailed species with an `authored` block (not `detail`) is made in Blender
+  (`scripts/blender/<code>/`, built headless) on the detailed builder's skeleton: its glb (the mesh, its skin, a part
+  for each vertex, and named landmarks) and each version's colour, normal, and roughness maps live in
+  `public/models/<model>/`. They load at startup with the atlases; the loader reads the glb onto the builder's bones
+  and anatomy, and the bird poses by the same code as a lofted one. The Double-crested Cormorant is the first; see
+  `2026-10-05-cormorant-design.md`.
 
 ### Animation
 
@@ -249,16 +255,17 @@ run-stop-look-peck,
 sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
 shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
 pelican bill-dip, drain, and swallow, flap and glide, goose walk out, graze, look up, walk in,
+cormorant dive, swallow, and wing-drying,
 preen and wing-stretch idles.
 
 ### Behaviors
 
 | Behavior | What it does |
 |---|---|
-| swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows; a pelican loafs with its neck in an S or its head sunk on its shoulders, and the group swims abreast and dips their bills together. Swimmers keep their distance from each other |
+| swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows; a pelican loafs with its neck in an S or its head sunk on its shoulders, and the group swims abreast and dips their bills together; a cormorant loafs low in the water, then fishes in bouts of dives, sliding under head first and staying down about 22 s, surfacing a few metres on, now and then with a fish it swallows head first in forward-upward jerks. Swimmers keep their distance from each other |
 | wade | Forage in the species' style: a heron stands in the shallows with its neck coiled, waits, stalks a slow step at a time, strikes, swallows with its head tipped up, and hunches between feeding bouts; herons keep their distance from each other. Other waders take slow steps along a shore zone, stand still for long stretches, and strike |
 | probe | Forage in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together; a dowitcher stands belly-deep in a tight flock and stitches, its bill going down and up and its head dipping into the water |
-| perch | Sit on the snag, shuffle, stretch, short loop flight and return |
+| perch | Sit on the snag, shuffle, stretch, short loop flight and return. A cormorant stands upright on a stump with its tail propped, rests with its neck drawn in or erect, and in drying sessions holds its wings out, wrists up and hands hanging, facing into the wind |
 | flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. A detailed species flies as skinned birds that flap and glide, the flapping passing down the line; a block species is instanced, per-bird wingbeat phase |
 | hover | Hold over water, dive, return to perch |
 
@@ -348,8 +355,9 @@ accuracy.
 
 - **Title card**: name, click to begin (unlocks audio), credits link.
   Begin waits while the birds' plumage atlases paint in a Web Worker, the
-  folded wings are placed a species at a time, and the cast is built. One
-  count covers all three: "Getting the birds ready… N of 43".
+  folded wings are placed a species at a time, the authored birds' models and
+  maps load, and the cast is built. One count covers them all: "Getting the
+  birds ready… N of 46".
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel

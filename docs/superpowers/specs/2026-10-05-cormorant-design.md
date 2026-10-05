@@ -1,7 +1,7 @@
 # Double-crested Cormorant, round 1 (on the water and on the snag): design spec
 
 Date: 2026-10-05
-Status: draft for review
+Status: built (see "Changed during implementation" and "Known soft spots"); the user's telescope check to come
 Builds on: `2026-09-30-canada-goose-design.md` (the amphibious bird, `afloat`),
 `2026-09-30-pelican-design.md` (the flight wing, a bird built on a twin's mesh),
 `2026-09-27-herons-design.md` (the neck chain, neck shapes, `headPitch`),
@@ -428,19 +428,73 @@ comparison was.
 
 ## Performance
 
-Four more birds and one model. The plan records the title card's count, the time
-to Begin, the texture memory, and the frame rate through the telescope on the
-stumps, against the build before this round.
+Four more birds, one model, and two versions' maps. Headless Chromium on this machine, the production builds served
+side by side, from the vantage's default view (the dev hook that aims the view isn't in a production build):
 
-## Known soft spots (expected)
+| | Before this round (5f1fb6c) | This round |
+|---|---|---|
+| Title card's count | 43 | 46 (the model and its two versions' maps) |
+| Begin enabled | 9.7 s | 8.7 s |
+| By eye | 37.7 fps | 38.6 fps |
+| Binoculars | 45.6 fps | 47.4 fps |
 
+The cormorants cost nothing measurable here; the differences are the runs' noise. The model is 7,996 triangles and its
+files 900 KB in all (the budget 9,000 and 1.5 MB). Headless rates say little about a real GPU; the user's check on the
+Iris Xe is the acceptance, as for the goose.
+
+## Changed during implementation
+
+From the plan's "Decisions made while planning" (`docs/superpowers/plans/2026-10-05-cormorant.md`) and Tasks 7 and 8:
+
+- **An authored bird is `spec.authored`, beside `detail`**, not `detail.authored`: the lofted fields stay where every
+  lofting module and test reads them. `isDetailed(spec)` answers for both.
+- **Each vertex says its part** (`_PART`), and the loader sorts vertices and triangles by part. Landmarks alone couldn't
+  tell a bill vertex from a head one.
+- **The loader takes the bill's direction from its straight part** (the middle of its base to the middle of its middle),
+  so a hooked tip measures as a hook; from base to tip, every hook measured 0.
+- **The back is the body's own skin behind the neck**: weighted almost wholly to the body and behind the rearmost skin
+  that leans on a neck bone. The neck rises from the front of a cormorant's body, so "the body's skin" alone took the
+  neck's base (40 mm against the back's 25).
+- **The loader refuses a mesh apart from its skeleton** (the bill's tip mark more than 5 mm from the bill). The first
+  build moved its armature down onto the water as an object; the export baked that move into the skinned vertices a
+  second time, and the mesh sat 40 mm under its own joints. The export now moves the data and leaves every object at
+  the origin.
+- **The neck stretches to twice its length going erect** (`neckStretch` 2): the model's neck is the swimmer's, drawn
+  down into its feathers (0.11 m), where the research's erect hindneck is 0.20 m. Perched, the body stands 40 degrees
+  up, so both the erect and the hunched shapes bend the neck forward at its base (40 and 60 degrees): the crown stands
+  565 mm above the perch erect and 422 drawn in (the research's 0.57 and 0.42). Swimming, the bill is 9 degrees up.
+- **The drying pose** (`flight.dry`: the shoulder raised 45 degrees and swept 20, the hand hung 50 and swept 70) was
+  set in the viewer from the front, against the photos: the wrists above the shoulders and the hands hanging down and
+  out. The first try (35, 30, -55, 25) hung the hands straight down beside the body.
+- **The culmen runs to the hook's tip**: the bill is 55.2 mm along its line, so the tip, 4.5 mm below it, is 57 mm from
+  the base.
+- **The cast's single fisher is `{ "adult": 1 }`**: the location schema takes a plumage string only for male, female,
+  or mixed.
+- **The catalog's habitats:** `doccor` was tagged only for shoreline. It joins the allow-list for wetland, and its
+  `data/birds.json` entry gains wetland by hand, as the harvest would write it (the raw harvest data isn't here).
+- **The stumps** are darker wood with uneven sides and a smaller broken branch; the first were tan hexagonal posts.
+  `stumpPerches(center)` gives their perches without building them, for the tests that spawn the cast.
+- **Every authored model loads before each test file** (`src/birds/models.setup.ts`), so the tests that spawn the whole
+  cast can build the cormorants; a broken model fails every test file loudly.
+- **The floaters**: the cast has 51 birds in the water (the fisher; the three on the stumps stand above it).
+- **`submerged` has a nanometre spare**: the slide's ease ends a hair short of the depth.
+
+## Known soft spots
+
+- **The flight wing is a flat plate**, its feathers only in its maps: a straight trailing edge, no separated primaries,
+  and from the front a slab. It reads as a wing at the telescope's range; close in, it doesn't.
+- **The drying pose is by eye**, against photos, as the spec expected.
 - **Drying by schedule, not by wetness:** the stump birds haven't fished.
-- **The drying pose by eye,** against photos, not measured.
-- **Surface swimming speed is an estimate** (research section 12).
-- **One size,** at the mean of the sexes.
-- **Hand-weighted parts:** automatic weights inside each part may need touching
-  up where the neck meets the body.
-- **Body width an estimate** (0.12 m), from no top or rear view with a scale.
+- **The legs are long and thin** in the side view against the photos' stocky tarsus, and the tail is one plate of
+  feathers.
+- **The juvenile's pale front is painted by the surface's facing**, so its edge on the neck follows the mesh, not a
+  feather tract.
+- **The neck lengthens above its swimming shape**: a swimmer surfacing or swallowing (`neckExtend` 0.7-0.75) carries
+  its neck up to 40% longer.
+- **`data/birds.json` was edited by hand** for the habitat; a fresh harvest reproduces it from the allow-list.
+- **Not measured on a real GPU**: the performance is headless.
+- **One size**, at the mean of the sexes; **the body's width an estimate** (0.12 m); **surface swimming speed an
+  estimate** (research section 12).
 
 ## Build order
 

@@ -52,6 +52,22 @@ holds it still). A flyover flock of a detailed species is one skinned bird a
 member, all on one mesh; its settings (speed, spacing, flap-and-glide bouts)
 are in `src/behavior/flyover.ts`. A cast entry can give exact counts per
 plumage version, for a flock of a detailed species too.
+A detailed species may instead be made in Blender: an `authored` block (in
+place of `detail`) names its `model`, its `versions`, and how it moves (the
+same fields: `neck`, `neckShapes`, `neckStretch`, `amphibious`, `flight`'s
+beat, glide, and `dry`, its wings held out to dry). Its scripts are in
+`scripts/blender/<code>/`, sharing `scripts/blender/lib/gamebird.py` (the
+game's skeleton, parts, landmarks, and export); build it headless with
+`blender -b --factory-startup -P scripts/blender/<code>/build.py`, which
+writes `public/models/<model>/`: `<model>.glb` (the mesh skinned to the
+detailed builder's bones, a `_PART` for every vertex, `mark_*` landmarks,
+no images) and each version's `<version>.color.webp`, `.normal.webp`, and
+`.rough.webp`. The files are committed, so `npm run build` needs no Blender.
+The models load at startup with the atlases, and before every test file
+(`src/birds/models.setup.ts`). The Double-crested Cormorant is the first.
+A perched bird raises its body (a negative `lean`) and props its tail on
+the perch (`PoseState.tailProp`); a point zone's perches may be a list, one
+for each bird (the stumps').
 The water's look is set in `src/world/`: `waterDepth.ts` (the depth bake and
 clarity), `ripples.ts` (ring speeds and lifetimes), `wake.ts`, `fresnel.ts`,
 `floaters.ts` (the birds in the water), `mirror.ts`, and `water.ts`, each
