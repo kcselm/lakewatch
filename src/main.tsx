@@ -15,7 +15,7 @@ import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
-import { createTree, createSnag, createDeadBranch, createTreeLine } from './world/trees'
+import { createTree, createSnag, createDeadBranch, createTreeLine, LAKE_TREES } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
 import { prepareBirds } from './birds/prewarm'
@@ -205,7 +205,7 @@ grass.object.layers.set(NO_REFLECT)
 world.add(grass)
 
 world.add(createTreeLine(heightfield, world.palette))
-for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
+for (const [i, [tx, tz]] of LAKE_TREES.entries()) {
   world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
 }
 const snagZone = loc.zones['snag']

@@ -41,19 +41,19 @@ describe('validateCast', () => {
   describe('perches', () => {
     const catalog = [bird('belkin1', ['wetland']), bird('rewbla', ['wetland'])]
     const perch = (name: string, on: 'snag' | 'branch' = 'branch') => ({ name, on, position: [0, -5] as [number, number], height: 3, radius: 0.02, facing: 0 })
-    const withPerches = (perches: ReturnType<typeof perch>[], extra: Location['zones'] = {}, cast: Location['cast'] = [{ species: 'belkin1', behavior: 'hover', zone: 'perches', count: 1 }]): Location => ({
+    const withPerches = (perches: ReturnType<typeof perch>[], extra: Location['zones'] = {}, cast: Location['cast'] = [{ species: 'belkin1', behavior: 'kingfisher', zone: 'perches', count: 1 }]): Location => ({
       ...loc, zones: { ...loc.zones, ...extra, perches: { kind: 'perches', perches } }, cast,
     })
-    it('passes a hovering bird on a perches zone', () => {
+    it('passes a kingfisher on a perches zone', () => {
       expect(validateCast(withPerches([perch('near'), perch('far')]), catalog)).toEqual([])
     })
-    it('requires hover to use a perches zone, and perch a point zone', () => {
+    it('requires kingfisher to use a perches zone, and perch a point zone', () => {
       const onPoint = withPerches([perch('near')], { reed: { kind: 'point', position: [0, 2, 0] } }, [
-        { species: 'belkin1', behavior: 'hover', zone: 'reed', count: 1 },
+        { species: 'belkin1', behavior: 'kingfisher', zone: 'reed', count: 1 },
         { species: 'rewbla', behavior: 'perch', zone: 'perches', count: 1 },
       ])
       expect(validateCast(onPoint, catalog)).toEqual([
-        'cast[0]: hover needs a perches zone, reed is point',
+        'cast[0]: kingfisher needs a perches zone, reed is point',
         'cast[1]: perch needs a point zone, perches is perches',
       ])
     })

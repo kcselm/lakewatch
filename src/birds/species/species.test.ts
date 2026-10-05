@@ -19,7 +19,7 @@ describe('species specs', () => {
   it('has a spec for every species the lake casts', () => {
     for (const entry of loadLocation().cast) expect(hasSpec(entry.species), entry.species).toBe(true)
   })
-  it('has specs for the birds that arrive with flyover, perch, and hover', () => {
+  it('has specs for the birds that arrive with flyover, perch, and kingfisher', () => {
     for (const code of ['cangoo', 'belkin1', 'rewbla', 'marwre']) expect(hasSpec(code), code).toBe(true)
   })
   it('every mark is a non-empty sentence fragment', () => {

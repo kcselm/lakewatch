@@ -119,13 +119,15 @@ export function perchesOf(zone: PerchesZone): Perch[] {
 }
 
 /**
- * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, and
- * how it feeds. A species with no spec flaps at 5 Hz.
+ * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, how
+ * it feeds, and, for a bird with a flight wing traced upright on its perch, the lean that flies it level (radians, from
+ * its flight.pitch). A species with no spec flaps at 5 Hz.
  */
-export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging'> {
+export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging' | 'flightPitch'> {
   if (!hasSpec(code)) return { species: code, wingbeatHz: 5 }
   const spec = getSpec(code)
-  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
+  const pitch = spec.detail?.flight?.pitch
+  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging, ...(pitch !== undefined ? { flightPitch: (pitch * Math.PI) / 180 } : {}) }
 }
 
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }

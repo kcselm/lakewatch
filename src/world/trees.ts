@@ -9,6 +9,14 @@ import { makeRng } from '../catalog/rng'
 const TRUNK = new THREE.MeshStandardMaterial({ color: '#4b3a2a', roughness: 1 })
 const CANOPY = ['#4f6a2b', '#5f7a30', '#6d7f2f', '#8a7a2e'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true }))
 
+/** Where the lake's trees stand, on the banks round the water: each a trunk at (x, z). */
+export const LAKE_TREES: readonly (readonly [number, number])[] = [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]]
+/**
+ * How far a tree's canopy reaches from its trunk: its blobs' centres sit up to 1.6 m off the trunk along each axis and
+ * their radii are up to 3 m (createTree), so nothing of it lies further out than 1.6 * sqrt(2) + 3.
+ */
+export const CANOPY_REACH = 5.3
+
 /** A low-poly deciduous tree: a tapered trunk and 5 to 8 icosahedron canopy blobs. */
 export function createTree(x: number, z: number, hf: Heightfield, seed: number, wind: Wind): WorldModule & { object: THREE.Group } {
   const rng = makeRng(seed)

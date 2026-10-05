@@ -85,12 +85,17 @@ export interface BehaviorContext {
   /** asks for the bird's call now; the call scheduler plays it at once if the simultaneous-call cap allows, else drops it */
   onCall?: () => void
   group?: FlockGroup
-  /** world-space perch point for perch and hover; the spawner takes it from the point zone, or a perches zone's first */
+  /** world-space perch point for perch and kingfisher; the spawner takes it from the point zone, or a perches zone's first */
   perch?: Vec3
   /** a bird of a perches zone: every perch it may use, the first the one it starts on; the spawner fills it */
   perches?: readonly Perch[]
-  /** for behaviors that flap; each behavior applies its own default when unset (perch 5, hover 6) */
+  /** for behaviors that flap; each behavior applies its own default when unset (perch 5) */
   wingbeatHz?: number
+  /**
+   * radians: the lean that flies a bird traced upright on its perch level (its detail's flight.pitch); 0 when unset.
+   * The kingfisher leans from it: up to hover, down to plunge
+   */
+  flightPitch?: number
   /** how the bird feeds; probe treats a missing style as sandpiper, swim as dabbler */
   foraging?: Foraging
   /** the species' code, for a style whose settings differ by species (the dabbler's) */

@@ -9,7 +9,7 @@ export type CastSpecs = Readonly<Record<string, Pick<SpeciesSpec, 'variants' | '
 
 const ZONE_KIND_FOR_BEHAVIOR = {
   swim: 'polygon', wade: 'polygon', probe: 'polygon',
-  perch: 'point', hover: 'perches', flyover: 'lane',
+  perch: 'point', kingfisher: 'perches', flyover: 'lane',
 } as const
 
 export function validateCast(loc: Location, birds: readonly Bird[], specs: CastSpecs = SPECIES): string[] {

@@ -3,14 +3,14 @@ import { createSwim } from './swim'
 import { createWade } from './wade'
 import { createProbe } from './probe'
 import { createPerch } from './perch'
-import { createHover } from './hover'
+import { createKingfisher } from './kingfisher'
 
-export const BEHAVIORS: Record<'swim' | 'wade' | 'probe' | 'perch' | 'hover', BehaviorFactory> = {
+export const BEHAVIORS: Record<'swim' | 'wade' | 'probe' | 'perch' | 'kingfisher', BehaviorFactory> = {
   swim: createSwim,
   wade: createWade,
   probe: createProbe,
   perch: createPerch,
-  hover: createHover,
+  kingfisher: createKingfisher,
 }
 
 export type { BehaviorContext, BehaviorController, BehaviorFactory, Perch } from './types'

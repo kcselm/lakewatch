@@ -36,7 +36,7 @@
     { "species": "grbher3", "behavior": "wade",  "zone": "far-shallows", "count": 2, "plumage": { "adult": 1, "juvenile": 1 } },
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shallows", "count": 2 },
     { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 },
-    { "species": "belkin1", "behavior": "hover", "zone": "perches",      "count": 1, "plumage": "female" },
+    { "species": "belkin1", "behavior": "kingfisher", "zone": "perches", "count": 1, "plumage": "female" },
     { "species": "rewbla",  "behavior": "perch", "zone": "reed-perch",   "count": 1, "plumage": "male" },
     { "species": "marwre",  "behavior": "perch", "zone": "reed-perch-2", "count": 1 },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" },

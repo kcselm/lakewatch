@@ -29,7 +29,7 @@ const perch = z.object({
 const perchesZone = z.object({ kind: z.literal('perches'), perches: z.array(perch).min(1, 'perches needs at least one perch') })
 const zoneSchema = z.discriminatedUnion('kind', [polygonZone, pointZone, laneZone, perchesZone])
 
-export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'hover'])
+export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'kingfisher'])
 
 const castEntry = z.object({
   species: z.string().min(1),
