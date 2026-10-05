@@ -321,6 +321,49 @@ describe('spawnCast herons', () => {
   }, 60_000)
 })
 
+describe('spawnCast geese', () => {
+  // the geese's water across a 3 m bank, 1 in 4, from their grass, as on the lake, with Mallards on the same water
+  const shore: Location = {
+    ...loc([
+      { species: 'cangoo', behavior: 'swim', zone: 'w', ashore: 'flat', count: 8, groups: [5, 3] },
+      { species: 'mallar3', behavior: 'swim', zone: 'w', count: 4 },
+    ]),
+    zones: {
+      w: { kind: 'polygon', points: [[-20, -10], [2, -10], [2, 10], [-20, 10]] },
+      flat: { kind: 'polygon', points: [[5, -10], [25, -10], [25, 10], [5, 10]] },
+    },
+  }
+  const ground = (x: number) => Math.min(0.3, Math.max(-1.5, (x - 4) * 0.25))
+  it('hands a goose its ashore zone, its group sizes, and its place in the entry', () => {
+    const out = expandCast(shore, makeRng(1))
+    expect(out.slice(0, 8).map(b => [b.ashore, b.groups, b.index])).toEqual([0, 1, 2, 3, 4, 5, 6, 7].map(i => ['flat', [5, 3], i]))
+    expect(out.slice(8).every(b => b.ashore === undefined && b.index === undefined)).toBe(true)
+  })
+  it('sends the family ashore by the cast\'s groups and keeps the loose unit on the water, the Mallards clear of every goose afloat', () => {
+    for (const seed of [1, 2]) {
+      const d = { registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: (x: number) => ground(x), ripples: new RippleBuffer(), seed }
+      const world = spawnCast(shore, d)
+      const geese = d.registry.bySpecies('cangoo'), ducks = d.registry.bySpecies('mallar3')
+      const ashore = geese.map(() => false)
+      let gap = Infinity
+      for (let i = 0; i < 2 * 3600 * 10; i++) {
+        world.update(1 / 10, d.wind)
+        geese.forEach((g, k) => { if (g.position.x > 5) ashore[k] = true })
+        // a goose floating on its water, against every Mallard: the larger of the two birds' spacing, the goose's
+        for (const g of geese) {
+          if (!g.floating || g.position.x > 1.5) continue
+          for (const m of ducks) gap = Math.min(gap, Math.hypot(g.position.x - m.position.x, g.position.z - m.position.z) - otherOf('cangoo'))
+        }
+      }
+      expect(ashore, `seed ${seed}`).toEqual([true, true, true, true, true, false, false, false])
+      expect(gap, `seed ${seed}`).toBeGreaterThan(-0.1)
+    }
+  }, 120_000)
+})
+
+/** metres a swimmer of this species keeps from any bird not of its flock: its style's `other` spacing */
+const otherOf = (code: string) => companyOf(speciesTraits(code).foraging, code).spacing.other
+
 describe('spawnCast divers', () => {
   it('hides a bird while it is all the way under the water, and shows it again when it comes up', () => {
     // a stand-in swimmer that dives when told to

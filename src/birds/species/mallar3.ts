@@ -6,36 +6,47 @@ import type { Layer } from '../detail/spec'
 // the credited photos. Skin t: 0 the back's midline, about 0.2 the top of the side, 0.5 the widest, 0.55-0.6 the
 // water along the flank (0.72 at the stern), 1 the belly.
 
-/** The drakes' stern: black above and below back to the tail base, the white outer tail feathers along its side. */
+/**
+ * The drakes' stern: black above and below back to the tail base, and a narrow whitish band just in front of it where
+ * the vermiculated flank ends (on the traced drake, between the grey and the black). The white outer tail feathers are
+ * the tail's own paint.
+ */
 const STERN: Layer[] = [
-  { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'tailBase' }, color: '#141414', soft: 6 },
-  { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.42, 0.56] }, color: '#efece5', soft: 1.5 },
-  { kind: 'stripe', from: { at: 'rump', t: 0.49 }, to: { at: 'rump', t: 0.52, dx: 14 }, width: 4, color: '#efece5', blur: 1.5 },
+  { kind: 'stripe', from: { at: 'tailBase', t: 0.3, dx: 9 }, to: { at: 'tailBase', t: 0.66, dx: 4 }, width: 6, color: '#e6e4df', blur: 4, opacity: 0.8 },
+  { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'tailBase' }, color: '#121212', soft: 3 },
 ]
 
-/** The drakes' silvery flank, finely vermiculated, and the pale grey-brown scapulars along the top of the side. */
+/**
+ * The drakes' flank, white finely vermiculated with dusky so that it reads a cool silvery grey, paler toward the water;
+ * the back above it grey-brown under the folded wing; and the mantle a warmer brown where the back meets the neck.
+ */
 const GREY_BODY: Layer[] = [
-  { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#8f806c', side: '#d8d4cc', bottom: '#e4e0d8' },
-  { kind: 'bars', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0.3, 1] }, color: '#8c877e', width: 0.4, spacing: 1.2, angle: 90, blur: 0.3, opacity: 0.45 },
-  { kind: 'fill', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0, 0.3] }, color: '#b3a590', soft: 4 },
-  { kind: 'bars', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0, 0.3] }, color: '#7a6d5c', width: 0.4, spacing: 1.2, angle: 90, blur: 0.3, opacity: 0.5 },
-  // the mantle, dark brown where the back meets the neck
-  { kind: 'fill', where: { part: 'skin', from: 'flank', to: 'neckBase', band: [0, 0.4] }, color: '#5e4531', soft: 8 },
+  { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#857868', side: '#c3c1bb', bottom: '#d2d0ca' },
+  { kind: 'bars', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0.28, 1] }, color: '#7f7c75', width: 0.3, spacing: 0.9, angle: 80, blur: 0.3, opacity: 0.25 },
+  { kind: 'fill', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0, 0.28] }, color: '#9b8f80', soft: 6 },
+  { kind: 'bars', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0, 0.28] }, color: '#6f6457', width: 0.3, spacing: 0.9, angle: 80, blur: 0.3, opacity: 0.3 },
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckBase', band: [0, 0.45] }, color: '#6a5543', soft: 6 },
 ]
 
 /** A drake's chestnut breast, from the ring down to the water, its rear edge level with the front of the folded wing. */
 const CHESTNUT: Layer[] = [
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.33, 1] }, color: '#5a2819', soft: 4 },
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.33, 1] }, color: '#4e2118', soft: 4 },
 ]
 
-/** The folded wing: the lower scapulars, the tertials with their chestnut outer webs, and the dark primary tips. */
+/**
+ * The folded wing as it shows on the water: the pale grey scapulars, finely vermiculated, shading softly to brown along
+ * their lower edge where they lie over the flank; the long grey-brown tertials behind, browner on their lower webs; the
+ * dark primary tips over the stern.
+ */
 const DRAKE_WING: Layer[] = [
-  { kind: 'fill', where: { part: 'wingFold' }, color: '#b8ab98' },
-  { kind: 'bars', where: { part: 'wingFold', s: [0.25, 0.75] }, color: '#857a6b', width: 0.4, spacing: 1.2, angle: 90, blur: 0.3, opacity: 0.5 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.25, 0.76], t: [0.62, 1] }, color: '#5e3319', soft: 2 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.74, 0.9] }, color: '#8a7457', soft: 2 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.74, 0.88], t: [0.55, 1] }, color: '#6b4a2e', soft: 2 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.88, 1] }, color: '#2c2724', soft: 3 },
+  { kind: 'fill', where: { part: 'wingFold' }, color: '#b6ada0' },
+  { kind: 'bars', where: { part: 'wingFold', s: [0.25, 0.75] }, color: '#857b70', width: 0.3, spacing: 0.9, angle: 80, blur: 0.3, opacity: 0.3 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.25, 0.78], t: [0.68, 1] }, color: '#7d5c43', soft: 4, opacity: 0.85 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.72, 0.9] }, color: '#8e8172', soft: 8 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.74, 0.88], t: [0.58, 1] }, color: '#664a35', soft: 3, opacity: 0.85 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.88, 1] }, color: '#2e2925', soft: 3 },
+  // in front of the panel the wing is a line along the mantle into the head's feathers: the mantle's brown
+  { kind: 'fill', where: { part: 'wingFold', s: [0, 0.27] }, color: '#6a5543', soft: 3 },
 ]
 
 /** The spread wing, seen only if it flies: grey-brown, the speculum purplish blue between white bars. */
@@ -47,35 +58,42 @@ const SPREAD: Layer[] = [
   { kind: 'fill', where: { part: 'wingUnder' }, color: '#e6e2da' },
 ]
 
-/** The drakes' tail: ash grey, its outer feathers white. */
+/** The drakes' tail: its outer feathers white, the middle ash grey, its root under the black coverts. */
 const DRAKE_TAIL: Layer[] = [
-  { kind: 'fill', where: { part: 'tail' }, color: '#f0eee8' },
-  { kind: 'fill', where: { part: 'tail', t: [0.3, 0.7] }, color: '#9e9990', soft: 2 },
-  { kind: 'fill', where: { part: 'tailUnder' }, color: '#ece9e2' },
+  { kind: 'fill', where: { part: 'tail' }, color: '#e7e5df' },
+  { kind: 'fill', where: { part: 'tail', t: [0.3, 0.7] }, color: '#a29f98', soft: 3 },
+  { kind: 'fill', where: { part: 'tail', s: [0, 0.22] }, color: '#1c1c1c', soft: 4 },
+  { kind: 'fill', where: { part: 'tailUnder' }, color: '#e4e1da' },
+  { kind: 'fill', where: { part: 'tailUnder', s: [0, 0.22] }, color: '#1c1c1c', soft: 4 },
+]
+
+/** The drake's head: metallic green, blackish on the crown, brightest on the cheek; the green runs down the neck to the ring. */
+const GREEN_HEAD: Layer[] = [
+  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase' }, color: '#17502a', soft: 1 },
+  { kind: 'fill', where: { part: 'skin', from: 'neckBase', to: 'neckMid', band: [0, 0.62] }, color: '#17502a', soft: 1 },
+  { kind: 'stripe', from: { at: 'neckBase', t: 0.3, dx: -7 }, to: { at: 'neckBase', t: 0.61, dx: 7.8 }, width: 12, color: '#17502a', blur: 0.5 },
+  { kind: 'stripe', from: { at: 'neckBase', t: 0.63, dx: 5 }, to: { at: 'neckMid', t: 1, dx: 1 }, width: 6, color: '#17502a', blur: 0.5 },
+  { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'lores', band: [0.3, 0.8] }, color: '#23803a', soft: 4 },
+  { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'lores', band: [0, 0.2] }, color: '#0e3120', soft: 2.5 },
 ]
 
 const MALE: Layer[] = [
   ...GREY_BODY,
   ...STERN,
   ...CHESTNUT,
-  // the chestnut's pale autumn fringes
-  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckBase', band: [0.4, 1] }, length: 6, width: 5, center: '#5a2819', edge: '#8a5a44', edgeWidth: 0.5, soft: 3, opacity: 0.5 },
-  // the head: metallic green, blackish on the crown, brightest on the cheek; the green runs down the neck to the ring
-  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase' }, color: '#1f5a2e', soft: 1 },
-  { kind: 'fill', where: { part: 'skin', from: 'neckBase', to: 'neckMid', band: [0, 0.62] }, color: '#1f5a2e', soft: 1 },
-  { kind: 'stripe', from: { at: 'neckBase', t: 0.3, dx: -7 }, to: { at: 'neckBase', t: 0.61, dx: 7.8 }, width: 12, color: '#1f5a2e', blur: 0.5 },
-  { kind: 'stripe', from: { at: 'neckBase', t: 0.63, dx: 5 }, to: { at: 'neckMid', t: 1, dx: 1 }, width: 6, color: '#1f5a2e', blur: 0.5 },
-  { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'lores', band: [0.35, 0.8] }, color: '#2c7432', soft: 3 },
-  { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'lores', band: [0, 0.2] }, color: '#143b24', soft: 2 },
+  // the chestnut's pale autumn fringes, faint
+  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckBase', band: [0.4, 1] }, length: 7, width: 6, center: '#4e2118', edge: '#7a4a38', edgeWidth: 0.6, soft: 3, opacity: 0.3 },
+  ...GREEN_HEAD,
   // the ring, from the side of the neck (incomplete behind, under the mantle) round to the throat
   { kind: 'stripe', from: { at: 'neckBase', t: 0.3, dx: -13.5 }, to: { at: 'neckBase', t: 0.61, dx: 1.3 }, width: 2.5, color: '#f2f1ec', blur: 0.4 },
   { kind: 'stripe', from: { at: 'neckBase', t: 0.61, dx: 1.3 }, to: { at: 'neckMid', t: 0.97, dx: -3 }, width: 2.5, color: '#f2f1ec', blur: 0.4 },
   ...DRAKE_WING,
   ...SPREAD,
   ...DRAKE_TAIL,
-  { kind: 'fill', where: { part: 'curl' }, color: '#121614' },
-  // brilliant lemon yellow to greenish yellow; the nail black, with a pale bluish sheen behind it
-  { kind: 'fill', where: { part: 'bill' }, color: '#dcc23a' },
+  { kind: 'fill', where: { part: 'curl' }, color: '#101410' },
+  // brilliant lemon yellow to greenish yellow, a little olive at the base; the nail black, with a pale bluish sheen behind it
+  { kind: 'fill', where: { part: 'bill' }, color: '#e0bf2e' },
+  { kind: 'fill', where: { part: 'bill', s: [0, 0.18] }, color: '#c2b23c', soft: 3, opacity: 0.6 },
   { kind: 'fill', where: { part: 'bill', s: [0.82, 0.9], t: [0, 0.4] }, color: '#a3ab86', soft: 1, opacity: 0.5 },
   { kind: 'fill', where: { part: 'bill', s: [0.9, 1], t: [0, 0.45] }, color: '#1b1a17', soft: 0.5 },
   { kind: 'fill', where: { part: 'legs' }, color: '#e8662a' },
@@ -85,68 +103,76 @@ const MALE: Layer[] = [
 const MALE_MOULT: Layer[] = [
   ...GREY_BODY,
   // brown scalloped feathers scattered through the grey flank
-  { kind: 'feathers', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0.32, 0.8] }, length: 9, width: 8, center: '#8b6c4c', edge: '#cdbba2', edgeWidth: 1.2, soft: 3, opacity: 0.35 },
+  { kind: 'feathers', where: { part: 'skin', from: 'tailBase', to: 'breast', band: [0.32, 0.8] }, length: 13, width: 10, center: '#8b6c4c', edge: '#c3c1bb', edgeWidth: 3.5, soft: 3, opacity: 0.45 },
   ...STERN,
   ...CHESTNUT,
   // the chestnut mottled with brown, pale-fringed
-  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.35, 1] }, length: 7, width: 6, center: '#5c2d1c', edge: '#7a5a44', edgeWidth: 1, soft: 3 },
+  { kind: 'feathers', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.35, 1] }, length: 9, width: 7, center: '#5c2d1c', edge: '#86664e', edgeWidth: 1.4, soft: 3 },
   // the head speckled grey-brown, a dark crown and line through the eye, green only on the crown and nape
   { kind: 'fill', where: { part: 'skin', from: 'neckBase', to: 'billBase', band: [0, 1] }, color: '#7c6a57', soft: 3 },
-  { kind: 'spots', where: { part: 'skin', from: 'neckBase', to: 'billBase' }, color: '#3e3226', size: 0.9, spacing: 1.8, blur: 0.3, soft: 2, opacity: 0.8 },
+  { kind: 'spots', where: { part: 'skin', from: 'neckBase', to: 'billBase' }, color: '#3e3226', size: 0.9, spacing: 1.8, blur: 0.3, soft: 2, opacity: 0.7 },
   { kind: 'fill', where: { part: 'skin', from: 'occiput', to: 'lores', band: [0, 0.22] }, color: '#2d2820', soft: 1.5 },
   { kind: 'stripe', from: { at: 'lores', t: 0.45 }, to: { at: 'occiput', t: 0.36, dx: -3 }, width: 2, color: '#3a3026', blur: 0.6 },
   { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'eye', band: [0, 0.2] }, color: '#1d5530', soft: 1.5, opacity: 0.9 },
   ...DRAKE_WING,
-  { kind: 'feathers', where: { part: 'wingFold', s: [0.3, 0.74], t: [0, 0.6] }, length: 9, width: 8, center: '#9a8a74', edge: '#c9bda9', edgeWidth: 1, soft: 2, opacity: 0.5 },
+  { kind: 'feathers', where: { part: 'wingFold', s: [0.3, 0.74], t: [0, 0.6] }, length: 12, width: 10, center: '#9a8a74', edge: '#c9bda9', edgeWidth: 1.5, soft: 2, opacity: 0.5 },
   ...SPREAD,
   ...DRAKE_TAIL,
-  { kind: 'fill', where: { part: 'curl' }, color: '#121614' },
+  { kind: 'fill', where: { part: 'curl' }, color: '#101410' },
   // yellow to olive-yellow, the nail dark; legs dull orange
   { kind: 'fill', where: { part: 'bill' }, color: '#bfae3c' },
   { kind: 'fill', where: { part: 'bill', s: [0.9, 1], t: [0, 0.45] }, color: '#23211c', soft: 0.5 },
   { kind: 'fill', where: { part: 'legs' }, color: '#c9743a' },
 ]
 
-/** The adult female, standing in for the juveniles too: mottled brown, a striped head, an orange bill with a saddle. */
+/**
+ * The adult female, standing in for the juveniles too: warm buff-brown, every feather dark-centred with a broad buff
+ * edge, bolder and darker on the back; a buff head finely streaked, with a dark crown and a dark line through the eye;
+ * an orange bill with a dark saddle.
+ */
 const FEMALE: Layer[] = [
-  { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5b4633', side: '#937758', bottom: '#cdb58f' },
-  // bold dark-centred feathers with broad buff edges, darker above
-  { kind: 'feathers', where: { part: 'skin', from: 'rear', to: 'breast', band: [0.28, 1] }, length: 9, width: 8, center: '#3d2c1e', edge: '#cfae7c', edgeWidth: 1.7, soft: 3 },
-  { kind: 'feathers', where: { part: 'skin', from: 'rump', to: 'neckMid', band: [0, 0.3] }, length: 9, width: 8, center: '#2e2218', edge: '#b8966a', edgeWidth: 1.1, soft: 3 },
+  { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#4e3b2a', side: '#8a6d4e', bottom: '#c8ad86' },
+  // flank feathers about 15 mm long: dark centres, broad buff edges
+  { kind: 'feathers', where: { part: 'skin', from: 'rear', to: 'breast', band: [0.28, 1] }, length: 17, width: 10, center: '#4a3624', edge: '#c39d6c', edgeWidth: 2.6, soft: 3 },
+  { kind: 'streaks', where: { part: 'skin', from: 'rear', to: 'breast', band: [0.3, 0.9] }, color: '#3a2a1c', length: 5, width: 1.2, spacing: 6, jitter: 0.9, blur: 0.5, soft: 3, opacity: 0.35 },
+  { kind: 'feathers', where: { part: 'skin', from: 'rear', to: 'breast', band: [0.4, 1] }, length: 12, width: 8, center: '#5a4430', edge: '#d2b07f', edgeWidth: 2.2, soft: 3, opacity: 0.45 },
+  // the back and scapular line, darker, the edges narrower and browner
+  { kind: 'feathers', where: { part: 'skin', from: 'rump', to: 'neckMid', band: [0, 0.3] }, length: 16, width: 12, center: '#2e2219', edge: '#b08b5f', edgeWidth: 2.2, soft: 3 },
   // the undertail and the tail's whitish outer feathers along the stern
-  { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.42, 0.56] }, color: '#e9e1d2', soft: 1.5 },
+  { kind: 'fill', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.42, 0.56] }, color: '#e3d8c4', soft: 1.5 },
   { kind: 'streaks', where: { part: 'skin', from: 'rear', to: 'rump', band: [0.56, 1] }, color: '#6e5a44', length: 2, width: 0.6, spacing: 1.8, blur: 0.3, soft: 2, opacity: 0.7 },
   // the breast brown, spotted and streaked darker
-  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.3, 1] }, color: '#a4845c', soft: 4 },
-  { kind: 'spots', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.3, 1] }, color: '#4a3422', size: 1.4, spacing: 2.6, blur: 0.3, soft: 3 },
+  { kind: 'fill', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.3, 1] }, color: '#a17f58', soft: 4 },
+  { kind: 'spots', where: { part: 'skin', from: 'breast', to: 'neckMid', band: [0.3, 1] }, color: '#4a3422', size: 1.6, spacing: 3, blur: 0.4, soft: 3, opacity: 0.8 },
   // the head: buff streaked brown, a dark crown and a dark line through the eye, paler cheeks, a plain buff throat
-  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase' }, color: '#b69c77', soft: 2 },
-  { kind: 'streaks', where: { part: 'skin', from: 'neckMid', to: 'billBase', band: [0, 0.8] }, color: '#5a4630', length: 1.4, width: 0.4, spacing: 1.2, blur: 0.2, soft: 2, opacity: 0.7 },
-  { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'lores', band: [0, 0.22] }, color: '#46362a', soft: 1.5 },
-  { kind: 'stripe', from: { at: 'lores', t: 0.3 }, to: { at: 'occiput', t: 0.27, dx: -3 }, width: 1.8, color: '#d9c7a6', blur: 0.6, opacity: 0.7 },
-  { kind: 'stripe', from: { at: 'billBase', t: 0.5 }, to: { at: 'occiput', t: 0.38, dx: -4 }, width: 1.8, color: '#3d2e21', blur: 0.5 },
-  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase', band: [0.82, 1] }, color: '#dbc8a4', soft: 2 },
-  // the folded wing: plain grey-brown tertials over dark-centred scapulars, and the rear white bar of the speculum
-  // showing as a fleck at the wing's lower edge (the flank feathers hide the rest)
-  { kind: 'fill', where: { part: 'wingFold' }, color: '#7b6a58' },
-  { kind: 'feathers', where: { part: 'wingFold', s: [0.25, 0.74] }, length: 9, width: 8, center: '#3a2b1e', edge: '#c3a276', edgeWidth: 1.5, soft: 2 },
+  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase' }, color: '#b29a79', soft: 2 },
+  { kind: 'streaks', where: { part: 'skin', from: 'neckMid', to: 'billBase', band: [0, 0.8] }, color: '#5a4630', length: 1.4, width: 0.4, spacing: 1.2, blur: 0.2, soft: 2, opacity: 0.55 },
+  { kind: 'fill', where: { part: 'skin', from: 'nape', to: 'lores', band: [0, 0.2] }, color: '#46362a', soft: 2 },
+  { kind: 'stripe', from: { at: 'lores', t: 0.28 }, to: { at: 'occiput', t: 0.21, dx: -4 }, width: 1.8, color: '#d4c2a2', blur: 0.8, opacity: 0.6 },
+  { kind: 'stripe', from: { at: 'lores', t: 0.39, dx: 4 }, to: { at: 'eye', t: 0.402 }, width: 1.6, color: '#3d2e21', blur: 0.6 },
+  { kind: 'stripe', from: { at: 'eye', t: 0.402 }, to: { at: 'occiput', t: 0.34, dx: -6 }, width: 1.6, color: '#3d2e21', blur: 0.6 },
+  { kind: 'fill', where: { part: 'skin', from: 'neckMid', to: 'billBase', band: [0.82, 1] }, color: '#d8c5a0', soft: 2 },
+  // the folded wing: dark-centred scapulars, plain grey-brown tertials with paler edges, and only a fleck of the
+  // speculum, blue over its rear white bar, at the wing's lower edge (the flank feathers hide the rest)
+  { kind: 'fill', where: { part: 'wingFold' }, color: '#6f5e4c' },
+  { kind: 'feathers', where: { part: 'wingFold', s: [0.25, 0.74] }, length: 14, width: 11, center: '#3a2b1e', edge: '#bf9e72', edgeWidth: 2.5, soft: 2 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.74, 0.88] }, color: '#6b5b4b', soft: 6 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.74, 0.88], t: [0.85, 1] }, color: '#b59c7a', soft: 1.5 },
   { kind: 'fill', where: { part: 'wingFold', s: [0.88, 1] }, color: '#3a322b', soft: 3 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.57, 0.63], t: [0.7, 0.8] }, color: '#3b4aa0', soft: 0.5 },
-  { kind: 'fill', where: { part: 'wingFold', s: [0.57, 0.63], t: [0.8, 1] }, color: '#f2f0ea', soft: 0.5 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.58, 0.62], t: [0.78, 0.87] }, color: '#33408a', soft: 0.6 },
+  { kind: 'fill', where: { part: 'wingFold', s: [0.58, 0.62], t: [0.87, 0.97] }, color: '#e8e4da', soft: 0.6 },
   ...SPREAD,
-  { kind: 'fill', where: { part: 'tail' }, color: '#e4dccb' },
-  { kind: 'fill', where: { part: 'tail', t: [0.3, 0.7] }, color: '#8c7b66', soft: 2 },
-  { kind: 'fill', where: { part: 'tailUnder' }, color: '#e4dccb' },
+  { kind: 'fill', where: { part: 'tail' }, color: '#d9cdb6' },
+  { kind: 'fill', where: { part: 'tail', t: [0.3, 0.7] }, color: '#7c6a55', soft: 2 },
+  { kind: 'fill', where: { part: 'tail', s: [0, 0.22] }, color: '#5a4836', soft: 4 },
+  { kind: 'fill', where: { part: 'tailUnder' }, color: '#e0d6c3' },
   // orange, with a dark saddle on the culmen from a tenth of the way out to four-fifths, deepest (half the side) at
-  // 35-55%; dark spots on the basal third; the nail's tip dusky
-  { kind: 'fill', where: { part: 'bill' }, color: '#d98a2b' },
-  { kind: 'fill', where: { part: 'bill', s: [0.1, 0.25], t: [0, 0.22] }, color: '#3a3026', soft: 1 },
-  { kind: 'fill', where: { part: 'bill', s: [0.25, 0.35], t: [0, 0.36] }, color: '#3a3026', soft: 1 },
-  { kind: 'fill', where: { part: 'bill', s: [0.35, 0.55], t: [0, 0.46] }, color: '#3a3026', soft: 1 },
-  { kind: 'fill', where: { part: 'bill', s: [0.55, 0.65], t: [0, 0.37] }, color: '#3a3026', soft: 1 },
-  { kind: 'fill', where: { part: 'bill', s: [0.65, 0.75], t: [0, 0.32] }, color: '#3a3026', soft: 1 },
-  { kind: 'fill', where: { part: 'bill', s: [0.75, 0.82], t: [0, 0.2] }, color: '#3a3026', soft: 1, opacity: 0.7 },
-  { kind: 'spots', where: { part: 'bill', s: [0.05, 0.33], t: [0.3, 0.6] }, color: '#3a3026', size: 1.2, spacing: 3, blur: 0.3, opacity: 0.8 },
+  // 30-60%; dark spots on the basal third; the nail's tip dusky
+  { kind: 'fill', where: { part: 'bill' }, color: '#d9862b' },
+  { kind: 'fill', where: { part: 'bill', s: [0.1, 0.3], t: [0, 0.26] }, color: '#3a3026', soft: 2 },
+  { kind: 'fill', where: { part: 'bill', s: [0.28, 0.6], t: [0, 0.44] }, color: '#3a3026', soft: 2 },
+  { kind: 'fill', where: { part: 'bill', s: [0.58, 0.78], t: [0, 0.3] }, color: '#3a3026', soft: 2, opacity: 0.85 },
+  { kind: 'spots', where: { part: 'bill', s: [0.05, 0.33], t: [0.3, 0.6] }, color: '#3a3026', size: 1.2, spacing: 3, blur: 0.4, opacity: 0.5 },
   { kind: 'fill', where: { part: 'bill', s: [0.96, 1], t: [0, 0.5] }, color: '#4a3a2c', soft: 0.5 },
   { kind: 'fill', where: { part: 'legs' }, color: '#e0773a' },
 ]
@@ -203,7 +229,11 @@ export const SPEC: SpeciesSpec = {
     // is body, not neck. The loft lies within 1 mm of the photo along the crown and the back of the head, and on
     // average within 1.5 mm along the back, the nape, the forehead, the chin, the breast, and the stern; at worst the
     // chin falls 2.6 mm short under the bill, and the rump stands 3 mm above the photo's under the tertials, where the
-    // wing covers it
+    // wing covers it. Lofted from 128 rings, that fit folded under the head between its 64: on the throat between the
+    // nape and the occiput, and under the eye, where the eye's depth bulged out between the crown's and the lores',
+    // inside the turn from the neck into the bill, and showed as a dark pit. The nape-to-lores depths and tilts were
+    // refitted to the 64-ring trace's side view (within 33 mm² of it, the eye unmoved) so that no ring folds at 64 to
+    // 160 rings
     profile: [
       { label: 'rear',     x: -0.1222, y: 0.0132, up: 0.0010, down: 0.0097, halfWidth: 0.0080 },
       { label: 'rump',     x: -0.0994, y: 0.0101, up: 0.0325, down: 0.0180, halfWidth: 0.0300 },
@@ -213,18 +243,22 @@ export const SPEC: SpeciesSpec = {
       { label: 'breast',   x: 0.1011,  y: 0.0040, up: 0.0320, down: 0.0575, halfWidth: 0.0550, tilt: 4 },
       { label: 'neckBase', x: 0.1242,  y: 0.0195, up: 0.0270, down: 0.0410, halfWidth: 0.0340, tilt: 15.5 },
       { label: 'neckMid',  x: 0.1299,  y: 0.0280, up: 0.0328, down: 0.0195, halfWidth: 0.0270, tilt: -10.5 },
-      { label: 'nape',     x: 0.1331,  y: 0.0358, up: 0.0283, down: 0.0290, halfWidth: 0.0220, tilt: -10 },
-      { label: 'occiput',  x: 0.1344,  y: 0.0381, up: 0.0300, down: 0.0270, halfWidth: 0.0200, tilt: 13.5 },
-      { label: 'crown',    x: 0.1407,  y: 0.0423, up: 0.0315, down: 0.0105, halfWidth: 0.0185, tilt: 11 },
-      { label: 'eye',      x: 0.1519,  y: 0.0439, up: 0.0262, down: 0.0245, halfWidth: 0.0180, tilt: 2 },
-      { label: 'lores',    x: 0.1587,  y: 0.0427, up: 0.0200, down: 0.0150, halfWidth: 0.0140, tilt: -1 },
+      { label: 'nape',     x: 0.1331,  y: 0.0358, up: 0.0290, down: 0.0295, halfWidth: 0.0220, tilt: -7 },
+      { label: 'occiput',  x: 0.1344,  y: 0.0381, up: 0.0297, down: 0.0158, halfWidth: 0.0200, tilt: 10.5 },
+      { label: 'crown',    x: 0.1407,  y: 0.0423, up: 0.0320, down: 0.0116, halfWidth: 0.0185, tilt: 17 },
+      { label: 'eye',      x: 0.1519,  y: 0.0439, up: 0.0263, down: 0.0181, halfWidth: 0.0180, tilt: 2 },
+      { label: 'lores',    x: 0.1587,  y: 0.0427, up: 0.0200, down: 0.0141, halfWidth: 0.0140, tilt: -1 },
       { label: 'billBase', x: 0.1659,  y: 0.0383, up: 0.0110, down: 0.0182, halfWidth: 0.0108, tilt: 8 },
     ],
+    // twice the default: the head, drawn in on the shoulders, is a sixth of the spine, and needs the rings to stay round
+    rings: 128,
     rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },
     bill: {
       curve: 0,
       // the nail: the tip drops about a millimetre over the last tenth
       hook: 0.001,
+      // broad and flat-topped, the sides squared off: not a round tube
+      section: 3,
       // width from the NHMO skin's top view (narrowest at a fifth, widest 58-74% out at 1.07 times the base), depth
       // from three side views (a quarter of the base's at the nail), both scaled to the live birds' base
       profile: [
@@ -242,7 +276,7 @@ export const SPEC: SpeciesSpec = {
       // the body over the first 60% of the spine, so a panel there would stand off the narrowing breast
       wrist: [0.157, 0.0349], droop: -2.5,
       outline: [
-        [0, 0], [0.26, 0], [0.29, 0.06], [0.36, 0.08], [0.48, 0.09], [0.63, 0.078], [0.75, 0.093], [0.785, 0.1],
+        [0, 0], [0.26, 0], [0.285, 0.025], [0.31, 0.05], [0.36, 0.078], [0.48, 0.09], [0.63, 0.078], [0.75, 0.093], [0.785, 0.1],
         [0.823, 0.073], [0.862, 0.044], [0.9, 0.016], [0.96, 0.006], [1, 0.003],
       ],
     },

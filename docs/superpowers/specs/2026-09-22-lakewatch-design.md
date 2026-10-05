@@ -148,7 +148,8 @@ bar is telling a Greater Yellowlegs from a Lesser.
 ### Composition
 
 The player stands on a low bank. Left foreground: reed bed. Right
-foreground: mudflat curving away. Middle: open water. Far side: a shallow
+foreground: mudflat curving away, and past it a low grassy flat that slopes gently into the
+water, where the geese graze. Middle: open water. Far side: a shallow
 wading shelf along the waterline where the herons feed, a snag in the water, a gravel bar, a tree line under the sky. Placement is designed
 for three viewing distances: naked-eye foreground, binocular mid-water,
 telescope far shore.
@@ -163,7 +164,8 @@ Each is a module with one job and an `update(dt, wind)` entry point.
 - **Terrain**: heightfield mesh for bank, mudflat, far shore, and a flat
   underwater bench past the shallows where the dowitchers feed. A second
   shelf slopes from 5 to 22 cm deep along the far waterline, where the
-  herons wade. Vertex color by height and slope (mud, gravel, grass), and a
+  herons wade. Past the mudflat a low grassy flat slopes into the water at 1 in 4, where the geese walk out to graze.
+  Vertex color by height and slope (mud, gravel, grass), and a
   band of wet ground above the waterline drawn by each fragment's height.
 - **Water**: custom shader over a water-depth texture baked from the
   terrain. Colour and clarity by depth, so the bench, the shelf, and the rim
@@ -176,7 +178,7 @@ Each is a module with one job and an `update(dt, wind)` entry point.
   with the gust front the reeds share. Rings from the birds and a Kelvin V
   behind a swimmer bend the surface rather than brighten it, and every bird in
   the water has a contact line. See `2026-09-30-water-design.md`.
-- **Vegetation**: instanced reed and grass blades with vertex-shader sway.
+- **Vegetation**: instanced reed and grass blades with vertex-shader sway. A grazed lawn of short blades on the geese's flat.
   Gusts roll across the bed as a moving front rather than in sync. Noise
   tint so the bed is not uniform.
 - **Trees and snag**: low-poly canopy clusters with subtle sway; far tree
@@ -233,7 +235,9 @@ Three implementations:
   herons bend a six-joint neck between named shapes; see
   `2026-09-27-herons-design.md`. The American White Pelican is detailed on
   the water and in flight, with a pouch under its bill and a wing to fly on;
-  see `2026-09-30-pelican-design.md`.
+  see `2026-09-30-pelican-design.md`. The Canada Goose on the lake is amphibious: it floats
+  and stands, `afloat` passing it between the two at the shore; see `2026-09-30-canada-goose-design.md`. Its flyover
+  stays a block model.
 - **GLTF**: loads a Blender export whose node names follow the part
   convention. The species file points at the file; nothing else changes.
 
@@ -244,7 +248,7 @@ coot head-pump, heron stalk, strike, swallow, and hunch, plover
 run-stop-look-peck,
 sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
 shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
-pelican bill-dip, drain, and swallow, flap and glide,
+pelican bill-dip, drain, and swallow, flap and glide, goose walk out, graze, look up, walk in,
 preen and wing-stretch idles.
 
 ### Behaviors
@@ -345,7 +349,7 @@ accuracy.
 - **Title card**: name, click to begin (unlocks audio), credits link.
   Begin waits while the birds' plumage atlases paint in a Web Worker, the
   folded wings are placed a species at a time, and the cast is built. One
-  count covers all three: "Getting the birds ready… N of 41".
+  count covers all three: "Getting the birds ready… N of 43".
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel

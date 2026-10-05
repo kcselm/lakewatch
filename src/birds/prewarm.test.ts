@@ -42,7 +42,7 @@ describe('placeFolds', () => {
   it('places the folded wing of every detailed species in the lake cast, and paints no atlas', async () => {
     const lake = loadLocation()
     const codes = [...new Set(expandCast(lake, makeRng(1)).map(b => b.species))].filter(c => getSpec(c).detail)
-    expect(codes).toHaveLength(16)
+    expect(codes).toHaveLength(17)
     expect(codes.filter(c => isPlaced(getSpec(c).detail!))).toEqual([])
     const before = paintStats.atlases
     await placeFolds(lake, { next: async () => {} })
@@ -56,7 +56,7 @@ describe('placeFolds', () => {
     await placeFolds(loc([
       { species: 'mallar3', behavior: 'swim', zone: 'w', count: 3, plumage: 'mixed' },
       { species: 'leasan', behavior: 'probe', zone: 'w', count: 5 },
-      { species: 'cangoo', behavior: 'wade', zone: 'w', count: 1 },  // block species: no detail, skipped
+      { species: 'rewbla', behavior: 'wade', zone: 'w', count: 1 },  // block species: no detail, skipped
     ]), { next: async () => { events.push('yield') }, onProgress: (d, t) => events.push(`${d} of ${t}`) })
     expect(events).toEqual(['0 of 2', 'yield', 'yield', '1 of 2', 'yield', '2 of 2'])
   })
@@ -73,7 +73,7 @@ describe('placeFolds', () => {
 
   it('counts 0 of 0 for a cast of block species only, and resolves without yielding', async () => {
     const events: string[] = []
-    await placeFolds(loc([{ species: 'cangoo', behavior: 'wade', zone: 'w', count: 2 }]), {
+    await placeFolds(loc([{ species: 'rewbla', behavior: 'wade', zone: 'w', count: 2 }]), {
       next: async () => { events.push('yield') }, onProgress: (d, t) => events.push(`${d} of ${t}`),
     })
     expect(events).toEqual(['0 of 0'])

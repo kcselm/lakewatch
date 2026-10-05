@@ -10,6 +10,7 @@ export const FIELD_VIEWS = {
   scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
   bino15: { label: 'binoculars, 15 m (near water)', distance: 15, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  bino35: { label: 'binoculars, 35 m (the geese on the flat)', distance: 35, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   // a flock crossing: with `raise`, the birds as high as the flock flies
   scope120: { label: 'telescope, 120 m (a flock crossing)', distance: 120, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
@@ -35,6 +36,8 @@ export interface ViewerState {
   depth: number; angle: number
   /** the head turned after the neck, radians; positive raises the bill (a heron swallowing) */
   pitch: number
+  /** an amphibious bird (a goose): 1 floating on its waterline, 0 standing on its feet, and between */
+  afloat: number
   /** 0 legs hidden .. 1 shown and paddling (a swimmer's) */
   paddle: number
   /** a pouch under the bill, 0 slack .. 1 full; and a flight wing's glide, 0 flapping .. 1 held still */
@@ -69,7 +72,7 @@ export interface ViewerState {
 const NUMBERS = {
   neck: [0, 1], lean: [-1, 1.6], spread: [0, 1], phase: [0, 1], reach: [0, 1], speed: [0.05, 2], water: [0, 0.4],
   depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
-  pitch: [-0.5, 1.4], pouch: [0, 1], glide: [0, 1], raise: [0, 80],
+  pitch: [-0.5, 1.4], afloat: [0, 1], pouch: [0, 1], glide: [0, 1], raise: [0, 80],
   stroke: [0, 1], fan: [0, 1], yaw: [-1.6, 1.6], crest: [0, 1], fish: [0, 1], turn: [0, 1], legs: [0, 1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]

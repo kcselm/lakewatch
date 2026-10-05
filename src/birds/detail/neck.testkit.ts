@@ -1,15 +1,15 @@
 import * as THREE from 'three'
 import type { DetailedBirdModel } from './build'
-import { RINGS, RADIAL } from './loft'
+import { RADIAL } from './loft'
 
 /**
- * The loft's rings as the model's last pose() left them, group space: RINGS rows of RADIAL points, tail to bill base.
- * The loft is the first thing the builder meshes, so its rings are the geometry's first RINGS × RADIAL vertices.
+ * The loft's rings as the model's last pose() left them, group space: anatomy.rings rows of RADIAL points, tail to bill
+ * base. The loft is the first thing the builder meshes, so its rings are the geometry's first rings × RADIAL vertices.
  */
 export function posedRings(m: DetailedBirdModel): THREE.Vector3[][] {
   if (m.anatomy.closed[0]?.name !== 'loft' || m.anatomy.closed[0].indexFirst !== 0) throw new Error('the loft is meshed first')
   m.group.updateMatrixWorld(true)
-  return Array.from({ length: RINGS }, (_, i) =>
+  return Array.from({ length: m.anatomy.rings }, (_, i) =>
     Array.from({ length: RADIAL }, (_, j) => m.mesh.getVertexPosition(i * RADIAL + j, new THREE.Vector3())))
 }
 
@@ -34,6 +34,7 @@ function ringPlane(ring: THREE.Vector3[], toward: THREE.Vector3): { c: THREE.Vec
  */
 export function posedFold(m: DetailedBirdModel, fromU = 0): number {
   const rings = posedRings(m)
+  const RINGS = rings.length
   let worst = 0
   for (let i = Math.max(1, Math.floor(fromU * (RINGS - 1))); i < RINGS - 1; i++) {
     const ahead = centre(rings[i + 1]!).sub(centre(rings[i - 1]!))
@@ -77,6 +78,7 @@ const RAY = new THREE.Vector3(0.5773, 0.5812, 0.5735).normalize()
  */
 export function passThrough(m: DetailedBirdModel, fromU = 0, eps = 0.0005, skip = 2): { depth: number; ring: number; into: number } {
   const loft = m.anatomy.closed.find(c => c.name === 'loft')!
+  const RINGS = m.anatomy.rings
   const index = m.mesh.geometry.getIndex()!.array
   m.group.updateMatrixWorld(true)
   const posed = new Map<number, THREE.Vector3>()
@@ -116,7 +118,7 @@ export function passThrough(m: DetailedBirdModel, fromU = 0, eps = 0.0005, skip 
 }
 
 /**
- * How sharply the posed skin bends between each ring and the next, degrees, one value per ring (RINGS - 2 of them): the
+ * How sharply the posed skin bends between each ring and the next, degrees, one value per ring (rings - 2 of them): the
  * largest angle, all round the ring, between the normals of a quad of the loft and of the quad after it along the
  * spine. A skin that twists in one step, where a turned head meets a neck that didn't turn, creases here, though it
  * neither folds back nor passes through itself.
@@ -127,7 +129,7 @@ export function posedCreases(m: DetailedBirdModel): number[] {
     const k = (j + 1) % RADIAL
     return rings[i + 1]![k]!.clone().sub(rings[i]![j]!).cross(rings[i + 1]![j]!.clone().sub(rings[i]![k]!))
   }
-  return Array.from({ length: RINGS - 2 }, (_, i) => {
+  return Array.from({ length: rings.length - 2 }, (_, i) => {
     let worst = 0
     for (let j = 0; j < RADIAL; j++) {
       const a = quad(i, j), b = quad(i + 1, j)

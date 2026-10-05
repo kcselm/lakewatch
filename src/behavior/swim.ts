@@ -3,6 +3,7 @@ import { createDabbler, dabblerFor } from './dabbler'
 import { createShoveler, SHOVELER } from './shoveler'
 import { createCoot, COOT } from './coot'
 import { createGrebe, GREBE } from './grebe'
+import { createGoose, gooseFor } from './goose'
 import { createPelican, PELICAN } from './pelican'
 import type { Company } from './swimmer'
 import type { Foraging } from '../birds/spec'
@@ -16,6 +17,7 @@ export function createSwim(ctx: BehaviorContext, startX: number, startZ: number)
     case 'shoveler': return createShoveler(ctx, startX, startZ)
     case 'coot': return createCoot(ctx, startX, startZ)
     case 'grebe': return createGrebe(ctx, startX, startZ)
+    case 'goose': return createGoose(ctx, startX, startZ)
     case 'pelican': return createPelican(ctx, startX, startZ)
     default: return createDabbler(ctx, startX, startZ, dabblerFor(ctx.species))
   }
@@ -23,6 +25,6 @@ export function createSwim(ctx: BehaviorContext, startX: number, startZ: number)
 
 /** How a swimmer of this style and species keeps company, for the spawner to start it among its flock. */
 export function companyOf(foraging?: Foraging, species?: string): Company {
-  const S = foraging === 'shoveler' ? SHOVELER : foraging === 'coot' ? COOT : foraging === 'grebe' ? GREBE : foraging === 'pelican' ? PELICAN : dabblerFor(species)
+  const S = foraging === 'shoveler' ? SHOVELER : foraging === 'coot' ? COOT : foraging === 'grebe' ? GREBE : foraging === 'goose' ? gooseFor(species) : foraging === 'pelican' ? PELICAN : dabblerFor(species)
   return { radius: S.flock.radius, retargetSeconds: S.flock.retargetSeconds, spacing: S.spacing, apart: S.flock.apart }
 }

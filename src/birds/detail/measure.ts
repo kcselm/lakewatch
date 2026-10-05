@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { DetailedBirdModel } from './build'
-import { RINGS, RADIAL } from './loft'
+import { RADIAL } from './loft'
 
 /** Field measurements of a built bird at rest pose, metres, taken the way the published tables take them. */
 export interface Measures {
@@ -165,10 +165,11 @@ export function tailTipNow(model: DetailedBirdModel): THREE.Vector3 {
  */
 export function crownNow(model: DetailedBirdModel): number {
   model.group.updateMatrixWorld(true)
-  const first = Math.ceil(model.profile.uOf('occiput') * (RINGS - 1))
+  const rings = model.anatomy.rings
+  const first = Math.ceil(model.profile.uOf('occiput') * (rings - 1))
   const v = new THREE.Vector3()
   let top = -Infinity
-  for (let i = first * RADIAL; i < RINGS * RADIAL; i++) top = Math.max(top, model.mesh.getVertexPosition(i, v).y)
+  for (let i = first * RADIAL; i < rings * RADIAL; i++) top = Math.max(top, model.mesh.getVertexPosition(i, v).y)
   return top
 }
 

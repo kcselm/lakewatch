@@ -11,7 +11,7 @@ export const plumageSchema = z.object({
 /** how a species feeds when the cast puts it on `probe` */
 export const PROBE_STYLES = ['plover', 'sandpiper', 'dowitcher'] as const
 /** how a species feeds when the cast puts it on `swim` */
-export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe', 'pelican'] as const
+export const SWIM_STYLES = ['dabbler', 'shoveler', 'coot', 'grebe', 'goose', 'pelican'] as const
 /** how a species feeds when the cast puts it on `wade` (with none, it steps, stands, and strikes as `wade` always has) */
 export const WADE_STYLES = ['heron'] as const
 export const FORAGING = [...PROBE_STYLES, ...SWIM_STYLES, ...WADE_STYLES] as const
@@ -22,6 +22,12 @@ export type Foraging = (typeof FORAGING)[number]
 export const isProbeStyle = (f: Foraging | undefined): f is ProbeStyle => (PROBE_STYLES as readonly (string | undefined)[]).includes(f)
 export const isSwimStyle = (f: Foraging | undefined): f is SwimStyle => (SWIM_STYLES as readonly (string | undefined)[]).includes(f)
 export const isWadeStyle = (f: Foraging | undefined): f is WadeStyle => (WADE_STYLES as readonly (string | undefined)[]).includes(f)
+
+/**
+ * Whether a species' flyover flock flies as detailed birds: any detailed species, unless its detail block keeps its
+ * flock to the block bird (`flock: 'block'`, a goose's until it has a wing to fly on).
+ */
+export const fliesDetailed = (spec: { detail?: { flock?: string } } | undefined): boolean => !!spec?.detail && spec.detail.flock !== 'block'
 
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const
 export type MarkKey = (typeof MARK_KEYS)[number]
@@ -55,6 +61,7 @@ export const speciesSpecSchema = z.object({
   // a web or lobes spread flat on the ground; a percher's toes curl round its branch
   if (s.detail?.feet && s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: a perched bird's toes curl round its perch, so it has plain feet, not ${s.detail.feet}`, path: ['detail', 'feet'] })
   if (s.detail && s.posture === 'swimming' && !s.detail.float) ctx.addIssue({ code: 'custom', message: `${s.code}: a swimming bird's detail block needs detail.float, its waterline`, path: ['detail', 'float'] })
+  if (s.detail?.amphibious && s.posture !== 'swimming') ctx.addIssue({ code: 'custom', message: `${s.code}: an amphibious bird is built floating, so its posture is swimming`, path: ['posture'] })
   for (const k of Object.keys(s.detail?.variants ?? {})) {
     if (!(k in s.variants)) ctx.addIssue({ code: 'custom', message: `detail variant ${k} is not one of the species' variants`, path: ['detail', 'variants', k] })
   }

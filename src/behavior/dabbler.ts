@@ -1,6 +1,6 @@
 import type { BehaviorContext, BehaviorController } from './types'
 import { approach, between, ease } from './types'
-import { createSwimmer, pickByShare, mid, type SwimSettings } from './swimmer'
+import { createSwimmer, pickByShare, mid, type SwimSettings, type Swimmer } from './swimmer'
 import type { PoseState } from '../birds/model'
 
 type Range = readonly [number, number]
@@ -145,10 +145,10 @@ const step = (v: number, want: number, by: number) => (v < want ? Math.min(want,
 /**
  * The `dabbler` style: cruise from spot to spot near the flock, loaf and drift with the wind, preen, look about, and
  * feed in bouts: dabbling at the surface as it swims slowly, dipping its head, or tipping up. A bird that finds itself
- * farther from the flock than `whenFarther` swims back to it first.
+ * farther from the flock than `whenFarther` swims back to it first. A style that swims as a dabbler on the water and
+ * does more besides (the goose's) hands it its own swimmer's body `b`, and takes it back.
  */
-export function createDabbler(ctx: BehaviorContext, startX: number, startZ: number, S: DabblerSettings = MALLARD): BehaviorController {
-  const b = createSwimmer(ctx, startX, startZ, S)
+export function createDabbler(ctx: BehaviorContext, startX: number, startZ: number, S: DabblerSettings = MALLARD, b: Swimmer = createSwimmer(ctx, startX, startZ, S)): BehaviorController {
   let state: State = 'loaf'
   let timer = 0
   let clock = 0

@@ -4,6 +4,9 @@ import { terrainSurface } from '../world/terrain'
 import { getSpec, hasSpec } from '../birds/species'
 import { STYLES } from '../behavior/probe'
 import { HERON_WATER } from '../behavior/heron'
+import { CANADA_GOOSE, findCrossing } from '../behavior/goose'
+import { FLAT } from '../world/heightfield'
+import { makeRng } from '../catalog/rng'
 import { PELICAN, dipSeconds } from '../behavior/pelican'
 import { bakeWaterDepth } from '../world/waterDepth'
 import { createSnag, createDeadBranch } from '../world/trees'
@@ -54,6 +57,8 @@ const GROUND_OK: Record<string, (y: number) => boolean> = {
   'probe:dowitcher': y => y >= -DOWITCHER_WATER[1] && y <= -DOWITCHER_WATER[0],
   'wade:heron': y => y >= -HERON_WATER[1] && y <= -HERON_WATER[0],
   wade: y => y > -0.3,
+  // a goose's grass: above the water, no higher than the flat's top
+  ashore: y => y > 0.05 && y <= FLAT.top + FLAT.rough / 2,
 }
 const styleOf = (species: string) => (hasSpec(species) ? getSpec(species).foraging : undefined)
 const checkFor = (behavior: string, species: string) => {
@@ -76,6 +81,18 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
     const key = `${entry.zone}:${entry.behavior}:${style}`
     if (seen.has(key)) continue
     seen.add(key)
+
+    if (entry.ashore && !seen.has(`${entry.ashore}:ashore`)) {
+      seen.add(`${entry.ashore}:ashore`)
+      const ashore = loc.zones[entry.ashore]!
+      it(`${entry.ashore} (ashore, from ${entry.zone}) samples all agree with the terrain`, () => {
+        expect(ashore.kind).toBe('polygon')
+        if (ashore.kind !== 'polygon') return
+        const samples = samplePolygon(ashore.points, 0.25)
+        expect(samples.length).toBeGreaterThan(1000)
+        for (const [x, z] of samples) expect(GROUND_OK.ashore!(heightfield.sample(x, z)), `(${x}, ${z})`).toBe(true)
+      })
+    }
 
     it(`${entry.zone} (${entry.behavior}${style ? ', ' + style : ''}) samples all agree with the terrain`, () => {
       // at least five samples across the zone's narrow side, however thin the strip
@@ -110,6 +127,43 @@ describe('zone polygons agree with the terrain the birds stand on', () => {
       const y = heightfield.sample(x, z)
       expect(y, `(${x}, ${z})`).toBeLessThanOrEqual(-HERON_WATER[0])
       expect(y, `(${x}, ${z})`).toBeGreaterThanOrEqual(-HERON_WATER[1])
+    }
+  })
+  it('keeps the geese\'s water deep enough for a goose to float, all over, and their flat dry and on the flat\'s top', () => {
+    const water = loc.zones['goose-water'], flat = loc.zones['goose-flat']
+    expect([water?.kind, flat?.kind]).toEqual(['polygon', 'polygon'])
+    if (water?.kind !== 'polygon' || flat?.kind !== 'polygon') return
+    for (const [x, z] of samplePolygon(water.points, 0.25)) expect(heightfield.sample(x, z), `(${x}, ${z})`).toBeLessThanOrEqual(-CANADA_GOOSE.wade.float)
+    for (const [x, z] of flat.points) {
+      expect(x).toBeGreaterThanOrEqual(FLAT.x[0]); expect(x).toBeLessThanOrEqual(FLAT.x[1])
+      expect(z).toBeGreaterThanOrEqual(FLAT.z[0]); expect(z).toBeLessThanOrEqual(FLAT.z[1])
+    }
+  })
+  it('lets the geese walk up and down the bank between their water and their flat: no steeper than 1 in 3 at any step', () => {
+    const water = loc.zones['goose-water'], flat = loc.zones['goose-flat']
+    if (water?.kind !== 'polygon' || flat?.kind !== 'polygon') throw new Error('no goose zones')
+    // every way across the shore the style finds, over many tries, on the rendered surface
+    const rng = makeRng(5)
+    let found = 0, worst = 0
+    for (let i = 0; i < 200; i++) {
+      const c = findCrossing(water, flat, (x, z) => heightfield.sample(x, z), CANADA_GOOSE, rng)
+      if (!c) continue
+      found++
+      const len = Math.hypot(c.land[0] - c.water[0], c.land[1] - c.water[1]), n = Math.ceil(len / 0.25)
+      for (let k = 1; k <= n; k++) {
+        const at = (j: number) => heightfield.sample(c.water[0] + ((c.land[0] - c.water[0]) * j) / n, c.water[1] + ((c.land[1] - c.water[1]) * j) / n)
+        worst = Math.max(worst, Math.abs(at(k) - at(k - 1)) / (len / n))
+      }
+    }
+    expect(found).toBe(200)
+    expect(worst).toBeLessThan(1 / 3)
+  })
+  it('keeps the flat smooth under the geese: no step of 0.25 m over its zone rises more than 2 cm', () => {
+    const flat = loc.zones['goose-flat']
+    if (flat?.kind !== 'polygon') throw new Error('no goose-flat')
+    for (const [x, z] of samplePolygon(flat.points, 0.25)) {
+      expect(Math.abs(heightfield.sample(x + 0.25, z) - heightfield.sample(x, z)), `(${x}, ${z})`).toBeLessThan(0.02)
+      expect(Math.abs(heightfield.sample(x, z + 0.25) - heightfield.sample(x, z)), `(${x}, ${z})`).toBeLessThan(0.02)
     }
   })
   it('keeps the bench belly-deep for a dowitcher, all over', () => {

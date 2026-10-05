@@ -24,7 +24,7 @@ export function createTerrain(hf: Heightfield): WorldModule & { object: THREE.Me
     const dx = (hf.sample(x + step, z) - hf.sample(x - step, z)) / (2 * step)
     const dz = (hf.sample(x, z + step) - hf.sample(x, z - step)) / (2 * step)
     const slope = Math.hypot(dx, dz)
-    const [r, g, b] = terrainColor(y, slope)
+    const [r, g, b] = terrainColor(y, slope, hf.lawn?.(x, z) ?? 0)
     colors.set([r, g, b], i * 3)
     gravel[i] = gravelShare(slope)
   }

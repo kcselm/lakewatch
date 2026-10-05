@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { buildBird } from './procedural'
 import { buildDetailedBird, type DetailedBirdModel } from './detail/build'
 import type { PoseState } from './model'
-import type { SpeciesSpec } from './spec'
+import { fliesDetailed, type SpeciesSpec } from './spec'
 import type { TargetModel } from './registry'
 
 export interface FlockModel {
@@ -120,7 +120,7 @@ function skyLit(painted: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial
   return m
 }
 
-/** A flock of `variants.length` birds: skinned birds for a detailed species, instances of one block bird for any other. */
+/** A flock of `variants.length` birds: skinned birds for a species that flies detailed, instances of one block bird for any other. */
 export function buildFlock(spec: SpeciesSpec, variants: readonly (string | undefined)[]): FlockModel {
-  return spec.detail ? buildDetailedFlock(spec, variants) : buildFlockModel(spec, variants.length, variants[0])
+  return fliesDetailed(spec) ? buildDetailedFlock(spec, variants) : buildFlockModel(spec, variants.length, variants[0])
 }

@@ -82,8 +82,12 @@ export function createReeds(points: ScatterPoint[], wind: Wind): WorldModule & {
   return { object, update() {} }
 }
 
-export function createGrass(points: ScatterPoint[], wind: Wind): WorldModule & { object: THREE.InstancedMesh } {
+/**
+ * Grass: blades `height` metres tall at their mean scale (the near bank's, half a metre) and `width` wide at the root;
+ * a grazed lawn's are a few centimetres.
+ */
+export function createGrass(points: ScatterPoint[], wind: Wind, { height = 0.5, width = 0.05 }: { height?: number; width?: number } = {}): WorldModule & { object: THREE.InstancedMesh } {
   const mat = makeMaterial(wind, new THREE.Color('#5f7a2e'), new THREE.Color('#9a9448'))
-  const object = instanced(points, bladeGeometry(1, 0.05), mat, 0.5)
+  const object = instanced(points, bladeGeometry(1, width), mat, height)
   return { object, update() {} }
 }

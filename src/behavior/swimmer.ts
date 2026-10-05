@@ -247,6 +247,9 @@ export function createSwimmer(ctx: BehaviorContext, x: number, z: number, S: Swi
   return body
 }
 
+/** A swimmer's body, as createSwimmer makes it: a style moves it with its moves, or sets its place itself. */
+export type Swimmer = ReturnType<typeof createSwimmer>
+
 /**
  * Pick the next activity so that over time each takes its `share` of the bird's time: a spell of mean length `mean`
  * seconds is chosen in proportion to share / mean. Shares need not sum to 1.

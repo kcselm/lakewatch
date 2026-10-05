@@ -89,8 +89,36 @@ describe('validateCast', () => {
     // a wader with no style wades as wade always has
     expect(validateCast(one('greyel', 'wade'), catalog, specs)).toEqual([])
   })
+  describe('the goose style', () => {
+    const specs = { cangoo: { variants: {}, foraging: 'goose' as const }, mallar3: { variants: {}, foraging: 'dabbler' as const } }
+    const catalog = [bird('cangoo', ['wetland']), bird('mallar3', ['wetland'])]
+    const one = (entry: Partial<CastEntry>): Location => ({
+      ...loc,
+      zones: { ...loc.zones, flat: { kind: 'polygon', points: [[2, 0], [3, 0], [3, 1]] }, snag: { kind: 'point', position: [0, 0, 0] } },
+      cast: [{ species: 'cangoo', behavior: 'swim', zone: 'water', count: 8, ashore: 'flat', groups: [5, 3], ...entry }],
+    })
+    it('passes a goose entry with a polygon to walk out to and groups that add up to its count', () => {
+      expect(validateCast(one({}), catalog, specs)).toEqual([])
+      expect(validateCast(one({ groups: undefined }), catalog, specs)).toEqual([])
+    })
+    it('needs a goose entry to name an ashore polygon that exists', () => {
+      expect(validateCast(one({ ashore: undefined }), catalog, specs)).toEqual(['cast[0]: cangoo feeds as a goose, so it needs an ashore zone to walk out to'])
+      expect(validateCast(one({ ashore: 'meadow' }), catalog, specs)).toEqual(['cast[0]: ashore zone meadow does not exist'])
+      expect(validateCast(one({ ashore: 'snag' }), catalog, specs)).toEqual(['cast[0]: ashore needs a polygon zone, snag is point'])
+    })
+    it('needs groups to add up to the count, the first a family', () => {
+      expect(validateCast(one({ groups: [5, 2] }), catalog, specs)).toEqual(['cast[0]: groups add up to 7, not the count of 8'])
+      expect(validateCast(one({ groups: [2, 6] }), catalog, specs)).toEqual(['cast[0]: the first group is a family, a pair and at least one young, not 2'])
+    })
+    it('lets no other style go ashore or keep groups', () => {
+      expect(validateCast(one({ species: 'mallar3', count: 8 }), catalog, specs)).toEqual([
+        'cast[0]: only the goose style goes ashore; mallar3 has no use for flat',
+        'cast[0]: only the goose style keeps groups; mallar3 swims in one flock',
+      ])
+    })
+  })
   describe('plumage counts', () => {
-    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('cangoo', ['wetland'])]
+    const catalog = [bird('mallar3', ['wetland']), bird('y00475', ['wetland']), bird('rewbla', ['wetland'])]
     const one = (entry: Partial<CastEntry>): Location => ({
       ...loc,
       zones: { ...loc.zones, sky: { kind: 'lane', from: [0, 0, 0], to: [1, 0, 0], altitude: [1, 2] } },
@@ -117,7 +145,7 @@ describe('validateCast', () => {
     })
     it('reports a malformed record without throwing: no versions, a species with none, a count that is not a number', () => {
       expect(validateCast(one({ plumage: {} }), catalog)).toEqual(['cast[0]: plumage counts add up to 0, not the count of 3'])
-      expect(validateCast(one({ species: 'cangoo', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: cangoo has no plumage version adult'])
+      expect(validateCast(one({ species: 'rewbla', plumage: { adult: 3 } }), catalog)).toEqual(['cast[0]: rewbla has no plumage version adult'])
       expect(validateCast(one({ species: 'nosuchbird', plumage: { male: 3 } }), catalog)).toEqual([
         'cast[0]: species nosuchbird is not in the catalog',
         'cast[0]: nosuchbird has no plumage version male',

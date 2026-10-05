@@ -22,7 +22,8 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
   rewbla:  { every: [8, 25], prefer: 'song' },
   marwre:  { every: [10, 30], prefer: 'song' },
   belkin1: { every: [40, 120], prefer: 'call' },
-  cangoo:  { every: [15, 45], prefer: 'call' },
+  // eight on the lake: a call every 15 s between them, a loafing and grazing family being mostly quiet (estimate)
+  cangoo:  { every: [60, 180], prefer: 'call' },
   leasan:  { every: [20, 60], prefer: 'call' },
   greyel:  { every: [30, 90], prefer: 'call' },
   lobdow:  { every: [20, 60], prefer: 'call' },

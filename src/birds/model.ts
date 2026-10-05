@@ -37,6 +37,12 @@ export interface PoseState {
    * kingfisher watching the water, or beating a fish on its branch)
    */
   headYaw: number
+  /**
+   * an amphibious bird (a goose): 1 floating, its waterline on the origin and its legs folded away (paddling if
+   * `paddle` says so); 0 standing on its feet on the origin's ground, walking with `gait`; between, the body's height
+   * and the legs blend from the one to the other. Every other bird ignores it
+   */
+  afloat: number
   /** 0 slack .. 1 full: how far a pouch under the bill (a pelican's) hangs; a bird without one ignores it */
   pouch: number
   /** 0 flapping .. 1 gliding: a flight wing held out still, in its glide; a bird without a flight wing ignores it */
@@ -61,7 +67,7 @@ export interface PoseState {
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
-    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, headYaw: 0, pouch: 0, glide: 0,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, headYaw: 0, afloat: 1, pouch: 0, glide: 0,
     crestRaise: 0, tailSpread: 0, fish: 0, fishTurn: 0, wingStroke: 0, legsUp: 0,
   }
 }

@@ -1,5 +1,5 @@
 import type { Location } from '../../location/schema'
-import type { SpeciesSpec } from '../spec'
+import { fliesDetailed, type SpeciesSpec } from '../spec'
 import { SPECIES, getSpec } from '../species'
 import { expandCast } from '../spawn'
 import { makeRng } from '../../catalog/rng'
@@ -22,7 +22,7 @@ export function castAtlases(loc: Location, specs: Record<string, SpeciesSpec> = 
   }
   for (const entry of loc.cast) {
     const spec = specs[entry.species]
-    if (entry.behavior !== 'flyover' || !spec?.detail) continue
+    if (entry.behavior !== 'flyover' || !spec || !fliesDetailed(spec)) continue
     if (entry.plumage === undefined || Object.keys(spec.variants).length === 0) add(entry.species)
     else for (const v of Object.keys(spec.variants)) add(entry.species, v)
   }

@@ -1,5 +1,5 @@
 import type { Location } from '../location/schema'
-import type { SpeciesSpec } from './spec'
+import { fliesDetailed, type SpeciesSpec } from './spec'
 import { SPECIES } from './species'
 import { expandCast } from './spawn'
 import { makeRng } from '../catalog/rng'
@@ -30,7 +30,7 @@ function defaultNext(): Promise<void> {
 function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>): string[] {
   const seen = new Set<string>()
   for (const ind of expandCast(loc, makeRng(1))) if (specs[ind.species]?.detail) seen.add(ind.species)
-  for (const entry of loc.cast) if (entry.behavior === 'flyover' && specs[entry.species]?.detail) seen.add(entry.species)
+  for (const entry of loc.cast) if (entry.behavior === 'flyover' && fliesDetailed(specs[entry.species])) seen.add(entry.species)
   return [...seen]
 }
 

@@ -44,6 +44,13 @@ const castEntry = z.object({
   everySeconds: z.tuple([z.number().positive(), z.number().positive()]).optional(),
   /** flyover only: pelicans fly a line, geese a V. Default line. */
   formation: z.enum(['line', 'vee']).optional(),
+  /** the goose style only: the polygon zone its family walks out to graze, across the shore from `zone` */
+  ashore: z.string().min(1).optional(),
+  /**
+   * the goose style only: the entry's birds in their units, in order, summing to `count`: the first a family (a pair
+   * and its young), each later one a loose unit of adults
+   */
+  groups: z.array(z.number().int().min(1)).min(1).optional(),
 })
 
 export const locationSchema = z.object({

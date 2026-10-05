@@ -34,12 +34,18 @@ field-mark layers) that the detailed builder turns into a skinned, painted
 bird. A probing species can also set `probeDepth`, how far (in metres) its
 bill goes into the mud at the bottom of a peck. A swimming species sets
 `float.waterline` (where the water meets it in its traced side view), and
-may use a bill `profile`, `hook` or `shield`, `feet` (`webbed` or `lobed`),
+may use a bill `profile`, `hook`, `section` (a squarer, flat-topped bill) or
+`shield`, `feet` (`webbed` or `lobed`),
 `tail.shape: 'none'`, `parts` only some plumage versions have, and a station
-`tilt`. A heron can give `rig.neck` (its neck's joints, three to seven
+`tilt`, and `rings`, the loft's cross-sections (64 unless set; the Mallard
+uses 128 to keep its short head round). A heron can give `rig.neck` (its neck's joints, three to seven
 station labels) and `neckShapes` (the hunch, erect, and strike, in degrees
 per joint), and a `plume` part hung from the head. `PoseState.headPitch`
-tips the head. A pelican gives `bill.pouch` (the pouch's lower outline, slack
+tips the head. A swimming species that also stands sets `amphibious` (its legs are built standing, and
+`PoseState.afloat` takes it from its float to its feet) and may set `waddle`, in degrees; a neck drawn down into its
+feathers at rest may lengthen going erect or reaching (`neckStretch`, `reachStretch`), its base
+handing off from the body at `rig.neckFrom` and turning about its throat side (`rig.neckBaseDepth`). A goose cast entry names the
+zone its family walks out to (`ashore`) and its `groups`, a family first. A pelican gives `bill.pouch` (the pouch's lower outline, slack
 and full; `PoseState.pouch` fills it) and `flight` (a wing to fly on: its
 span, planform, wrist, fingered tips, wingbeat and glide; `PoseState.glide`
 holds it still). A flyover flock of a detailed species is one skinned bird a

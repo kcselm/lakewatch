@@ -51,18 +51,22 @@ describe('species specs', () => {
       for (const k of keys) {
         expect(Math.abs(r[k] - m[k]) / m[k], `${spec.code} ${k}`).toBeLessThan(0.02)
       }
-      expect(Math.abs(r.tibia - m.tibia) / m.tibia, `${spec.code} tibia`).toBeLessThan(0.15)
+      // an amphibious bird's legs are built standing, the knee forward under a deep belly, so less of the tibia shows
+      // below the belly than measurements.tibia, which the builder lays along an upright tibia: within 8 mm
+      if (d.amphibious) expect(Math.abs(r.tibia - m.tibia) * 1000, `${spec.code} tibia`).toBeLessThan(8)
+      else expect(Math.abs(r.tibia - m.tibia) / m.tibia, `${spec.code} tibia`).toBeLessThan(0.15)
     }
   })
   it('no detailed species creases its body: the spine never turns tighter than the body is deep', () => {
     for (const spec of Object.values(SPECIES)) {
-      if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig), spec.code).toBe(0)
+      if (spec.detail) expect(worstFold(createProfile(spec.detail.profile), spec.detail.rig, spec.detail.rings), spec.code).toBe(0)
     }
   })
   it('every detailed species keeps its stance foot planted at its own step length (too long a step slides the foot)', () => {
     for (const spec of Object.values(SPECIES)) {
-      // a swimmer's legs paddle and a percher's grip its branch: they never walk
-      if (!spec.detail || spec.posture === 'swimming' || spec.posture === 'perched') continue
+      // a swimmer's legs paddle and never walk, and a percher's grip its branch; an amphibious bird's walk on its feet,
+      // afloat 0
+      if (!spec.detail || spec.posture === 'perched' || (spec.posture === 'swimming' && !spec.detail.amphibious)) continue
       const m = buildDetailedBird(spec)
       const toes = m.mesh.skeleton.bones.find(b => b.name === 'toesR')!
       const stride = 2 * (spec.detail.stepLength ?? DEFAULT_STEP) * (m.layout.tibia + m.layout.tarsus)
@@ -71,7 +75,7 @@ describe('species specs', () => {
       for (const f of [0.22, 0.3, 0.4, 0.5, 0.58, 0.68, 0.78]) {
         const d = f * stride
         m.group.position.x = d
-        m.pose({ ...defaultPose(), strideDistance: d, gait: 1 })
+        m.pose({ ...defaultPose(), strideDistance: d, gait: 1, afloat: 0 })
         m.group.updateMatrixWorld(true)
         xs.push(toes.getWorldPosition(new THREE.Vector3()).x)
       }

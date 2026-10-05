@@ -74,6 +74,11 @@ export const detailSchema = z.object({
     tarsus: pos, tibia: pos, toe: pos, wingChord: pos, tail: pos,
   }),
   profile: z.array(stationSchema).min(4),
+  /**
+   * How many cross-sections the skin is lofted from, evenly along the spine (default 64, loft.ts RINGS). A bird whose
+   * head is short against its spine (a duck's, drawn in on the shoulders) needs more to keep the head round.
+   */
+  rings: z.number().int().min(16).max(256).optional(),
   rig: z.object({
     neckBase: z.string(), neckMid: z.string(), head: z.string(), hip: z.string(), tailBase: z.string(),
     /**
@@ -83,6 +88,18 @@ export const detailSchema = z.object({
      * and stretches and tucks as it always has.
      */
     neck: z.array(z.string()).min(3).max(7).optional(),
+    /**
+     * Where the skin starts handing off from the body to the neck's base joint: a station before `neckBase`. Without
+     * it, 0.08 of the spine before it. A bird whose body's rings crowd up to its neck base (a goose's, turning about
+     * the shoulders) names one close in, so the neck's bending leaves the breast alone.
+     */
+    neckFrom: z.string().optional(),
+    /**
+     * How far below the spine the neck's base joint sits, as a share of the section's depth there: 0 on the spine (the
+     * default) to 1 on the skin of the throat side. A neck that bends forward and down over a deep breast (a goose's,
+     * grazing) turns about its throat side, so the breast isn't crushed. Nothing turns at rest, so the loft is as built.
+     */
+    neckBaseDepth: z.number().min(0).max(1).optional(),
   }),
   /**
    * A chained neck's shapes: one bend per joint of `rig.neck`, degrees, relative to the traced posture; positive turns
@@ -91,6 +108,17 @@ export const detailSchema = z.object({
    * `strike` at the bottom of a reach. Required with `rig.neck`, and only with it.
    */
   neckShapes: z.object({ hunch: z.array(z.number()), erect: z.array(z.number()), strike: z.array(z.number()) }).optional(),
+  /**
+   * How much longer a chained neck grows going erect, a multiple of its traced length (a goose's neck, drawn down into
+   * its feathers at rest, lengthens as it stands up): every segment lengthens by the same share as neckExtend goes from
+   * the trace (0.5) to erect (1). Default 1: the neck keeps its length. Only with `rig.neck`.
+   */
+  neckStretch: z.number().min(1).max(3).optional(),
+  /**
+   * How much longer a chained neck grows reaching down (a goose's, to the grass), a multiple of its traced length,
+   * smoothly as the reach goes in; where neckStretch would stretch it further, that holds. Default 1. Only with `rig.neck`.
+   */
+  reachStretch: z.number().min(1).max(3).optional(),
   bill: z.object({
     /** width and depth fall to 1 − 0.85 σ^taper of the base's at σ along the bill; a higher taper keeps it deep longer */
     taper: pos.optional(),
@@ -104,6 +132,11 @@ export const detailSchema = z.object({
     profile: z.array(z.tuple([unit, z.number().min(0), z.number().min(0)])).min(2).optional(),
     /** how far the tip drops over the bill's last tenth, metres: a duck's nail, a grebe's hooked tip */
     hook: z.number().min(0).optional(),
+    /**
+     * The cross-section's squareness, a superellipse's exponent as the skin's (profile.ts): 2, the default, is an ellipse;
+     * higher flattens the top and squares the sides, as a dabbling duck's broad bill is
+     */
+    section: z.number().min(2).max(6).optional(),
     /**
      * A frontal shield (the Coot's): a plate from the top of the bill's base up the forehead, `length` along it,
      * `width` across, standing `thickness` off the head at its middle, all metres. Painted as its own part, 'shield'.
@@ -191,6 +224,21 @@ export const detailSchema = z.object({
    */
   fish: z.object({ length: pos }).optional(),
   /**
+   * A swimmer that also stands and walks (a goose): one bird, built floating on its waterline, with its legs built
+   * standing from `measurements`, so `PoseState.afloat` takes it from its float (1) to its feet (0). Needs `float`.
+   */
+  amphibious: z.boolean().optional(),
+  /**
+   * How a flyover flock of the species flies: as detailed birds (the default), or as instances of its block bird
+   * ('block': a species detailed on the water whose wing to fly on comes later).
+   */
+  flock: z.enum(['detailed', 'block']).optional(),
+  /**
+   * How far the body rolls toward the planted foot at a full walk, degrees, once a step and in time with it (a goose's
+   * waddle). Default 0: no roll.
+   */
+  waddle: z.number().min(0).max(20).optional(),
+  /**
    * A wing to fly on, in place of the plain spread wing: its own planform, and a wrist it bends at.
    * - `span`: shoulder to wingtip, metres. `rootX`: where the shoulder sits along the body, metres in the traced side
    *   view (unset: just behind the folded wing's wrist, as the plain wing's).
@@ -275,6 +323,10 @@ export const detailSchema = z.object({
     }
   })
   for (const [k, v] of Object.entries(d.rig)) if (typeof v === 'string') need(v, ['rig', k])
+  if (d.rig.neckFrom) {
+    const at = (l: string) => d.profile.findIndex(s => s.label === l)
+    if (at(d.rig.neckFrom) >= at(d.rig.neckBase)) ctx.addIssue({ code: 'custom', message: 'rig.neckFrom must come before neckBase along the spine', path: ['rig', 'neckFrom'] })
+  }
   const chain = d.rig.neck
   if (chain) {
     chain.forEach((l, i) => need(l, ['rig', 'neck', i]))
@@ -287,7 +339,12 @@ export const detailSchema = z.object({
     else for (const [k, v] of Object.entries(d.neckShapes)) {
       if (v.length !== chain.length) ctx.addIssue({ code: 'custom', message: `neckShapes.${k} needs one bend per joint (${chain.length})`, path: ['neckShapes', k] })
     }
-  } else if (d.neckShapes) ctx.addIssue({ code: 'custom', message: 'neckShapes needs rig.neck', path: ['neckShapes'] })
+  } else {
+    if (d.neckShapes) ctx.addIssue({ code: 'custom', message: 'neckShapes needs rig.neck', path: ['neckShapes'] })
+    if (d.neckStretch !== undefined) ctx.addIssue({ code: 'custom', message: 'neckStretch needs rig.neck', path: ['neckStretch'] })
+    if (d.reachStretch !== undefined) ctx.addIssue({ code: 'custom', message: 'reachStretch needs rig.neck', path: ['reachStretch'] })
+  }
+  if (d.amphibious && !d.float) ctx.addIssue({ code: 'custom', message: 'an amphibious bird needs float, its waterline', path: ['amphibious'] })
   const layers = (list: Layer[], path: (string | number)[]) => list.forEach((l, i) => {
     if ('where' in l && l.where.part === 'skin') { need(l.where.from, [...path, i, 'where', 'from']); need(l.where.to, [...path, i, 'where', 'to']) }
     if (l.kind === 'stripe') { need(l.from.at, [...path, i, 'from']); need(l.to.at, [...path, i, 'to']) }

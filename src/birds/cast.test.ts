@@ -6,13 +6,14 @@ import { loadLocation } from '../location'
 import { targetCandidates } from '../player/candidates'
 
 /**
- * Everything on the lake that rings the water: the 29 swimmers, each in the style its species file names (the
+ * Everything on the lake that rings the water: the 37 swimmers, each in the style its species file names (the
  * pelicans' bills ring it as they dip), the six dowitchers, the Kingfisher, whose dives ring too, and the herons'
- * strikes.
+ * strikes. The geese never find a bank to walk up here (the ground is a metre down everywhere), so they spend all their
+ * time on the water, dipping and tipping up: the most they can ring it.
  */
 function ringers() {
   const lake = loadLocation()
-  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr', 'amwpel']
+  const RINGS = ['y00475', 'mallar3', 'gadwal', 'amewig', 'norsho', 'pibgre', 'lobdow', 'belkin1', 'grbher3', 'greegr', 'cangoo', 'amwpel']
   // not the flock in the sky, which rings nothing
   return { ...lake, cast: lake.cast.filter(e => RINGS.includes(e.species) && e.behavior !== 'flyover') }
 }
@@ -22,7 +23,9 @@ describe('the whole cast on the water', () => {
     // 24 swimmers' dips, tip-ups, and dives (their wakes are drawn from their speed, not rung), six dowitchers' bills,
     // the Kingfisher, and the herons' strikes, for two seeds, each ring lasting 2 + 4 size seconds. The test steps at 10
     // frames a second to keep it quick; the game steps at the display rate. In the scratch runs at 10 frames a second
-    // (seeds 42 and 7), the live rings averaged 28-29 and peaked at 46-48 of the 64, with nothing pushed out.
+    // (seeds 42 and 7), the live rings averaged 28-29 and peaked at 46-48 of the 64, with nothing pushed out. With the
+    // eight geese on the water all the time, at 60 frames a second (seeds 42, 7, and 11), they averaged 37-39 and peaked
+    // at 57-60, 3-6 more than without the geese, with nothing pushed out (goose round, Task 5).
     const counts: number[] = []
     let dropped = 0
     for (const seed of [42, 7]) {

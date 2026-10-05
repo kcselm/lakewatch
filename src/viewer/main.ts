@@ -20,7 +20,7 @@ import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './s
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: SPECIES['lesyel'] ? 'lesyel' : 'killde', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
-  pouch: 0, glide: 0, raise: 0, flap: false, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
+  pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
@@ -305,12 +305,15 @@ slider(cam, 'water depth, cm', state.water * 100, v => set({ water: v / 100 }), 
 check(cam, 'float (the lake)', state.float, v => set({ float: v }))
 check(cam, 'see-through water', state.see, v => set({ see: v }))
 const pose = group('Pose')
-// a chained neck's shapes, to set each against its photo: the hunch, the trace, erect, and the bottom of a strike
+// a chained neck's shapes, to set each against its photo: the hunch, the trace, erect, and the bottom of a strike; for
+// a goose, the strike's reach aimed at the grass on its feet (graze) or under the water afloat (head-dip)
 /** the left bird's flight.pitch, radians: the lean that levels a body traced upright on its perch */
 const flightPitch = () => THREE.MathUtils.degToRad(getSpec(state.a).detail?.flight?.pitch ?? 0)
 const SHAPES: Record<string, Partial<ViewerState> | (() => Partial<ViewerState>)> = {
   hunch: { neck: 0, reach: 0, pitch: 0 }, trace: { neck: 0.5, reach: 0, pitch: 0 }, erect: { neck: 1, reach: 0, pitch: 0 },
   swallow: { neck: 1, reach: 0, pitch: 0.9 }, strike: { neck: 0.5, reach: 1, lean: 0.5, pitch: 0 },
+  graze: { neck: 0.5, reach: 1, depth: 0, angle: 1.2, lean: 0.3, pitch: 0, afloat: 0, float: false },
+  'head-dip': { neck: 1, reach: 1, depth: 0.25, angle: Math.PI / 2, lean: 0.1, pitch: 0, afloat: 1, float: true },
   // a pelican's: the bill under in a dip, up again with the pouch full, and in flight with the neck folded back
   dip: { neck: 0.5, reach: 1, lean: 0.15, pitch: 0, pouch: 0 }, full: { neck: 0.5, reach: 0, lean: 0, pitch: 0, pouch: 1 },
   fly: { neck: 0, reach: 0, lean: 0, pitch: 0, pouch: 0, spread: 1 },
@@ -326,6 +329,7 @@ select(pose, 'neck shape', [['', '(sliders)'], ...Object.keys(SHAPES).map(k => [
   const shape = SHAPES[v]
   if (shape) { set(typeof shape === 'function' ? shape() : shape); location.reload() }
 })
+slider(pose, 'afloat (1 floating, 0 on its feet: a goose)', state.afloat, v => set({ afloat: v }))
 slider(pose, 'neck', state.neck, v => set({ neck: v }))
 slider(pose, 'head pitch, deg', THREE.MathUtils.radToDeg(state.pitch), v => set({ pitch: THREE.MathUtils.degToRad(v) }), -30, 80, 1)
 slider(pose, 'head turn, deg (+ to its left)', THREE.MathUtils.radToDeg(state.yaw), v => set({ yaw: THREE.MathUtils.degToRad(v) }), -90, 90, 1)
@@ -391,7 +395,7 @@ function frame(): void {
   const p = {
     ...defaultPose(), neckExtend: state.neck, wingSpread: state.spread, wingPhase: state.phase, reach: state.reach,
     reachDepth: state.depth, reachAngle: state.angle, paddle: state.paddle, paddlePhase, headBob: state.bob, tailTilt: state.tail,
-    headPitch: state.pitch, headYaw: state.yaw, pouch: state.pouch, glide: state.glide, wingStroke: state.stroke,
+    headPitch: state.pitch, headYaw: state.yaw, afloat: state.afloat, pouch: state.pouch, glide: state.glide, wingStroke: state.stroke,
     tailSpread: state.fan, crestRaise: state.crest, fish: state.fish, fishTurn: state.turn, legsUp: state.legs,
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
