@@ -86,6 +86,7 @@ export function createHover(ctx: BehaviorContext, _startX: number, _startZ: numb
             y = WATER_Y
             ctx.onEvent?.('splash', x, WATER_Y, z)
             ctx.onRipple?.(x, z)
+            ctx.onSplash?.(x, z, 1)
             state = 'surface'
             timer = 0.5
           }

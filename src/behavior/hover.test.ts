@@ -4,10 +4,11 @@ import { makeRng } from '../catalog/rng'
 import type { BehaviorContext } from './types'
 
 const PERCH: [number, number, number] = [23.7, 4.25, -48]
-const ctx = (seed: number, events: string[] = [], ripples: number[] = []): BehaviorContext => ({
+const ctx = (seed: number, events: string[] = [], ripples: number[] = [], splashes: number[][] = []): BehaviorContext => ({
   zone: { kind: 'point', position: [22, 0, -48] }, perch: PERCH, rng: makeRng(seed), wingbeatHz: 6,
   wind: () => ({ dirX: 1, dirZ: 0, effective: 0.3 }), ground: () => -2,
   onEvent: name => events.push(name), onRipple: () => ripples.push(1),
+  onSplash: (x, z, size) => splashes.push([x, z, size ?? 1]),
 })
 
 describe('hover', () => {
@@ -19,9 +20,9 @@ describe('hover', () => {
     for (let t = 0; t < 900; t += 1 / 30) { c.update(1 / 30, defaultPose()); states.add(c.state) }
     expect(states).toEqual(new Set(['perch', 'flyout', 'hover', 'dive', 'surface', 'return']))
   })
-  it('hovers within reach of the perch at a sensible height, then dives to the water', () => {
-    const events: string[] = [], ripples: number[] = []
-    const c = createHover(ctx(2, events, ripples), 0, 0)
+  it('hovers within reach of the perch at a sensible height, then dives to the water, throwing up one spray there', () => {
+    const events: string[] = [], ripples: number[] = [], splashes: number[][] = []
+    const c = createHover(ctx(2, events, ripples, splashes), 0, 0)
     const pose = defaultPose()
     let guard = 0
     while (c.state !== 'hover' && guard++ < 100000) c.update(1 / 30, pose)
@@ -38,6 +39,10 @@ describe('hover', () => {
     expect(Math.hypot(c.x - hx, c.z - hz)).toBeLessThan(0.5)     // dives straight down
     expect(events).toEqual(['splash'])
     expect(ripples).toHaveLength(1)
+    expect(splashes).toHaveLength(1)
+    expect(splashes[0]![0]).toBeCloseTo(c.x, 6)
+    expect(splashes[0]![1]).toBeCloseTo(c.z, 6)
+    expect(splashes[0]![2]).toBe(1)                     // a kingfisher's plunge
   })
   it('returns to the exact perch point and sits again', () => {
     const c = createHover(ctx(3), 0, 0)

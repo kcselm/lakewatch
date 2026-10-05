@@ -80,6 +80,10 @@ export interface BehaviorContext {
   ground: (x: number, z: number) => number
   /** a ring on the water at (x, z); `size` (0..1, default 1) for a smaller ring than a swimming bird's */
   onRipple?: (x: number, z: number, size?: number) => void
+  /** spray where the bird goes into the water at (x, z); `size` 1, the default, is a kingfisher's plunge (src/world/splash.ts) */
+  onSplash?: (x: number, z: number, size?: number) => void
+  /** asks for the bird's call now; the call scheduler plays it at once if the simultaneous-call cap allows, else drops it */
+  onCall?: () => void
   group?: FlockGroup
   /** world-space perch point for perch and hover; the spawner takes it from the point zone, or a perches zone's first */
   perch?: Vec3

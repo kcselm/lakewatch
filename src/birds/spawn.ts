@@ -16,6 +16,7 @@ import { defaultPose, type PoseState, type BirdModel } from './model'
 import type { BirdRegistry } from './registry'
 import type { Wind } from '../world/wind'
 import type { RippleBuffer } from '../world/ripples'
+import type { SplashBuffer } from '../world/splash'
 import type { WorldModule } from '../world/scene'
 
 /** Things the spawner reports outward (audio hooks); every callback is optional. */
@@ -24,6 +25,8 @@ export interface SpawnEvents {
   flockMove?(key: string, x: number, y: number, z: number): void
   flockEnd?(key: string): void
   effect?(name: 'splash' | 'flap', x: number, y: number, z: number): void
+  /** a bird's behaviour asks for its call now: the bird's registry id */
+  call?(id: number): void
 }
 
 export interface SpawnDeps {
@@ -31,6 +34,8 @@ export interface SpawnDeps {
   wind: Wind
   ground: (x: number, z: number) => number
   ripples: RippleBuffer
+  /** where a bird's plunge throws up spray; without it, a plunge makes none */
+  splashes?: SplashBuffer
   seed: number
   events?: SpawnEvents
 }
@@ -167,12 +172,15 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       groups.set(key, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
     }
     const group = groups.get(key)!
+    let id = -1                                        // the bird's registry id, once it is added below
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
+      onSplash: (x, z, size) => deps.splashes?.spawn(x, z, size),
+      onCall: () => deps.events?.call?.(id),
       // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
@@ -187,7 +195,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     const controller = BEHAVIORS[ind.behavior as keyof typeof BEHAVIORS](ctx, sx, sz)
     if (swim) swimmers.push(controller)
     if (heron) herons.push(controller)
-    deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior })
+    id = deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior }).id
     object.add(model.group)
     birds.push({ controller, pose: defaultPose(), model })
   }

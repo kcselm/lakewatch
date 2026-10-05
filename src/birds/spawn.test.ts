@@ -3,6 +3,7 @@ import { makeRng } from '../catalog/rng'
 import { BirdRegistry, type BirdInstance } from './registry'
 import { Wind } from '../world/wind'
 import { RippleBuffer } from '../world/ripples'
+import { SplashBuffer } from '../world/splash'
 import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
 import { MALLARD } from '../behavior/dabbler'
@@ -391,6 +392,49 @@ describe('spawnCast perches', () => {
     world.update(1 / 30, d.wind)
     const bird = d.registry.all()[0]!
     expect(bird.model.group.position.toArray()).toEqual([23.7, 4.1, -48])
+  })
+})
+
+describe('spawnCast spray and calls', () => {
+  it("hands a behaviour's spray on to the spray buffer, and its call to the events with the bird's registry id", () => {
+    // a stand-in kingfisher that plunges and calls when told to
+    const real = BEHAVIORS.hover
+    let plunge = false
+    BEHAVIORS.hover = (ctx, x, z): BehaviorController => ({
+      name: 'hover', state: 'x', x, y: 0, z, heading: 0,
+      update() { if (plunge) { ctx.onSplash?.(x + 1, z + 2, 0.5); ctx.onCall?.(); plunge = false } },
+    })
+    try {
+      const calls: number[] = []
+      const deps = {
+        registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1,
+        ripples: new RippleBuffer(), splashes: new SplashBuffer(makeRng(1)), seed: 1, events: { call: (id: number) => calls.push(id) },
+      }
+      const world = spawnCast(loc([
+        { species: 'y00475', behavior: 'swim', zone: 'w', count: 2 },
+        { species: 'belkin1', behavior: 'hover', zone: 'snag', count: 1, plumage: 'female' },
+      ]), deps)
+      world.update(1 / 30, deps.wind)
+      expect(deps.splashes.sprays).toHaveLength(0)
+      plunge = true
+      world.update(1 / 30, deps.wind)
+      expect(deps.splashes.sprays.map(s => [s.x, s.z, s.size])).toEqual([[2, 5, 0.5]])     // the snag's point is (1, 2, 3)
+      const kingfisher = deps.registry.all().find(b => b.species === 'belkin1')!
+      expect(calls).toEqual([kingfisher.id])
+    } finally {
+      BEHAVIORS.hover = real
+    }
+  })
+  it('spawns a cast without a spray buffer or a call hook, and a splash then goes nowhere', () => {
+    const real = BEHAVIORS.hover
+    BEHAVIORS.hover = (ctx, x, z): BehaviorController => ({ name: 'hover', state: 'x', x, y: 0, z, heading: 0, update() { ctx.onSplash?.(x, z); ctx.onCall?.() } })
+    try {
+      const deps = { registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed: 1 }
+      const world = spawnCast(loc([{ species: 'belkin1', behavior: 'hover', zone: 'snag', count: 1 }]), deps)
+      expect(() => world.update(1 / 30, deps.wind)).not.toThrow()
+    } finally {
+      BEHAVIORS.hover = real
+    }
   })
 })
 
