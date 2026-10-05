@@ -574,6 +574,30 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
 }
 
 /**
+ * The right folded wing as a surface, profile frame: its point at (a, b), a along it from the wrist (0) to the tip
+ * (1) and b down it from its top edge (0) to its lower (1), between its grid's points, and the way it faces there (out
+ * from the body). A flight wing's feathers gather onto it as the wing folds.
+ */
+export function foldSurface(detail: DetailSpec): (a: number, b: number) => { p: THREE.Vector3; n: THREE.Vector3 } {
+  placeFoldedWing(detail)
+  const { at } = placed.get(detail)!
+  const k = (i: number, j: number) => at[i * FOLD_T + j]!
+  return (a, b) => {
+    const x = THREE.MathUtils.clamp(a, 0, 1) * (FOLD_S - 1), y = THREE.MathUtils.clamp(b, 0, 1) * (FOLD_T - 1)
+    const i = Math.min(FOLD_S - 2, Math.floor(x)), j = Math.min(FOLD_T - 2, Math.floor(y))
+    const u = x - i, v = y - j
+    const p00 = k(i, j), p10 = k(i + 1, j), p11 = k(i + 1, j + 1), p01 = k(i, j + 1)
+    const p = p00.clone().multiplyScalar((1 - u) * (1 - v)).addScaledVector(p10, u * (1 - v)).addScaledVector(p11, u * v).addScaledVector(p01, (1 - u) * v)
+    // along it and down it there; the folded wing's quads face +z with s running back and t down, so along × down is out
+    const along = p10.clone().sub(p00).multiplyScalar(1 - v).addScaledVector(p11.clone().sub(p01), v)
+    const down = p01.clone().sub(p00).multiplyScalar(1 - u).addScaledVector(p11.clone().sub(p10), u)
+    const n = along.cross(down)
+    // a column with no height (the tip's) faces straight out
+    return { p, n: n.lengthSq() > 1e-20 ? n.normalize() : new THREE.Vector3(0, 0, 1) }
+  }
+}
+
+/**
  * Right shoulder joint for the spread wing (profile frame): above the flank, just behind the wrist, or where a flight
  * wing's `rootX` puts it.
  */
@@ -660,15 +684,46 @@ export interface FlightWingResult {
   count: number
 }
 
+/** the body's pitch at the shoulder, as a turn about z: the frame a flight wing is laid out and turned in */
+export function wingFrame(F: FlightSpec): THREE.Quaternion {
+  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(F.pitch ?? 0))
+}
+
+const euler = new THREE.Euler(0, 0, 0, 'YXZ')
+const unframe = new THREE.Quaternion()
+/**
+ * A flight wing bone's turn from rest, radians: swept about the body's vertical (positive forward), raised about the
+ * body's long axis as swept (positive up), and twisted about the bone's own span (positive: the leading edge up), in that order from
+ * the body out, in the body's frame (`frame`, from wingFrame). `side` 1 is the right wing (+z); the left mirrors it.
+ */
+export function wingTurn(frame: THREE.Quaternion, sweep: number, raise: number, twist: number, side: 1 | -1, out = new THREE.Quaternion()): THREE.Quaternion {
+  out.setFromEuler(euler.set(-side * raise, side * sweep, twist, 'YXZ'))
+  // a wing with no pitch (the pelican's) turns exactly as it always has
+  if (frame.w !== 1) out.premultiply(frame).multiply(unframe.copy(frame).invert())
+  return out
+}
+
 /**
  * Wings to fly on (`detail.flight`), in place of the plain spread wing: the species' own planform in the shoulder's
- * horizontal plane, out along +-z, as strips from the leading edge to the trailing (so a fingered tip can part), the
- * upper face on 'wingSpread' and the under face on 'wingUnder'. The inner wing is on the wing bone and the hand on the
- * hand bone, the skin handing over across the wrist.
+ * plane (horizontal, or tilted with the body by the wing's `pitch`), out along +-z, as strips from the leading edge to
+ * the trailing (so a fingered tip can part), the upper face on 'wingSpread' and the under face on 'wingUnder'. The
+ * inner wing is on the wing bone and the hand on the hand bone, the skin handing over across the wrist.
+ *
+ * A wing that folds (`fold`) has every vertex's place on the folded wing as the geometry's 'fold' morph target: its
+ * span laid along the folded wing from the wrist to the tip, its leading edge along the lower edge and its trailing
+ * edge along the top, the upper face just outside it and the under face just inside, each facing as the folded wing
+ * does there. The target is set back through the bones' closed turns, so that with the bones closed and the target at
+ * full weight the wing lies exactly on the folded wing, and the swap to it shows nothing.
  */
 export function buildFlightWings(m: Mesher, detail: DetailSpec, shoulder: THREE.Vector3): FlightWingResult {
   const F = detail.flight!
   const first = m.count
+  const frame = wingFrame(F)
+  const wristAt = (s: number) => {
+    const e = flightEdges(F, s)
+    return new THREE.Vector3((e.lead + e.trail) / 2, 0, s * F.span).applyQuaternion(frame).add(shoulder)
+  }
+  const fold = F.fold ? foldTargets(detail, shoulder, wristAt(F.wrist)) : null
   const even = Array.from({ length: FLIGHT_S }, (_, i) => i / (FLIGHT_S - 1))
   const marks = [...F.outline.map(([s]) => s), F.wrist - WRIST_BLEND, F.wrist, F.wrist + WRIST_BLEND, ...(F.fingers ? [F.fingers.from] : [])]
   const all = [...even, ...marks.filter(s => s > 0 && s < 1)].sort((a, b) => a - b)
@@ -686,8 +741,15 @@ export function buildFlightWings(m: Mesher, detail: DetailSpec, shoulder: THREE.
       let before: number[][] | null = null
       for (const s of ss) {
         const { lead, trail } = flightEdges(F, s)
-        const column = chordStrips(F, s).map(edges => edges.map(t =>
-          m.vertex(new THREE.Vector3(shoulder.x + lead + (trail - lead) * t, shoulder.y + dy, side * (shoulder.z + s * F.span)), face, s, t, weights(s))))
+        const column = chordStrips(F, s).map(edges => edges.map(t => {
+          const p = new THREE.Vector3(lead + (trail - lead) * t, dy, s * F.span).applyQuaternion(frame).add(shoulder)
+          const v = m.vertex(p.setZ(side * p.z), face, s, t, weights(s))
+          if (fold) {
+            const to = fold(s, t, up)
+            m.morph(v, to.p.setZ(side * to.p.z), 'fold', to.n.setZ(side * to.n.z))
+          }
+          return v
+        }))
         if (before) {
           column.forEach(([a, b], k) => {
             const [a0, b0] = before![k]!
@@ -700,6 +762,37 @@ export function buildFlightWings(m: Mesher, detail: DetailSpec, shoulder: THREE.
       }
     }
   }
-  const at = (s: number) => { const e = flightEdges(F, s); return new THREE.Vector3(shoulder.x + (e.lead + e.trail) / 2, shoulder.y, shoulder.z + s * F.span) }
-  return { wrist: at(F.wrist), tip: at(1), first, count: m.count - first }
+  return { wrist: wristAt(F.wrist), tip: wristAt(1), first, count: m.count - first }
+}
+
+/** how far either face of a flight wing lies off the folded wing's surface once gathered onto it, metres */
+const FOLD_FACE = 0.0003
+
+/**
+ * For a wing that folds: where its right wing's vertex at (s, t) on the upper (or under) face goes at the full weight
+ * of the 'fold' morph target, in the rest mesh's frame, and its normal there. Its place on the folded wing (s along
+ * it, 1 − t down it) is set back through the turns the wing's bones have when closed, blended as the vertex's skin
+ * blends them, so that the skinned vertex lands exactly on it.
+ */
+function foldTargets(detail: DetailSpec, shoulder: THREE.Vector3, wrist: THREE.Vector3): (s: number, t: number, upper: boolean) => { p: THREE.Vector3; n: THREE.Vector3 } {
+  const F = detail.flight!, fold = F.fold!
+  const surface = foldSurface(detail)
+  const frame = wingFrame(F)
+  const rad = THREE.MathUtils.degToRad
+  const about = (joint: THREE.Vector3, q: THREE.Quaternion) =>
+    new THREE.Matrix4().makeTranslation(joint.x, joint.y, joint.z).multiply(new THREE.Matrix4().makeRotationFromQuaternion(q))
+      .multiply(new THREE.Matrix4().makeTranslation(-joint.x, -joint.y, -joint.z))
+  // the inner wing turns about the shoulder; the hand about the wrist, carried by the inner wing
+  const inner = about(shoulder, wingTurn(frame, rad(fold.sweep.shoulder), 0, rad(fold.twist.shoulder), 1))
+  const hand = inner.clone().multiply(about(wrist, wingTurn(frame, rad(fold.sweep.hand), 0, rad(fold.twist.hand), 1)))
+  const back = new THREE.Matrix4(), turn = new THREE.Matrix3()
+  return (s, t, upper) => {
+    const w = THREE.MathUtils.clamp((s - (F.wrist - WRIST_BLEND)) / (2 * WRIST_BLEND), 0, 1)
+    const a = inner.elements, b = hand.elements
+    back.fromArray(a.map((v, k) => v * (1 - w) + b[k]! * w)).invert()
+    const { p, n } = surface(s, 1 - t)
+    const facing = upper ? n : n.negate()
+    p.addScaledVector(facing, FOLD_FACE).applyMatrix4(back)
+    return { p, n: facing.applyMatrix3(turn.setFromMatrix4(back)).normalize() }
+  }
 }

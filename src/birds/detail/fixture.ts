@@ -230,3 +230,39 @@ export const TEST_PERCHER_DETAIL: DetailSpec = {
 export const TEST_PERCHER_SPEC: SpeciesSpec = parseSpeciesSpec({
   ...TEST_SPEC, code: 'testpercher', commonName: 'Test Percher', length: 0.325, posture: 'perched', detail: TEST_PERCHER_DETAIL,
 })
+
+/**
+ * The test percher with a wing to fly on: the Belted Kingfisher's planform, strokes and fold
+ * (docs/research/2026-09-30-kingfisher-flight-and-plunge.md). The outline is the research's traced station table
+ * (section 2.3) at its half-span of 1.47 × the wing chord, 0.241 m, the wrist at 0.37 of it (section 2.4), and the outer
+ * five primaries parting over the last 12% (section 2.3: slots 15-25 mm). The strokes are its estimates (sections 3.3,
+ * 4.3 and 8): a beat of 100° (+55° to −45°), a hover of 120° sweeping about ±18° (the hover table's −15° to +20°) with
+ * its hand bent less, and a glide on half-closed wings (the inner wing back 12°, the hand back 30° more). Its pitch is
+ * the fixture's trunk, tail base to neck base, 45° above level. The fold's turns are set by eye on the wing drawn
+ * through its fold: the inner wing swept 90° back and twisted 90° leading edge down, so it lies back along the flank
+ * with its upper face out, and the hand swept 10° further. A hand twisted with it, or an inner wing twisted less, held
+ * the wing out in a tent over the back for the middle of the fold. Frozen here, so the kingfisher's own tracing never
+ * breaks the builder's tests.
+ */
+export const TEST_FLIER_DETAIL: DetailSpec = {
+  ...TEST_PERCHER_DETAIL,
+  flight: {
+    span: 0.241,
+    outline: [
+      [0, 0, -0.0986], [0.1, -0.0034, -0.1054], [0.2, -0.0065, -0.1097], [0.3, -0.0065, -0.1114], [0.37, -0.0065, -0.1095],
+      [0.5, -0.0002, -0.1032], [0.6, 0.0019, -0.0938], [0.7, 0.0031, -0.0832], [0.8, 0.0084, -0.0646], [0.9, 0.0118, -0.0485],
+      [0.95, 0.013, -0.0345], [1, 0.0084, 0.0084],
+    ],
+    wrist: 0.37,
+    fingers: { count: 5, from: 0.88, fill: 0.7 },
+    pitch: 45,
+    beat: { shoulder: 50, lift: 5, hand: 20, lag: 0.12 },
+    hover: { shoulder: 60, lift: 0, hand: 10, lag: 0.1, sweep: 18 },
+    glide: { shoulder: 3, hand: -3, sweep: { shoulder: -12, hand: -30 } },
+    fold: { sweep: { shoulder: -90, hand: -10 }, twist: { shoulder: -90, hand: 0 } },
+  },
+}
+
+export const TEST_FLIER_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_PERCHER_SPEC, code: 'testflier', commonName: 'Test Flier', detail: TEST_FLIER_DETAIL,
+})

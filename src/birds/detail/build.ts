@@ -5,7 +5,7 @@ import { createProfile, type Profile } from './profile'
 import { Mesher } from './mesher'
 import { buildLoft, RADIAL, type LoftResult } from './loft'
 import { buildBill, buildEyes, buildPouch, buildShield, type BillResult } from './bill'
-import { buildFoldedWings, buildSpreadWings, buildFlightWings, shoulderAt } from './wing'
+import { buildFoldedWings, buildSpreadWings, buildFlightWings, shoulderAt, wingFrame, wingTurn } from './wing'
 import { buildTail } from './tail'
 import { buildLegs, legLayout, DEFAULT_STEP, type LegLayout } from './legs'
 import { createBones, chainBones, FAN_BONES, NECK_BONES, type Joints, type NeckBone } from './rig'
@@ -75,6 +75,24 @@ export interface DetailedBirdModel extends BirdModel {
 
 /** bone scale that hides a part: a skinned mesh cannot hide a piece of itself */
 const HIDDEN = 1e-4
+/** the wingSpread at and below which the folded wing shows in place of the spread one */
+export const SWAP = 0.05
+/**
+ * A perched bird's legs folded up in flight (PoseState.legsUp 1): where each foot goes, from its hip, as fractions of
+ * the leg's reach back along the body and of the hip's height over the belly up from the belly; and how far the toes
+ * turn back from their grip, radians (clockwise in the side view, the bird facing +x). By eye, so that the feet lie
+ * against the belly feathers with the toes trailing back, as a small bird's do once it is away.
+ */
+const TUCK_BACK = 0.55
+const TUCK_UP = 0.35
+const TUCK_TOES = -2.4
+const Z_AXIS = new THREE.Vector3(0, 0, 1)
+/**
+ * A wing that folds keeps its shape until it is this far closed (0 open .. 1 closed), and its feathers then gather
+ * onto the folded wing's place. By eye, on the test flier drawn through its fold: gathering from half-way, the arm's
+ * trailing edge, turned up by the twist, stood in a tent over the back for the middle of the fold
+ */
+export const GATHER_FROM = 0.2
 /** how far a swimmer's leg swings each way in a paddle stroke, radians: the tibia about the hip, the tarsus about the joint */
 const PADDLE_SWING = 0.5
 
@@ -258,6 +276,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
 
   const mesh = new THREE.SkinnedMesh(geometry, materialFor(spec, variant))
   mesh.name = 'skin'
+  // the morph targets this bird's geometry carries, by name
+  const pouchMorph = mesh.morphTargetDictionary?.pouch, foldMorph = mesh.morphTargetDictionary?.fold
   mesh.castShadow = true
   const group = new THREE.Group()
   group.name = `bird:${spec.code}${variant ? ':' + variant : ''}`
@@ -361,11 +381,32 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
    * A percher's legs: they turn with the body about the pivot between the feet, so the hips stay on them however the
    * bird leans, and the toes turn back, so they keep their grip on the branch. The pivot lies on the line between the
    * feet, so a pitch (lean.x) leaves them exactly where they were; a roll (lean.z) tips each a little with the body.
+   *
+   * In flight (legsUp) each foot is drawn up and back under the belly, the leg folding as it goes, and its toes let go
+   * of the branch and turn back with the body: at 1 the feet lie against the belly feathers, as TUCK_* has them.
    */
-  function perchLegs() {
+  function perchLegs(st: PoseState) {
     bones.legs.quaternion.copy(bones.body.quaternion)
+    const up = THREE.MathUtils.clamp(st.legsUp, 0, 1)
     for (const toes of [bones.toesR, bones.toesL]) toes.quaternion.copy(bones.body.quaternion).invert()
+    if (up === 0) {
+      for (const b of [bones.tibiaR, bones.tarsusR, bones.tibiaL, bones.tarsusL]) b.rotation.set(0, 0, 0)
+      return
+    }
+    const dx = up * (tuckFoot.x - footR.x), dy = up * (tuckFoot.y - footR.y)
+    setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, dx, dy)
+    setLeg(bones.tibiaL, bones.tarsusL, bones.toesL, dx, dy)
+    // setLeg keeps the toes as they stood; from the grip they turn toward the body's frame, and on back to trail
+    for (const toes of [bones.toesR, bones.toesL]) {
+      const kept = toeTurn.copy(toes.quaternion).multiply(toeBack.setFromAxisAngle(Z_AXIS, TUCK_TOES * up))
+      toes.quaternion.copy(bones.body.quaternion).invert().slerp(kept, up)
+    }
   }
+  /** where a tucked foot goes, group space: back along the body and up under the belly from the hip */
+  const tuckFoot = new THREE.Vector3(
+    hipR.x - TUCK_BACK * (layout.tibia + layout.tarsus),
+    anatomy.bellyY + TUCK_UP * (hipR.y - anatomy.bellyY), 0)
+  const toeTurn = new THREE.Quaternion(), toeBack = new THREE.Quaternion()
 
   /**
    * A chained neck, bent into its shapes: neckExtend blends each joint's bend from the hunch (0) through the trace (0.5)
@@ -423,20 +464,65 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   }
 
   /**
-   * A flight wing through its beat: the inner wing swings about the shoulder either side of its lift, and the hand
-   * about the wrist, behind it by its lag. A glide holds both still at the glide's angles. Positive angles are up.
+   * A flight wing through its stroke: the inner wing swings about the shoulder either side of its lift, and the hand
+   * about the wrist, behind it by its lag. wingStroke blends the beat toward a hover, whose inner wing also sweeps
+   * forward as it comes down and back as it goes up. A glide holds the wing still at the glide's angles, swept as the
+   * glide has it. Positive angles are up, and forward.
+   *
+   * Without a fold, the whole stroke grows with wingSpread from nothing. With one, the stroke eases off as the wing
+   * closes, while the bones sweep and twist to their closed turns and the feathers gather onto the folded wing (the
+   * 'fold' morph target), all of it complete at the swap, where the folded wing takes over from one that already lies
+   * on it.
    */
   function flyWings(st: PoseState, spread: number) {
     const F = detail!.flight!
     const glide = THREE.MathUtils.clamp(st.glide, 0, 1)
     const phase = st.wingPhase * Math.PI * 2
-    const beatS = F.beat.lift + F.beat.shoulder * Math.sin(phase)
-    const beatH = F.beat.hand * Math.sin(phase - F.beat.lag * Math.PI * 2)
-    const shoulder = THREE.MathUtils.degToRad(beatS + (F.glide.shoulder - beatS) * glide) * spread
-    const hand = THREE.MathUtils.degToRad(beatH + (F.glide.hand - beatH) * glide) * spread
-    bones.wingL.rotation.x = shoulder; bones.wingR.rotation.x = -shoulder
-    bones.handL.rotation.x = hand; bones.handR.rotation.x = -hand
+    let beatS = F.beat.lift + F.beat.shoulder * Math.sin(phase)
+    let beatH = F.beat.hand * Math.sin(phase - F.beat.lag * Math.PI * 2)
+    let sweepS = 0, sweepH = 0, twistS = 0, twistH = 0
+    const stroke = F.hover ? THREE.MathUtils.clamp(st.wingStroke, 0, 1) : 0
+    if (stroke > 0) {
+      const H = F.hover!
+      beatS += (H.lift + H.shoulder * Math.sin(phase) - beatS) * stroke
+      beatH += (H.hand * Math.sin(phase - H.lag * Math.PI * 2) - beatH) * stroke
+      // furthest forward at the bottom of the stroke and back at the top
+      sweepS = -H.sweep * Math.sin(phase) * stroke
+    }
+    if (F.glide.sweep) {
+      sweepS += (F.glide.sweep.shoulder - sweepS) * glide
+      sweepH += (F.glide.sweep.hand - sweepH) * glide
+    }
+    let open = spread
+    if (F.fold) {
+      const c = closed(spread)
+      open = 1 - c
+      sweepS = sweepS * open + F.fold.sweep.shoulder * c
+      sweepH = sweepH * open + F.fold.sweep.hand * c
+      twistS = F.fold.twist.shoulder * c
+      twistH = F.fold.twist.hand * c
+      mesh.morphTargetInfluences![foldMorph!] = gather(c)
+    } else {
+      sweepS *= spread
+      sweepH *= spread
+    }
+    const rad = THREE.MathUtils.degToRad
+    const shoulder = rad(beatS + (F.glide.shoulder - beatS) * glide) * open
+    const hand = rad(beatH + (F.glide.hand - beatH) * glide) * open
+    wingTurn(wingAxes!, rad(sweepS), shoulder, rad(twistS), 1, bones.wingR.quaternion)
+    wingTurn(wingAxes!, rad(sweepS), shoulder, rad(twistS), -1, bones.wingL.quaternion)
+    wingTurn(wingAxes!, rad(sweepH), hand, rad(twistH), 1, bones.handR.quaternion)
+    wingTurn(wingAxes!, rad(sweepH), hand, rad(twistH), -1, bones.handL.quaternion)
   }
+  /** the frame a flight wing turns in: the body's, at the shoulder */
+  const wingAxes = detail.flight ? wingFrame(detail.flight) : null
+  /** how far a wing that folds has closed, 0 open .. 1 closed, as wingSpread falls from 1 to the swap */
+  const closed = (spread: number) => THREE.MathUtils.clamp((1 - spread) / (1 - SWAP), 0, 1)
+  /**
+   * how far its feathers have gathered onto the folded wing, as it closes: none until it is GATHER_FROM closed, so the
+   * wing keeps its shape as it starts to sweep back, then all of it by the time it is closed
+   */
+  const gather = (c: number) => THREE.MathUtils.smoothstep(c, GATHER_FROM, 1)
 
   /**
    * The head turned `yaw` about the neck's axis: the line from the last neck joint before the head to the head joint,
@@ -506,8 +592,8 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     // positive raises the bill: the head turns last, after the neck's shape and any reach
     bones.head.rotation.z += st.headPitch
     if (st.headYaw) turnHead(st.headYaw)
-    // a pouch fills toward its full outline: the geometry's one morph target
-    if (pouch) mesh.morphTargetInfluences![0] = THREE.MathUtils.clamp(st.pouch, 0, 1)
+    // a pouch fills toward its full outline: the geometry's 'pouch' morph target
+    if (pouch) mesh.morphTargetInfluences![pouchMorph!] = THREE.MathUtils.clamp(st.pouch, 0, 1)
     // positive lifts the tail (the tail points back, so that is a clockwise turn in the side view)
     bones.tail.rotation.z = -st.tailTilt
     // a fanning tail's columns each turn about the tail's up to their share of the fan
@@ -520,7 +606,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     holdFish(st)
     // wings: folded shell at rest, the spread planform once the wings open
     const spread = THREE.MathUtils.clamp(st.wingSpread, 0, 1)
-    const open = spread > 0.05
+    const open = spread > SWAP
     for (const b of [bones.wingFoldL, bones.wingFoldR]) b.scale.setScalar(open ? HIDDEN : 1)
     for (const b of [bones.wingL, bones.wingR]) b.scale.setScalar(open ? 1 : HIDDEN)
     if (flightWing) flyWings(st, spread)
@@ -532,7 +618,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
     // legs
     if (swimming) { paddleLegs(st); return }
     // a percher stays on its branch: it doesn't walk
-    if (perched) { perchLegs(); return }
+    if (perched) { perchLegs(st); return }
     if (THREE.MathUtils.clamp(st.gait, 0, 1) < 0.02) anchor = neutral - st.strideDistance
     const { left, right } = legOffsets(st.strideDistance + anchor, st.gait, stepLength, lift)
     setLeg(bones.tibiaR, bones.tarsusR, bones.toesR, right.x, right.y)

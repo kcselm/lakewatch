@@ -6,6 +6,13 @@ import type { Part } from './spec'
 /** Up to four bone influences; weights should sum to 1. */
 export type Weights = readonly (readonly [BoneName, number])[]
 
+/**
+ * The geometry's morph targets, in the order they are stored: a pouch filling, and a flight wing's feathers gathered
+ * onto the folded wing. A geometry carries only the ones some vertex moves in, so a pouch alone is still target 0.
+ */
+export const MORPHS = ['pouch', 'fold'] as const
+export type Morph = (typeof MORPHS)[number]
+
 /** Collects vertices (position, atlas uv, skinning) and triangles for one skinned geometry. */
 export class Mesher {
   private readonly pos: number[] = []
@@ -15,8 +22,10 @@ export class Mesher {
   private readonly index: number[] = []
   /** part of every vertex, for measurement and tests */
   readonly parts: Part[] = []
-  /** where some vertices go at the full weight of the geometry's one morph target (by vertex, in the frame they were given in) */
-  private readonly morphed = new Map<number, THREE.Vector3>()
+  /** where some vertices go at the full weight of each morph target (by vertex, in the frame they were given in) */
+  private readonly morphed: Record<Morph, Map<number, THREE.Vector3>> = { pouch: new Map(), fold: new Map() }
+  /** the normal some vertices take at the full weight of a morph target, where it isn't the rest mesh's */
+  private readonly morphedNormal: Record<Morph, Map<number, THREE.Vector3>> = { pouch: new Map(), fold: new Map() }
 
   get count(): number { return this.pos.length / 3 }
   get indexCount(): number { return this.index.length }
@@ -35,8 +44,14 @@ export class Mesher {
     return this.count - 1
   }
 
-  /** Vertex `i` moves to `p` at the full weight of the geometry's morph target (a pouch filling); the rest stay put. */
-  morph(i: number, p: THREE.Vector3): void { this.morphed.set(i, p.clone()) }
+  /**
+   * Vertex `i` moves to `p` at the full weight of the morph target `target` (a pouch filling), its normal turning to
+   * `normal` if one is given (else it keeps the rest mesh's); the rest stay put.
+   */
+  morph(i: number, p: THREE.Vector3, target: Morph = 'pouch', normal?: THREE.Vector3): void {
+    this.morphed[target].set(i, p.clone())
+    if (normal) this.morphedNormal[target].set(i, normal.clone().normalize())
+  }
 
   /** a, b, c counter-clockwise seen from the side the face should show */
   tri(a: number, b: number, c: number): void { this.index.push(a, b, c) }
@@ -75,7 +90,7 @@ export class Mesher {
       this.pos[i + 1]! += offset.y
       this.pos[i + 2]! += offset.z
     }
-    for (const p of this.morphed.values()) p.add(offset)
+    for (const t of MORPHS) for (const p of this.morphed[t].values()) p.add(offset)
   }
 
   geometry(): THREE.BufferGeometry {
@@ -86,15 +101,26 @@ export class Mesher {
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(this.skinWeight, 4))
     g.setIndex(this.index)
     g.computeVertexNormals()
-    if (this.morphed.size) {
-      // one target, as offsets from the rest mesh: only a geometry that asks for one carries it
-      const delta = new Float32Array(this.pos.length)
-      for (const [i, p] of this.morphed) {
-        delta[i * 3] = p.x - this.pos[i * 3]!
-        delta[i * 3 + 1] = p.y - this.pos[i * 3 + 1]!
-        delta[i * 3 + 2] = p.z - this.pos[i * 3 + 2]!
+    // each target as offsets from the rest mesh, named so a mesh finds it in its morphTargetDictionary: only a geometry
+    // that asks for one carries it, and normals only if some target turns them
+    const targets = MORPHS.filter(t => this.morphed[t].size > 0)
+    if (targets.length) {
+      const offsets = (list: Map<number, THREE.Vector3>, from: ArrayLike<number>, name: string) => {
+        const delta = new Float32Array(this.pos.length)
+        for (const [i, p] of list) {
+          delta[i * 3] = p.x - from[i * 3]!
+          delta[i * 3 + 1] = p.y - from[i * 3 + 1]!
+          delta[i * 3 + 2] = p.z - from[i * 3 + 2]!
+        }
+        const a = new THREE.Float32BufferAttribute(delta, 3)
+        a.name = name
+        return a
       }
-      g.morphAttributes.position = [new THREE.Float32BufferAttribute(delta, 3)]
+      g.morphAttributes.position = targets.map(t => offsets(this.morphed[t], this.pos, t))
+      if (targets.some(t => this.morphedNormal[t].size > 0)) {
+        const normals = g.getAttribute('normal').array
+        g.morphAttributes.normal = targets.map(t => offsets(this.morphedNormal[t], normals, t))
+      }
       g.morphTargetsRelative = true
     }
     return g

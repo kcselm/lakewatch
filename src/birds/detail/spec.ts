@@ -199,7 +199,21 @@ export const detailSchema = z.object({
    *   the slots between them opening until, at the tip, each feather keeps `fill` of its share of the chord.
    * - `beat`: a wingbeat, degrees: the inner wing swings `shoulder` either side of `lift` (positive: up), the hand
    *   `hand` either side of the inner wing's line, `lag` of a beat behind it.
-   * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's.
+   * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's;
+   *   and, if `sweep` says so, the inner wing swept at the shoulder and the hand at the wrist (positive: forward), the
+   *   half-closed wing of a kingfisher's glide. PoseState.glide eases the wing into it.
+   * - `pitch`: degrees the body's long axis rises toward the head at the shoulder, in the traced side view (default 0).
+   *   The wing is laid out in the body's plane, its chord along that axis, and turns about the body's own axes: a
+   *   bird traced upright on a perch flies with its wing where its body has it, once its lean levels the body.
+   * - `hover`: a second stroke, of the shape of `beat`, with the inner wing also sweeping `sweep` either side of square
+   *   about the body's vertical axis, forward on the downstroke and back on the upstroke. PoseState.wingStroke blends
+   *   from `beat` (0) to it (1). The body's tilt, set through its lean, tips the stroke plane toward the horizontal.
+   * - `fold`: how the wing closes as PoseState.wingSpread falls, degrees at the closed end: the inner wing swept at the
+   *   shoulder and the hand at the wrist (positive: forward; a fold sweeps back) about the body's vertical axis, and
+   *   each twisted about its own span (positive: the leading edge up), so the wing lies back along the flank. Its
+   *   feathers gather onto the folded wing's place as it closes (the geometry's 'fold' morph target), and the folded
+   *   wing takes over where the two coincide. Without it the wing opens all at once, its stroke growing with
+   *   wingSpread, and the swap comes at 0.05.
    * Painted as 'wingSpread' above and 'wingUnder' below: s along the span, t from the leading edge (0) to the trailing.
    */
   flight: z.object({
@@ -209,7 +223,20 @@ export const detailSchema = z.object({
     wrist: z.number().min(0.2).max(0.8),
     fingers: z.object({ count: z.number().int().min(2).max(8), from: z.number().min(0.5).max(0.95), fill: z.number().min(0.3).max(0.95) }).optional(),
     beat: z.object({ shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit }),
-    glide: z.object({ shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45) }),
+    glide: z.object({
+      shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45),
+      sweep: z.object({ shoulder: z.number().min(-60).max(30), hand: z.number().min(-90).max(30) }).optional(),
+    }),
+    pitch: z.number().min(-60).max(60).optional(),
+    hover: z.object({
+      shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit,
+      sweep: z.number().min(0).max(45),
+    }).optional(),
+    // the hand's fold is held under 120° either way, so where the skin blends across the wrist it never turns inside out
+    fold: z.object({
+      sweep: z.object({ shoulder: z.number().min(-150).max(30), hand: z.number().min(-120).max(30) }),
+      twist: z.object({ shoulder: z.number().min(-120).max(120), hand: z.number().min(-120).max(120) }),
+    }).optional(),
   }).optional(),
   plumage: z.array(layerSchema),
   variants: z.record(z.string(), z.array(layerSchema)),
