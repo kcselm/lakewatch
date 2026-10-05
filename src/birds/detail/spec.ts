@@ -295,6 +295,49 @@ export const detailSchema = z.object({
 })
 export type DetailSpec = z.infer<typeof detailSchema>
 
+/**
+ * A detailed bird made outside the game, in Blender (scripts/blender/): its mesh, skin, and each version's textures come
+ * from public/models/<model>/, and only how it moves is set here. The model is built on the detailed builder's
+ * skeleton (rig.ts), so it poses with the same code as a lofted bird. The fields mean what the same fields of a lofted
+ * detail block mean.
+ * - `model`: the folder under public/models/, holding <model>.glb (the mesh, its skin and landmarks, no images) and
+ *   <version>.color.webp, <version>.normal.webp, <version>.rough.webp for each version.
+ * - `versions`: the versions it has textures for, each one of the species' variants; the first is the default (a bird
+ *   cast with no plumage).
+ * - `neck`: how many labels the model's neck chain has, its base to its head (chainBones): the loader checks the model's
+ *   joints against it.
+ * - `flight`: a flight wing's wingbeat and glide; its planform is the model's.
+ */
+export const authoredSchema = z.object({
+  model: z.string().regex(/^[a-z0-9-]+$/, 'a folder name under public/models/'),
+  versions: z.array(z.string().min(1)).min(1),
+  measurements: detailSchema.shape.measurements,
+  neck: z.number().int().min(3).max(7).optional(),
+  neckShapes: detailSchema.shape.neckShapes,
+  neckStretch: detailSchema.shape.neckStretch,
+  reachStretch: detailSchema.shape.reachStretch,
+  stepLength: detailSchema.shape.stepLength,
+  probeDepth: detailSchema.shape.probeDepth,
+  amphibious: detailSchema.shape.amphibious,
+  flock: detailSchema.shape.flock,
+  waddle: detailSchema.shape.waddle,
+  flight: z.object({ beat: detailSchema.shape.flight.unwrap().shape.beat, glide: detailSchema.shape.flight.unwrap().shape.glide }).optional(),
+  sources: detailSchema.shape.sources,
+}).superRefine((d, ctx) => {
+  if (d.neck !== undefined) {
+    if (!d.neckShapes) ctx.addIssue({ code: 'custom', message: 'a chained neck needs neckShapes', path: ['neckShapes'] })
+    else for (const [k, v] of Object.entries(d.neckShapes)) {
+      if (v.length !== d.neck) ctx.addIssue({ code: 'custom', message: `neckShapes.${k} needs one bend per joint (${d.neck})`, path: ['neckShapes', k] })
+    }
+  } else {
+    for (const k of ['neckShapes', 'neckStretch', 'reachStretch'] as const) {
+      if (d[k] !== undefined) ctx.addIssue({ code: 'custom', message: `${k} needs neck`, path: [k] })
+    }
+  }
+  if (new Set(d.versions).size !== d.versions.length) ctx.addIssue({ code: 'custom', message: 'a version is named twice', path: ['versions'] })
+})
+export type AuthoredSpec = z.infer<typeof authoredSchema>
+
 /** The layer list for a variant: the variant's own list when it has one, else the base plumage. */
 export function layersFor(detail: DetailSpec, variant?: string): Layer[] {
   return (variant && detail.variants[variant]) || detail.plumage

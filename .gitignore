@@ -5,3 +5,4 @@ data/raw
 .wrangler
 .playwright-mcp
 .worktrees
+__pycache__

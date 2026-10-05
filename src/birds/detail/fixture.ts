@@ -232,3 +232,26 @@ export const TEST_GOOSE_DETAIL: DetailSpec = {
 export const TEST_GOOSE_SPEC: SpeciesSpec = parseSpeciesSpec({
   ...TEST_SPEC, code: 'testgoose', commonName: 'Test Goose', length: 0.69, posture: 'swimming', draft: 0.3, detail: TEST_GOOSE_DETAIL,
 })
+
+/**
+ * A test bird made in Blender for the authored loader's tests: scripts/blender/testbird/build.py writes it, a small
+ * swimmer of primitives (testbird.glb beside this file), floating with its legs standing, a six-joint neck chain, and a
+ * flight wing. Each part is weighted wholly to one bone. Its numbers are the script's, not a species'.
+ */
+export const TEST_AUTHORED_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, detail: undefined, code: 'testauthored', commonName: 'Test Authored Bird', length: 0.45, posture: 'swimming', draft: 0.5,
+  variants: { adult: {}, juvenile: {} },
+  authored: {
+    model: 'testbird',
+    versions: ['adult', 'juvenile'],
+    measurements: {
+      length: 0.45, culmen: 0.05, billDepth: 0.016, billWidth: 0.016,
+      tarsus: 0.07, tibia: 0.01, toe: 0.05, wingChord: 0.18, tail: 0.07,
+    },
+    neck: 7,
+    neckShapes: { hunch: [-20, 10, 10, 0, 0, 0, 0], erect: [10, -5, -5, 0, 0, 0, 0], strike: [-30, -10, 0, 0, 0, 0, 0] },
+    amphibious: true,
+    flight: { beat: { shoulder: 40, lift: 5, hand: 20, lag: 0.1 }, glide: { shoulder: 3, hand: -5 } },
+    sources: ['test fixture'],
+  },
+})

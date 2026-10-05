@@ -16,6 +16,7 @@ import type { DetailSpec } from './spec'
 type NeckShapes = NonNullable<DetailSpec['neckShapes']>
 import { buildCurl, buildPlume } from './extras'
 import { materialFor } from '../paint/painter'
+import { authoredFor, authoredMaterial } from './authored'
 
 /** Key points of the built bird in group space at rest pose, for measurement and the viewer. */
 export interface Anatomy {
@@ -233,27 +234,30 @@ function construct(spec: SpeciesSpec): Built {
 }
 
 /**
- * A detailed bird of a species, in one of its versions. With a `twin` (another bird of the same species, of any
- * version), it shares the twin's mesh and builds only its own bones: a flock's birds cost one mesh between them.
+ * A detailed bird of a species, in one of its versions: lofted from its detail block, or made in Blender (`authored`,
+ * its model loaded already). With a `twin` (another bird of the same species, of any version), it shares the twin's
+ * mesh and builds only its own bones: a flock's birds cost one mesh between them.
  */
 export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: DetailedBirdModel): DetailedBirdModel {
-  const detail = spec.detail
+  // how it moves: the same fields either way
+  const detail = spec.detail ?? spec.authored
   if (!detail) throw new Error(`${spec.code}: no detail block`)
   if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
   if (twin && twin.spec !== spec) throw new Error(`${spec.code}: a twin must be a bird of the same species`)
-  const built = twin ? twin.built : construct(spec)
+  const built = twin ? twin.built : spec.authored ? authoredFor(spec) : construct(spec)
   const { profile, layout, geometry, joints, ashore, bodyLength, neckAlong } = built
   const swimming = spec.posture === 'swimming'
   const amphibious = swimming && !!detail.amphibious
-  const shown = (kind: string) => !!variant && !!detail.parts?.find(p => p.kind === kind)?.versions.includes(variant)
+  const shown = (kind: string) => !!variant && !!spec.detail?.parts?.find(p => p.kind === kind)?.versions.includes(variant)
   const anatomy: Anatomy = { ...built.anatomy, parts: built.anatomy.parts.map(e => ({ ...e, shown: shown(e.kind) })) }
   const { pouch, flightWing } = anatomy
-  const chainNames = detail.rig.neck ? chainBones(detail.rig.neck.length) : null
+  const chainLabels = spec.detail ? spec.detail.rig.neck?.length : spec.authored!.neck
+  const chainNames = chainLabels ? chainBones(chainLabels) : null
   const hipR = anatomy.hip, kneeR = anatomy.knee, footR = anatomy.foot
   const hipMid = hipR.clone().setZ(0)
   const { bones, list } = createBones(joints)
 
-  const mesh = new THREE.SkinnedMesh(geometry, materialFor(spec, variant))
+  const mesh = new THREE.SkinnedMesh(geometry, spec.authored ? authoredMaterial(spec, variant) : materialFor(spec, variant))
   mesh.name = 'skin'
   mesh.castShadow = true
   const group = new THREE.Group()

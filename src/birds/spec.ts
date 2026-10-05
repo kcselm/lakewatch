@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { detailSchema } from './detail/spec'
+import { detailSchema, authoredSchema } from './detail/spec'
 
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb')
 
@@ -23,11 +23,15 @@ export const isProbeStyle = (f: Foraging | undefined): f is ProbeStyle => (PROBE
 export const isSwimStyle = (f: Foraging | undefined): f is SwimStyle => (SWIM_STYLES as readonly (string | undefined)[]).includes(f)
 export const isWadeStyle = (f: Foraging | undefined): f is WadeStyle => (WADE_STYLES as readonly (string | undefined)[]).includes(f)
 
+/** Whether a species is a detailed bird: lofted by the detailed builder (`detail`) or made in Blender (`authored`). */
+export const isDetailed = (spec: { detail?: unknown; authored?: unknown } | undefined): boolean => !!(spec?.detail || spec?.authored)
+
 /**
- * Whether a species' flyover flock flies as detailed birds: any detailed species, unless its detail block keeps its
- * flock to the block bird (`flock: 'block'`, a goose's until it has a wing to fly on).
+ * Whether a species' flyover flock flies as detailed birds: any detailed species, unless it keeps its flock to the
+ * block bird (`flock: 'block'`, a goose's until it has a wing to fly on).
  */
-export const fliesDetailed = (spec: { detail?: { flock?: string } } | undefined): boolean => !!spec?.detail && spec.detail.flock !== 'block'
+export const fliesDetailed = (spec: { detail?: { flock?: string }; authored?: { flock?: string } } | undefined): boolean =>
+  isDetailed(spec) && (spec!.detail ?? spec!.authored)!.flock !== 'block'
 
 export const MARK_KEYS = ['size', 'bill', 'head', 'body', 'legs'] as const
 export type MarkKey = (typeof MARK_KEYS)[number]
@@ -54,7 +58,21 @@ export const speciesSpecSchema = z.object({
   foraging: z.enum(FORAGING).optional(),
   /** present when the species uses the detailed builder */
   detail: detailSchema.optional(),
+  /** present when the species is a detailed bird made in Blender (detail/spec.ts); never with `detail` */
+  authored: authoredSchema.optional(),
 }).superRefine((s, ctx) => {
+  if (s.detail && s.authored) ctx.addIssue({ code: 'custom', message: `${s.code}: a bird is lofted (detail) or authored, not both`, path: ['authored'] })
+  if (s.authored) {
+    if (s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: an authored bird stands or swims, not perched`, path: ['posture'] })
+    if (s.authored.amphibious && s.posture !== 'swimming') ctx.addIssue({ code: 'custom', message: `${s.code}: an amphibious bird is built floating, so its posture is swimming`, path: ['posture'] })
+    // every plumage the cast can ask for has textures
+    for (const k of Object.keys(s.variants)) {
+      if (!s.authored.versions.includes(k)) ctx.addIssue({ code: 'custom', message: `${s.code}: variant ${k} has no textures (authored.versions)`, path: ['authored', 'versions'] })
+    }
+    for (const v of s.authored.versions) {
+      if (!(v in s.variants)) ctx.addIssue({ code: 'custom', message: `${s.code}: authored version ${v} is not one of the species' variants`, path: ['authored', 'versions'] })
+    }
+  }
   // what the detailed builder refuses, refused at load
   if (s.detail && s.posture === 'perched') ctx.addIssue({ code: 'custom', message: `${s.code}: a detail block builds standing and swimming birds only, not perched`, path: ['posture'] })
   if (s.detail && s.posture === 'swimming' && !s.detail.float) ctx.addIssue({ code: 'custom', message: `${s.code}: a swimming bird's detail block needs detail.float, its waterline`, path: ['detail', 'float'] })
