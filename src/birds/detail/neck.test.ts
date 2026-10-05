@@ -130,6 +130,13 @@ describe('the chained neck', () => {
     for (let i = 0; i < RINGS * RADIAL; i++) expect(m.mesh.getVertexPosition(i, v).distanceTo(new THREE.Vector3().fromBufferAttribute(g, i))).toBeLessThan(1e-6)
     expect(() => detailSchema.parse({ ...detail, rig: { ...detail.rig, neckBaseDepth: 1.1 } })).toThrow()
   })
+  it('stretches its first segment along the spine between its first two stations, wherever the base joint sits (Built.neckAlong)', () => {
+    const detail = { ...TEST_HERON_DETAIL, rig: { ...TEST_HERON_DETAIL.rig, neckBaseDepth: 0.8 } }
+    const m = buildDetailedBird({ ...TEST_HERON_SPEC, detail })
+    const spine = (label: string) => m.anatomy.stations.find(s => s.label === label)!.position
+    const [first, second] = TEST_HERON_DETAIL.rig.neck!
+    expect(m.built.neckAlong!.distanceTo(spine(second!).clone().sub(spine(first!)))).toBeLessThan(1e-12)
+  })
   it('parks an unchained neck\'s spare joints at neckMid, so its head hangs from them as it did from neckMid', () => {
     const m = buildDetailedBird(TEST_SPEC)
     for (const b of ['neck3', 'neck4', 'neck5', 'neck6']) expect(boneAt(m, b).distanceTo(boneAt(m, 'neckMid'))).toBeLessThan(1e-12)

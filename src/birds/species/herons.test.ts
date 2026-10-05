@@ -36,7 +36,7 @@ function shapes(S: HeronSettings): Record<string, Patch> {
 /** The top of the back as posed, mm: the highest skin point from the tail to the neck's base (the rig's `neckBase`). */
 function backNow(model: DetailedBirdModel, neckBase: string): number {
   const rings = posedRings(model)
-  const last = Math.floor(model.profile.uOf(neckBase) * (RINGS - 1))
+  const last = Math.floor(model.profile!.uOf(neckBase) * (RINGS - 1))
   let top = -Infinity
   for (let i = 0; i <= last; i++) for (const v of rings[i]!) top = Math.max(top, v.y)
   return top * 1000

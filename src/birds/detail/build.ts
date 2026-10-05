@@ -45,6 +45,8 @@ export interface Anatomy {
   waterline: { back: number; front: number }
   /** skin vertices from the occiput forward (the head) */
   head: THREE.Vector3[]
+  /** the same vertices' indices in the mesh's geometry, to find the crown as posed */
+  crown: number[]
   /** how many rings the skin is lofted from: its first rings × RADIAL vertices are the loft's, ring by ring */
   rings: number
   /** every labelled station's spine point, and the spine itself (101 points, tail to bill base), for the viewer */
@@ -65,7 +67,8 @@ export interface Anatomy {
 export interface DetailedBirdModel extends BirdModel {
   mesh: THREE.SkinnedMesh
   anatomy: Anatomy
-  profile: Profile
+  /** the lofted skin's spine and sections; an authored bird (made in Blender) has none */
+  profile: Profile | null
   layout: LegLayout
   spec: SpeciesSpec
   /** what it shares with every bird of its species; a twin is built from it */
@@ -87,9 +90,16 @@ const LEGS_OUT = 0.25
  * A version-only part is built on every bird, and each bird's own bones show or hide it.
  */
 export interface Built {
-  profile: Profile; layout: LegLayout; geometry: THREE.BufferGeometry; joints: Joints; anatomy: Anatomy
+  profile: Profile | null; layout: LegLayout; geometry: THREE.BufferGeometry; joints: Joints; anatomy: Anatomy
   /** an amphibious bird's root offset standing: hips over the origin, feet on y = 0 */
   ashore: THREE.Vector3
+  /** the body's length along its spine, metres: how far a head pump reaches is a share of it */
+  bodyLength: number
+  /**
+   * A chained neck's first segment as it stretches: from the base joint's station to the next along the spine (the
+   * base joint itself may sit off the spine, rig.neckBaseDepth, but the neck lengthens along it); null without a chain
+   */
+  neckAlong: THREE.Vector3 | null
 }
 
 function construct(spec: SpeciesSpec): Built {
@@ -178,7 +188,7 @@ function construct(spec: SpeciesSpec): Built {
   }
   const headStart = profile.uOf('occiput')
   const neckStart = profile.uOf(detail.rig.neckBase), neckY = spineAt(detail.rig.neckBase).y
-  const headVerts: THREE.Vector3[] = []
+  const headVerts: THREE.Vector3[] = [], crown: number[] = []
   let bodyLowY = Infinity, backTopY = -Infinity
   const breastFront = new THREE.Vector3(-Infinity, 0, 0)
   loft.ringU.forEach((u, i) => {
@@ -189,7 +199,10 @@ function construct(spec: SpeciesSpec): Built {
       if (u <= neckStart && p.y < neckY && p.x > breastFront.x) breastFront.copy(p)
     }
     if (u < headStart) return
-    for (let j = 0; j < RADIAL; j++) headVerts.push(m.position(loft.first + i * RADIAL + j))
+    for (let j = 0; j < RADIAL; j++) {
+      headVerts.push(m.position(loft.first + i * RADIAL + j))
+      crown.push(loft.first + i * RADIAL + j)
+    }
   })
   const water = m.spanAtHeight(0, loft.indexFirst, loft.indexCount) ?? [0, 0]
   const anatomy: Anatomy = {
@@ -199,7 +212,7 @@ function construct(spec: SpeciesSpec): Built {
     wrist: at(fold.wrist), wingTip: at(fold.tip),
     hip: hipR, knee: kneeR, foot: footR, bellyY: layout.bellyY + offset.y,
     bodyLowY, wingLowY: fold.low + offset.y, backTopY, breastFront, waterline: { back: water[0], front: water[1] },
-    head: headVerts, rings: loft.ringU.length,
+    head: headVerts, crown, rings: loft.ringU.length,
     stations: detail.profile.flatMap(s => (s.label ? [{ label: s.label, position: spineAt(s.label) }] : [])),
     spine: Array.from({ length: 101 }, (_, k) => at(profile.sampleAt(k / 100).point)),
     closed: [
@@ -215,7 +228,8 @@ function construct(spec: SpeciesSpec): Built {
     flightWing: flightWing && { first: flightWing.first, count: flightWing.count, wrist: at(flightWing.wrist), tip: at(flightWing.tip) },
     parts: extras.map(e => ({ kind: e.kind, base: at(e.base), top: at(e.top), shown: false })),
   }
-  return { profile, layout, geometry: m.geometry(), joints, anatomy, ashore }
+  const neckAlong = chain ? spineAt(chain[1]!).sub(spineAt(chain[0]!)) : null
+  return { profile, layout, geometry: m.geometry(), joints, anatomy, ashore, bodyLength: profile.length, neckAlong }
 }
 
 /**
@@ -228,7 +242,7 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   if (variant && !(variant in spec.variants)) throw new Error(`${spec.code}: unknown variant ${variant}`)
   if (twin && twin.spec !== spec) throw new Error(`${spec.code}: a twin must be a bird of the same species`)
   const built = twin ? twin.built : construct(spec)
-  const { profile, layout, geometry, joints, ashore } = built
+  const { profile, layout, geometry, joints, ashore, bodyLength, neckAlong } = built
   const swimming = spec.posture === 'swimming'
   const amphibious = swimming && !!detail.amphibious
   const shown = (kind: string) => !!variant && !!detail.parts?.find(p => p.kind === kind)?.versions.includes(variant)
@@ -237,8 +251,6 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   const chainNames = detail.rig.neck ? chainBones(detail.rig.neck.length) : null
   const hipR = anatomy.hip, kneeR = anatomy.knee, footR = anatomy.foot
   const hipMid = hipR.clone().setZ(0)
-  const spineAt = (label: string) => anatomy.stations.find(s => s.label === label)!.position.clone()
-  const chain = detail.rig.neck
   const { bones, list } = createBones(joints)
 
   const mesh = new THREE.SkinnedMesh(geometry, materialFor(spec, variant))
@@ -273,13 +285,12 @@ export function buildDetailedBird(spec: SpeciesSpec, variant?: string, twin?: De
   let anchor = 0
   const headRest = bones.head.position.clone()
   const neckMidRest = bones.neckMid.position.clone()
-  // a chained neck's joints past its base: where each sits from the joint before as traced, and its stretch, the spine
-  // between their stations (the base joint may sit off the spine, rig.neckBaseDepth, but the neck lengthens along it)
+  // a chained neck's joints past its base: where each sits from the joint before as traced, and its stretch (the first
+  // along the built neck's first segment, Built.neckAlong)
   const stretch = detail.neckStretch ?? 1, reachStretch = detail.reachStretch ?? 1
   const chainRest = (chainNames ?? []).slice(1).map((n, i) => [
-    n, bones[n].position.clone(), i === 0 ? spineAt(chain![1]!).sub(spineAt(chain![0]!)) : bones[n].position.clone(),
+    n, bones[n].position.clone(), i === 0 ? neckAlong!.clone() : bones[n].position.clone(),
   ] as const)
-  const bodyLength = profile.length
   // for the reach: the bill tip from the head joint (the head bone carries no rotation at rest), and that line's
   // angle off the bill's own
   const headToTip = anatomy.billTip.clone().sub(joints.head)

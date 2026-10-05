@@ -56,7 +56,7 @@ describe('Mallard: structure', () => {
     within(A.M.length, 320, 400, 'length')
   })
   it('the eye 68-84 mm from the bill tip', () => {
-    const eye = eyePlacement(D, A.model.profile).center, tip = billCenter(D, A.model.profile, 1).p
+    const eye = eyePlacement(D, A.model.profile!).center, tip = billCenter(D, A.model.profile!, 1).p
     within(Math.hypot(eye.x - tip.x, eye.y - tip.y) * 1000, 68, 84, 'eye centre to bill tip')
   })
   it('floats at its measured heights, with 0.35-0.48 of its depth under the water', () => {

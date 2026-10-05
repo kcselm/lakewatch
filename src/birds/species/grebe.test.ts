@@ -69,8 +69,8 @@ describe('Pied-billed Grebe: structure', () => {
       return out
     }
     // the eye's centre, from the profile frame to the group's frame at rest, then carried by the head
-    const end = m.profile.sampleAt(1).point
-    const eye = eyePlacement(GREBE.detail!, m.profile).center
+    const end = m.profile!.sampleAt(1).point
+    const eye = eyePlacement(GREBE.detail!, m.profile!).center
       .add(m.anatomy.billBase.clone().sub(new THREE.Vector3(end.x, end.y, 0)))
       .applyMatrix4(skinning('head').M)
     const chin = Math.min(...wholly('head').map(v => v.y))

@@ -27,6 +27,15 @@ describe('buildDetailedBird', () => {
       expect(nearest, st.label).toBeLessThan(0.004)
     }
   })
+  it('hands the pose code what it reads from the loft in its Built: the body length, the neck, the crown', () => {
+    const m = buildDetailedBird(TEST_SPEC)
+    expect(m.built.bodyLength).toBe(m.profile!.length)
+    // the test bird's neck has no chain
+    expect(m.built.neckAlong).toBeNull()
+    expect(m.anatomy.crown).toHaveLength(m.anatomy.head.length)
+    const v = new THREE.Vector3()
+    m.anatomy.crown.forEach((i, k) => expect(v.fromBufferAttribute(m.mesh.geometry.getAttribute('position') as THREE.BufferAttribute, i).distanceTo(m.anatomy.head[k]!)).toBeLessThan(1e-6))
+  })
   it('builds closed, outward-facing body and bill', () => {
     const m = buildDetailedBird(TEST_SPEC)
     for (const c of m.anatomy.closed) expect(signedVolume(m.mesh.geometry, c.indexFirst, c.indexCount), c.name).toBeGreaterThan(0)

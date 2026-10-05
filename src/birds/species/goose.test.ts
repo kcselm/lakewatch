@@ -38,7 +38,7 @@ const POSES: Record<string, Patch> = {
 /** The top of the back as posed, mm: the highest skin point from the tail to the neck's base (the rig's `neckBase`). */
 function backNow(model: DetailedBirdModel): number {
   const rings = posedRings(model)
-  const last = Math.floor(model.profile.uOf(GOOSE.detail!.rig.neckBase) * (RINGS - 1))
+  const last = Math.floor(model.profile!.uOf(GOOSE.detail!.rig.neckBase) * (RINGS - 1))
   let top = -Infinity
   for (let i = 0; i <= last; i++) for (const v of rings[i]!) top = Math.max(top, v.y)
   return top * 1000
@@ -159,7 +159,7 @@ describe('Canada Goose: plumage', () => {
     expect(a.stats('skin', [a.u(d.rig.neckBase) + 0.02, a.u('occiput')], [0, 1]).mean).toBeLessThan(0.12)
     expect(a.stats('skin', [a.u('occiput'), a.u('billBase')], [0, 0.3]).mean).toBeLessThan(0.12)
     // within 3 cm along the spine either side of the line, black in front and pale behind, low on the neck
-    const cm = 0.03 / (built(GOOSE).model.profile.length)
+    const cm = 0.03 / (built(GOOSE).model.profile!.length)
     expect(a.stats('skin', [a.u(d.rig.neckBase) + cm / 2, a.u(d.rig.neckBase) + cm], [0.7, 1]).mean).toBeLessThan(0.15)
     expect(a.stats('skin', [a.u(d.rig.neckBase) - cm, a.u(d.rig.neckBase) - cm / 2], [0.7, 1]).mean).toBeGreaterThan(0.45)
   })

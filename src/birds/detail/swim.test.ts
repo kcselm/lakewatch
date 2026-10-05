@@ -134,7 +134,7 @@ describe('headBob', () => {
   // A coot's bill travels about 5 cm fore and aft in its head pump and 2-3 cm up and down, rising as it goes forward;
   // on the test duck, scaled from the coot's 0.31 m to its own length.
   const m = buildDetailedBird(TEST_SWIM_SPEC)
-  const L = m.profile.length, scale = L / 0.31
+  const L = m.profile!.length, scale = L / 0.31
   const tipAt = (headBob: number) => { m.pose(posed({ headBob })); m.group.updateMatrixWorld(true); return billTipNow(m).clone() }
 
   it('carries the bill forward and up by half as much: 2-3 cm for 5 cm on a coot-sized bird', () => {

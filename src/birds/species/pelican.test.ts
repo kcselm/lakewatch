@@ -81,7 +81,7 @@ describe('American White Pelican: structure', () => {
     within(billTipNow(A.model).y * 1000, 0, 80)
   })
   it('never folds its skin, traced or posed', () => {
-    expect(worstFold(A.model.profile, detail.rig)).toBe(0)
+    expect(worstFold(A.model.profile!, detail.rig)).toBe(0)
     for (const e of [0, 0.25, 0.5, 0.75, 1]) expect(posedFold(posed({ neckExtend: e })), `neck ${e}`).toBeLessThan(0.001)
     posed({})
   })
