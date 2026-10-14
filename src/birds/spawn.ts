@@ -1,9 +1,9 @@
 import * as THREE from 'three'
-import type { Location, Behavior, LaneZone, Vec3, CastEntry } from '../location/schema'
+import type { Location, Behavior, LaneZone, Vec3, CastEntry, PerchesZone } from '../location/schema'
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
-import { BEHAVIORS, type BehaviorContext, type BehaviorController } from '../behavior'
+import { BEHAVIORS, type BehaviorContext, type BehaviorController, type Perch } from '../behavior'
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
@@ -17,6 +17,7 @@ import { defaultPose, type PoseState, type BirdModel } from './model'
 import type { BirdRegistry } from './registry'
 import type { Wind } from '../world/wind'
 import type { RippleBuffer } from '../world/ripples'
+import type { SplashBuffer } from '../world/splash'
 import type { WorldModule } from '../world/scene'
 
 /** Things the spawner reports outward (audio hooks); every callback is optional. */
@@ -25,6 +26,8 @@ export interface SpawnEvents {
   flockMove?(key: string, x: number, y: number, z: number): void
   flockEnd?(key: string): void
   effect?(name: 'splash' | 'flap', x: number, y: number, z: number): void
+  /** a bird's behaviour asks for its call now: the bird's registry id */
+  call?(id: number): void
 }
 
 export interface SpawnDeps {
@@ -32,6 +35,8 @@ export interface SpawnDeps {
   wind: Wind
   ground: (x: number, z: number) => number
   ripples: RippleBuffer
+  /** where a bird's plunge throws up spray; without it, a plunge makes none */
+  splashes?: SplashBuffer
   seed: number
   events?: SpawnEvents
   /**
@@ -115,13 +120,28 @@ export function flockEntries(loc: Location, rng: Rng): FlockEntry[] {
 const STANDING: Behavior[] = ['wade', 'probe']
 
 /**
- * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, and
- * how it feeds. A species with no spec flaps at 5 Hz.
+ * A perches zone's perches as a bird uses them: each a world point (its height is above the water, y = 0), and its
+ * facing, a compass bearing as the location gives it (0 toward -z, clockwise), turned into a controller's heading.
  */
-export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging'> {
+export function perchesOf(zone: PerchesZone): Perch[] {
+  return zone.perches.map(p => ({
+    name: p.name,
+    position: [p.position[0], p.height, p.position[1]] as Vec3,
+    radius: p.radius,
+    heading: Math.PI / 2 - (p.facing * Math.PI) / 180,
+  }))
+}
+
+/**
+ * What a species brings to its behavior: its code (for a style whose settings differ by species), its wingbeat, how
+ * it feeds, and, for a bird with a flight wing traced upright on its perch, the lean that flies it level (radians, from
+ * its flight.pitch). A species with no spec flaps at 5 Hz.
+ */
+export function speciesTraits(code: string): Pick<BehaviorContext, 'species' | 'wingbeatHz' | 'foraging' | 'flightPitch'> {
   if (!hasSpec(code)) return { species: code, wingbeatHz: 5 }
   const spec = getSpec(code)
-  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging }
+  const pitch = spec.detail?.flight?.pitch
+  return { species: code, wingbeatHz: spec.wingbeatHz, foraging: spec.foraging, ...(pitch !== undefined ? { flightPitch: (pitch * Math.PI) / 180 } : {}) }
 }
 
 interface LiveBird { controller: BehaviorController; pose: PoseState; model: BirdModel }
@@ -161,11 +181,13 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
 
   for (const ind of expandCast(loc, rng)) {
     const zone = loc.zones[ind.zone]!
-    const point = zone.kind === 'point'
-    const perch: Vec3 | undefined = point ? perchFor(ind.zone, zone.position) : undefined
+    // a perching bird sits at its point zone (or takes the next of its perches there); a bird of a perches zone has
+    // them all, and starts on the first
+    const perches = zone.kind === 'perches' ? perchesOf(zone) : undefined
+    const perch: Vec3 | undefined = zone.kind === 'point' ? perchFor(ind.zone, zone.position) : perches?.[0]?.position
     const model = hasSpec(ind.species)
       ? createBirdModel(getSpec(ind.species), ind.variant)
-      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : point ? 'perched' : 'swimming')
+      : buildPlaceholder(ind.species, STANDING.includes(ind.behavior) ? 'standing' : perch ? 'perched' : 'swimming')
     const swim = ind.behavior === 'swim' && zone.kind === 'polygon'
     const traits = speciesTraits(ind.species)
     const company = swim ? companyOf(traits.foraging, ind.species) : undefined
@@ -180,15 +202,19 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       groups.set(key, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
     }
     const group = groups.get(key)!
+    let id = -1                                        // the bird's registry id, once it is added below
     const ctx: BehaviorContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
+      onSplash: (x, z, size) => deps.splashes?.spawn(x, z, size),
+      onCall: () => deps.events?.call?.(id),
       // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
+      perches,
       neighbours: swim ? () => swimmers : heron ? () => herons : undefined,
       // a goose: the zone its family walks out to, and its unit and place in it
       ashore: swim && ind.ashore ? loc.zones[ind.ashore] : undefined,
@@ -205,7 +231,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     // a swimmer floats until its behaviour says otherwise (a goose ashore); every other bird stands
     const pose = defaultPose()
     if (ind.behavior !== 'swim') pose.afloat = 0
-    deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose })
+    id = deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose }).id
     object.add(model.group)
     birds.push({ controller, pose, model })
   }

@@ -63,6 +63,17 @@ export interface Spin {
  */
 export type Neighbour = Pick<BehaviorController, 'x' | 'z' | 'heading' | 'state' | 'spacing' | 'group' | 'submerged'>
 
+/** A perch as a bird on it uses it: where its feet grip, the branch's radius there, and the way it faces the water. */
+export interface Perch {
+  readonly name: string
+  /** world space, the top of the branch; the water is y = 0 */
+  readonly position: Vec3
+  /** metres */
+  readonly radius: number
+  /** radians, as a controller's heading (0 = +x, counter-clockwise seen from above): out over the water, across the branch */
+  readonly heading: number
+}
+
 export interface BehaviorContext {
   zone: Zone
   rng: Rng
@@ -70,11 +81,22 @@ export interface BehaviorContext {
   ground: (x: number, z: number) => number
   /** a ring on the water at (x, z); `size` (0..1, default 1) for a smaller ring than a swimming bird's */
   onRipple?: (x: number, z: number, size?: number) => void
+  /** spray where the bird goes into the water at (x, z); `size` 1, the default, is a kingfisher's plunge (src/world/splash.ts) */
+  onSplash?: (x: number, z: number, size?: number) => void
+  /** asks for the bird's call now; the call scheduler plays it at once if the simultaneous-call cap allows, else drops it */
+  onCall?: () => void
   group?: FlockGroup
-  /** world-space perch point for perch and hover; the spawner resolves it from the point zone */
+  /** world-space perch point for perch and kingfisher; the spawner takes it from the point zone, or a perches zone's first */
   perch?: Vec3
-  /** for behaviors that flap; each behavior applies its own default when unset (perch 5, hover 6) */
+  /** a bird of a perches zone: every perch it may use, the first the one it starts on; the spawner fills it */
+  perches?: readonly Perch[]
+  /** for behaviors that flap; each behavior applies its own default when unset (perch 5) */
   wingbeatHz?: number
+  /**
+   * radians: the lean that flies a bird traced upright on its perch level (its detail's flight.pitch); 0 when unset.
+   * The kingfisher leans from it: up to hover, down to plunge
+   */
+  flightPitch?: number
   /** how the bird feeds; probe treats a missing style as sandpiper, swim as dabbler */
   foraging?: Foraging
   /** the species' code, for a style whose settings differ by species (the dabbler's) */

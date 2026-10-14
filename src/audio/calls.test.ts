@@ -65,6 +65,48 @@ describe('createCallScheduler', () => {
     expect(loud.tick(1e6, birds, 0).map(r => r.id)).toContain(1)
   })
 
+  describe('a call a behaviour asks for', () => {
+    it('plays at once, ahead of the birds whose time has come, nearest first among those asked', () => {
+      const s = createCallScheduler(makeRng(11))
+      const coots = [bird(1, 'y00475', 5), bird(2, 'y00475', 8), bird(3, 'belkin1', 40), bird(4, 'belkin1', 30)]
+      s.tick(0, coots, 0)
+      s.ask(3); s.ask(4)
+      expect(s.tick(1e6, coots, 1).map(r => r.id)).toEqual([4, 3])          // two slots: both asked, none timed
+    })
+    it("plays when nothing is due, with the species' preference", () => {
+      const s = createCallScheduler(makeRng(12))
+      const kf = [bird(3, 'belkin1', 40)]
+      s.tick(0, kf, 0)
+      s.ask(3)
+      expect(s.tick(0.1, kf, 0)).toEqual([{ id: 3, species: 'belkin1', prefer: CALL_SCHEDULES['belkin1']!.prefer }])
+    })
+    it('is dropped, not kept for later, when the cap has no room: a call tied to a moment would be wrong late', () => {
+      const s = createCallScheduler(makeRng(13))
+      const kf = [bird(3, 'belkin1', 40)]
+      s.tick(0, kf, 0)
+      s.ask(3)
+      expect(s.tick(0.1, kf, MAX_SIMULTANEOUS_CALLS)).toEqual([])
+      expect(s.tick(0.2, kf, 0)).toEqual([])
+    })
+    it("puts the bird's next timed call off by a full interval", () => {
+      const s = createCallScheduler(makeRng(14))
+      const kf = [bird(3, 'belkin1', 40)]
+      s.tick(0, kf, 0)
+      s.ask(3)
+      const at = 500
+      expect(s.tick(at, kf, 0)).toHaveLength(1)
+      for (let now = at + 1; now < at + CALL_SCHEDULES['belkin1']!.every[0]; now += 1) expect(s.tick(now, kf, 0)).toEqual([])
+    })
+    it('is not played for a bird not offered (out of sight) or of a species silent here', () => {
+      const s = createCallScheduler(makeRng(15))
+      const birds = [bird(1, 'amwpel', 5)]
+      s.tick(0, birds, 0)
+      s.ask(1); s.ask(9)
+      expect(s.tick(0.1, birds, 0)).toEqual([])
+      expect(s.tick(0.2, [...birds, bird(9, 'belkin1', 30)], 0).map(r => r.id)).toEqual([])   // the ask before it was offered is gone
+    })
+  })
+
   it('is deterministic per seed', () => {
     const run = (seed: number) => {
       const s = createCallScheduler(makeRng(seed))

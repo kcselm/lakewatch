@@ -21,6 +21,11 @@
     "snag":       { "kind": "point",   "position": [22, 0, -48] },
     "stumps":     { "kind": "point",   "position": [-14, 0, -30] },
     "cormorant-water": { "kind": "polygon", "points": [[-22, -24], [-6, -24], [-6, -34], [-22, -34]] },
+    "perches":    { "kind": "perches", "perches": [
+      { "name": "snag", "on": "snag",   "position": [23.70, -48],   "height": 4.07, "radius": 0.054, "facing": 180 },
+      { "name": "near", "on": "branch", "position": [-27.5, -17.5], "height": 2.6,  "radius": 0.018, "facing": 32 },
+      { "name": "side", "on": "branch", "position": [-32.4, -48.1], "height": 3.0,  "radius": 0.018, "facing": 56 }
+    ] },
     "reed-perch":   { "kind": "point", "position": [-8, 1.9, -5] },
     "reed-perch-2": { "kind": "point", "position": [-13, 1.8, -9] },
     "sky":        { "kind": "lane",    "from": [-160, 0, -90], "to": [160, 0, -60], "altitude": [40, 80] }
@@ -35,7 +40,7 @@
     { "species": "grbher3", "behavior": "wade",  "zone": "far-shallows", "count": 2, "plumage": { "adult": 1, "juvenile": 1 } },
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shallows", "count": 2 },
     { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 },
-    { "species": "belkin1", "behavior": "hover", "zone": "snag",         "count": 1, "plumage": "female" },
+    { "species": "belkin1", "behavior": "kingfisher", "zone": "perches", "count": 1, "plumage": "female" },
     { "species": "rewbla",  "behavior": "perch", "zone": "reed-perch",   "count": 1, "plumage": "male" },
     { "species": "marwre",  "behavior": "perch", "zone": "reed-perch-2", "count": 1 },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" },

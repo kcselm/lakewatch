@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { createCallPlayer, type CallEngine, type CallBird } from './callPlayer'
-import type { CallScheduler, CallRequest } from './calls'
+import { createCallScheduler, type CallScheduler, type CallRequest } from './calls'
 import type { Voice } from './engine'
 import { makeRng } from '../catalog/rng'
 
@@ -37,6 +37,7 @@ function fakeScheduler(queue: CallRequest[]) {
   const s: CallScheduler & { offered: typeof offered } = {
     offered,
     tick(_now, birds) { offered.push([...birds]); const out = queue; queue = []; return out },
+    ask() {},
   }
   return s
 }
@@ -101,6 +102,48 @@ describe('createCallPlayer', () => {
     const p = createCallPlayer({ engine, registry, birdOf: () => coot, listenerPosition: () => new THREE.Vector3(0, 0, 0), rng: makeRng(1), scheduler })
     p.update(1)
     expect(scheduler.offered[0]).toEqual([{ id: 1, species: 'y00475', distance: 10 }])
+  })
+
+  it('plays a call its behaviour asks for at once, at the bird, and keeps the sound on the bird as it flies', async () => {
+    const engine = fakeEngine(true)
+    const registry = fakeRegistry([{ id: 1, species: 'belkin1', at: [22, 4, -48] }])
+    const p = createCallPlayer({ engine, registry, birdOf: () => coot, listenerPosition: () => new THREE.Vector3(), rng: makeRng(1), scheduler: createCallScheduler(makeRng(2)) })
+    p.update(1 / 60)
+    expect(engine.load).not.toHaveBeenCalled()             // its first timed call is some way off
+    p.ask(1)
+    p.update(1 / 60)
+    expect(engine.load).toHaveBeenCalledTimes(1)
+    await flush()
+    expect(engine.voices[0]!.position.toArray()).toEqual([22, 4, -48])
+    const group = registry.get(1)!.model.group
+    group.position.set(18, 1, -40)
+    group.updateMatrixWorld()
+    p.update(1 / 60)
+    expect((engine.voices[0]!.voice.follow.mock.calls.at(-1)![0] as THREE.Vector3).toArray()).toEqual([18, 1, -40])
+  })
+
+  it('lets an ask go while the audio is locked, and while the bird is already calling', async () => {
+    const engine = fakeEngine(false)
+    const registry = fakeRegistry([{ id: 1, species: 'belkin1', at: [22, 4, -48] }])
+    const p = createCallPlayer({ engine, registry, birdOf: () => coot, listenerPosition: () => new THREE.Vector3(), rng: makeRng(1), scheduler: createCallScheduler(makeRng(2)) })
+    p.ask(1)
+    p.update(1 / 60)
+    ;(engine as { unlocked: boolean }).unlocked = true
+    p.update(1 / 60)
+    expect(engine.load).not.toHaveBeenCalled()             // the ask from before the audio started is gone
+    p.ask(1)
+    p.update(1 / 60)
+    p.ask(1)                                               // still loading: one rattle at a time
+    p.update(1 / 60)
+    await flush()
+    p.ask(1)                                               // sounding
+    p.update(1 / 60)
+    expect(engine.load).toHaveBeenCalledTimes(1)
+    engine.voices[0]!.voice.stop()
+    p.update(1 / 60)
+    p.ask(1)
+    p.update(1 / 60)
+    expect(engine.load).toHaveBeenCalledTimes(2)
   })
 
   it('does not play for a bird that left the registry while its clip loaded', async () => {

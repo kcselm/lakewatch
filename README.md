@@ -50,7 +50,15 @@ and full; `PoseState.pouch` fills it) and `flight` (a wing to fly on: its
 span, planform, wrist, fingered tips, wingbeat and glide; `PoseState.glide`
 holds it still). A flyover flock of a detailed species is one skinned bird a
 member, all on one mesh; its settings (speed, spacing, flap-and-glide bouts)
-are in `src/behavior/flyover.ts`. A cast entry can give exact counts per
+are in `src/behavior/flyover.ts`. A perched species (the Belted Kingfisher) gives `perch` (its branch's radius, and
+`top`, where the traced photo's feet stand); its toes curl round the branch and its body leans about its feet. Its
+`flight` block may add a `hover` stroke (`PoseState.wingStroke` blends it with the beat), a `pitch`, a swept
+`glide`, and a `fold` that lays the spread wing along the folded one; `PoseState.legsUp` draws its legs up in
+flight. A `crest` part is raised by `PoseState.crestRaise`, `fish` gives the length of a fish held in the bill
+(`PoseState.fish`, `fishTurn`), `tail.fan` the angle of a fully fanned tail (`PoseState.tailSpread`), and
+`PoseState.headYaw` turns the head. The kingfisher works a `perches` zone (named branches over the water) and
+asks for its rattle through the call scheduler; its settings are in `src/behavior/kingfisher.ts`, and spray where a
+bird plunges in `src/world/splash.ts`. A cast entry can give exact counts per
 plumage version, for a flock of a detailed species too.
 A detailed species may instead be made in Blender: an `authored` block (in
 place of `detail`) names its `model`, its `versions`, and how it moves (the
@@ -75,8 +83,8 @@ number from `docs/research/2026-09-30-lake-water.md`.
 `npm run dev`, then `/viewer.html`, opens the model viewer: any two
 species at true scale, through the game's optics, over a reference photo.
 On the dev server only, `window.__lakewatch` lists the birds in the scene
-(`birds()`) and turns the view to a point (`lookAt(x, y, z)`), so a capture
-script can aim at a bird.
+(`birds()`), turns the view to a point (`lookAt(x, y, z)`), so a capture
+script can aim at a bird, and starts a spray on the water (`splash(x, z)`).
 
 ### Harvest
 

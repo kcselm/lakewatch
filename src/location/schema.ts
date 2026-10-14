@@ -10,9 +10,26 @@ const laneZone = z.object({
   kind: z.literal('lane'), from: vec3, to: vec3,
   altitude: z.tuple([z.number(), z.number()]),
 })
-const zoneSchema = z.discriminatedUnion('kind', [polygonZone, pointZone, laneZone])
+/**
+ * A perch over the water. `position` is where a bird's feet grip it, the top of the branch, as [x, z], and `height` how
+ * far that is above the water (y = 0); `radius` is the branch's there. `facing` is the compass bearing a bird on it faces,
+ * out over the water, in degrees as the vantage's heading is (0 toward -z, 90 toward +x); the branch runs across it.
+ * `on` says what the perch is: a branch of the snag (the `snag` point zone's dead tree), or a dead branch of its own,
+ * built from this entry.
+ */
+const perch = z.object({
+  name: z.string().min(1),
+  on: z.enum(['snag', 'branch']),
+  position: vec2,
+  height: z.number().positive(),
+  radius: z.number().positive(),
+  facing: z.number().min(0).lt(360),
+})
+/** Every perch one bird moves between; the first is where it starts. */
+const perchesZone = z.object({ kind: z.literal('perches'), perches: z.array(perch).min(1, 'perches needs at least one perch') })
+const zoneSchema = z.discriminatedUnion('kind', [polygonZone, pointZone, laneZone, perchesZone])
 
-export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'hover'])
+export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'kingfisher'])
 
 const castEntry = z.object({
   species: z.string().min(1),
@@ -60,6 +77,8 @@ export type Zone = z.infer<typeof zoneSchema>
 export type PolygonZone = z.infer<typeof polygonZone>
 export type PointZone = z.infer<typeof pointZone>
 export type LaneZone = z.infer<typeof laneZone>
+export type PerchesZone = z.infer<typeof perchesZone>
+export type PerchEntry = z.infer<typeof perch>
 export type Behavior = z.infer<typeof behaviorSchema>
 export type CastEntry = z.infer<typeof castEntry>
 export type Location = Omit<z.infer<typeof locationSchema>, 'habitat'> & { habitat: Habitat }

@@ -1,8 +1,9 @@
-import { expandCast, flockEntries, spawnCast, speciesTraits, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
+import { expandCast, flockEntries, spawnCast, speciesTraits, perchesOf, DEFAULT_FLOCK_EVERY, type SpawnEvents } from './spawn'
 import { makeRng } from '../catalog/rng'
 import { BirdRegistry, type BirdInstance } from './registry'
 import { Wind } from '../world/wind'
 import { RippleBuffer } from '../world/ripples'
+import { SplashBuffer } from '../world/splash'
 import type { Location } from '../location/schema'
 import { STYLES } from '../behavior/probe'
 import { MALLARD } from '../behavior/dabbler'
@@ -65,12 +66,12 @@ describe('expandCast', () => {
     ]), makeRng(5))
     expect(new Set(out.map(b => b.groupKey)).size).toBe(2)
   })
-  it('expands perch and hover entries like any other individual', () => {
+  it('expands perch and kingfisher entries like any other individual', () => {
     const out = expandCast(loc([
-      { species: 'belkin1', behavior: 'hover', zone: 'snag', count: 1, plumage: 'female' },
+      { species: 'belkin1', behavior: 'kingfisher', zone: 'snag', count: 1, plumage: 'female' },
       { species: 'rewbla', behavior: 'perch', zone: 'snag', count: 2, plumage: 'male' },
     ]), makeRng(6))
-    expect(out.map(b => [b.behavior, b.variant])).toEqual([['hover', 'female'], ['perch', 'male'], ['perch', 'male']])
+    expect(out.map(b => [b.behavior, b.variant])).toEqual([['kingfisher', 'female'], ['perch', 'male'], ['perch', 'male']])
   })
 })
 
@@ -383,6 +384,101 @@ describe('spawnCast divers', () => {
       expect(bird.model.group.visible).toBe(true)
     } finally {
       BEHAVIORS.swim = real
+    }
+  })
+})
+
+describe('spawnCast perches', () => {
+  const perchLoc = (behavior: 'kingfisher' = 'kingfisher'): Location => ({
+    ...loc([{ species: 'belkin1', behavior, zone: 'perches', count: 1, plumage: 'female' }]),
+    zones: {
+      perches: {
+        kind: 'perches', perches: [
+          { name: 'snag', on: 'snag', position: [23.7, -48], height: 4.1, radius: 0.05, facing: 180 },
+          { name: 'near', on: 'branch', position: [-27, -17], height: 2.6, radius: 0.018, facing: 33 },
+        ],
+      },
+    },
+  })
+  const deps = () => ({ registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed: 1 })
+
+  it('turns each perch into a world point and the heading a bird on it faces', () => {
+    const zone = perchLoc().zones['perches']
+    if (zone?.kind !== 'perches') throw new Error('perches')
+    const out = perchesOf(zone)
+    expect(out.map(p => [p.name, p.position, p.radius])).toEqual([['snag', [23.7, 4.1, -48], 0.05], ['near', [-27, 2.6, -17], 0.018]])
+    // a heading is 0 toward +x and counter-clockwise from above; a bearing 0 toward -z and clockwise
+    expect(Math.cos(out[0]!.heading)).toBeCloseTo(0, 9)       // facing 180: toward +z
+    expect(-Math.sin(out[0]!.heading)).toBeCloseTo(1, 9)
+    expect(Math.cos(out[1]!.heading)).toBeCloseTo(Math.sin(33 * Math.PI / 180), 9)
+    expect(-Math.sin(out[1]!.heading)).toBeCloseTo(-Math.cos(33 * Math.PI / 180), 9)
+  })
+  it('hands the bird the whole list, and the first perch as the one it starts on', () => {
+    const real = BEHAVIORS.kingfisher
+    const seen: unknown[] = []
+    BEHAVIORS.kingfisher = (ctx, x, z): BehaviorController => {
+      seen.push(ctx.perches, ctx.perch, [x, z])
+      return { name: 'kingfisher', state: 'perch', x, y: 0, z, heading: 0, update() {} }
+    }
+    try {
+      spawnCast(perchLoc(), deps())
+    } finally {
+      BEHAVIORS.kingfisher = real
+    }
+    const zone = perchLoc().zones['perches']
+    if (zone?.kind !== 'perches') throw new Error('perches')
+    expect(seen).toEqual([perchesOf(zone), [23.7, 4.1, -48], [23.7, -48]])
+  })
+  it("starts the kingfisher on the first perch, facing the water", () => {
+    const d = deps()
+    const world = spawnCast(perchLoc(), d)
+    world.update(1 / 30, d.wind)
+    const bird = d.registry.all()[0]!
+    expect(bird.model.group.position.toArray()).toEqual([23.7, 4.1, -48])
+    // facing 180, toward +z: a heading of -PI/2
+    expect(bird.model.group.rotation.y).toBeCloseTo(-Math.PI / 2, 9)
+  })
+})
+
+describe('spawnCast spray and calls', () => {
+  it("hands a behaviour's spray on to the spray buffer, and its call to the events with the bird's registry id", () => {
+    // a stand-in kingfisher that plunges and calls when told to
+    const real = BEHAVIORS.kingfisher
+    let plunge = false
+    BEHAVIORS.kingfisher = (ctx, x, z): BehaviorController => ({
+      name: 'kingfisher', state: 'x', x, y: 0, z, heading: 0,
+      update() { if (plunge) { ctx.onSplash?.(x + 1, z + 2, 0.5); ctx.onCall?.(); plunge = false } },
+    })
+    try {
+      const calls: number[] = []
+      const deps = {
+        registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1,
+        ripples: new RippleBuffer(), splashes: new SplashBuffer(makeRng(1)), seed: 1, events: { call: (id: number) => calls.push(id) },
+      }
+      const world = spawnCast(loc([
+        { species: 'y00475', behavior: 'swim', zone: 'w', count: 2 },
+        { species: 'belkin1', behavior: 'kingfisher', zone: 'snag', count: 1, plumage: 'female' },
+      ]), deps)
+      world.update(1 / 30, deps.wind)
+      expect(deps.splashes.sprays).toHaveLength(0)
+      plunge = true
+      world.update(1 / 30, deps.wind)
+      expect(deps.splashes.sprays.map(s => [s.x, s.z, s.size])).toEqual([[2, 5, 0.5]])     // the snag's point is (1, 2, 3)
+      const kingfisher = deps.registry.all().find(b => b.species === 'belkin1')!
+      expect(calls).toEqual([kingfisher.id])
+    } finally {
+      BEHAVIORS.kingfisher = real
+    }
+  })
+  it('spawns a cast without a spray buffer or a call hook, and a splash then goes nowhere', () => {
+    const real = BEHAVIORS.kingfisher
+    BEHAVIORS.kingfisher = (ctx, x, z): BehaviorController => ({ name: 'kingfisher', state: 'x', x, y: 0, z, heading: 0, update() { ctx.onSplash?.(x, z); ctx.onCall?.() } })
+    try {
+      const deps = { registry: new BirdRegistry(), wind: new Wind({ direction: 0, strength: 0.3, gustiness: 0.5, seed: 1 }), ground: () => -1, ripples: new RippleBuffer(), seed: 1 }
+      const world = spawnCast(loc([{ species: 'belkin1', behavior: 'kingfisher', zone: 'snag', count: 1 }]), deps)
+      expect(() => world.update(1 / 30, deps.wind)).not.toThrow()
+    } finally {
+      BEHAVIORS.kingfisher = real
     }
   })
 })

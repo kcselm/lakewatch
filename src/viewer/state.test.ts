@@ -3,7 +3,7 @@ import { parseState, stateHash, type ViewerState } from './state'
 const DEFAULTS: ViewerState = {
   a: 'greyel', av: '', b: 'lesyel', bv: '', view: 'side', field: '',
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
-  pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, dry: 0, prop: 0,
+  pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, dry: 0, prop: 0, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
 }
 
@@ -40,7 +40,26 @@ describe('viewer state', () => {
   it('round-trips the cormorant controls: on its feet, the body raised, the wings held out to dry, the tail propped', () => {
     const s: ViewerState = { ...DEFAULTS, a: 'doccor', afloat: 0, lean: -0.7, dry: 1, prop: 1 }
     expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
-    expect(parseState('#lean=-2&dry=4&prop=-1', DEFAULTS)).toMatchObject({ lean: -0.9, dry: 1, prop: 0 })
+    expect(parseState('#lean=-2&dry=4&prop=-1', DEFAULTS)).toMatchObject({ lean: -1, dry: 1, prop: 0 })
+  })
+  it('round-trips the kingfisher controls: a hover, the tail fanned, the head turned, the crest up, a fish turned to swallow, the legs tucked', () => {
+    const s: ViewerState = {
+      ...DEFAULTS, a: 'testflier', b: 'testpercher', spread: 1, stroke: 0.8, flap: true, glide: 0.3, lean: -0.17,
+      fan: 0.7, yaw: -0.6, crest: 1, fish: 1, turn: 0.4, legs: 1,
+    }
+    expect(parseState(stateHash(s), DEFAULTS)).toEqual(s)
+  })
+  it('clamps the kingfisher controls: the head turned no further than 1.6 rad either way, the body leaned back no further than 1 rad', () => {
+    const s = parseState('#stroke=2&fan=-1&yaw=-3&crest=9&fish=2&turn=-1&legs=5&lean=-2', DEFAULTS)
+    expect([s.stroke, s.fan, s.yaw, s.crest, s.fish, s.turn, s.legs, s.lean]).toEqual([1, 0, -1.6, 1, 1, 0, 1, -1])
+    expect(parseState('#yaw=3', DEFAULTS).yaw).toBe(1.6)
+  })
+  it('reads a link from the pelican round exactly as it read then, the kingfisher controls at rest', () => {
+    const old = '#a=amwpel&av=&b=lesyel&bv=&view=below&field=bino120&neck=0&lean=0.2&spread=1&phase=0.3&reach=0&depth=0&angle=1.5707963267948966'
+      + '&paddle=0&sink=0&bob=0&tail=0&pitch=0&pouch=0.7&glide=0.4&raise=60&speed=0.35&water=0&walk=0&flap=1&float=0&see=0&wire=0&skel=0&uv=0&atlas=0&stations=0'
+    expect(parseState(old, DEFAULTS)).toEqual({
+      ...DEFAULTS, a: 'amwpel', view: 'below', field: 'bino120', neck: 0, lean: 0.2, spread: 1, phase: 0.3, pouch: 0.7, glide: 0.4, raise: 60, flap: true,
+    })
   })
   it('falls back from a species or plumage the catalog lacks', () => {
     const catalog = { has: (c: string) => ['greyel', 'lesyel', 'mallar3'].includes(c), variants: (c: string) => (c === 'mallar3' ? ['male', 'female'] : []) }

@@ -22,9 +22,9 @@ describe('parseSpeciesSpec', () => {
     const { legs: _drop, ...marks } = coot.marks
     expect(() => parseSpeciesSpec({ ...coot, marks })).toThrow(/legs/)
   })
-  it('rejects a detail block the builder would refuse, naming the species: a swimmer with no waterline, a percher', () => {
+  it('rejects a detail block the builder would refuse, naming the species: a swimmer with no waterline, a percher with no perch', () => {
     expect(() => parseSpeciesSpec({ ...coot, detail: { ...coot.detail!, float: undefined } })).toThrow(/y00475.*detail\.float/)
-    expect(() => parseSpeciesSpec({ ...killdeer, posture: 'perched' })).toThrow(/killde.*perched/)
+    expect(() => parseSpeciesSpec({ ...killdeer, posture: 'perched' })).toThrow(/killde.*detail\.perch/)
     // with no detail block, either posture is the block builder's, as ever
     expect(parseSpeciesSpec({ ...killdeer, posture: 'perched', detail: undefined }).posture).toBe('perched')
     expect(parseSpeciesSpec({ ...coot, detail: undefined }).posture).toBe('swimming')

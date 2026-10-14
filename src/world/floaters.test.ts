@@ -83,7 +83,7 @@ describe('the whole cast in the water', () => {
     for (const seed of [42, 7, 11]) {
       const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
       const registry = new BirdRegistry()
-      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { snag: [22, 3, -48], stumps: stumpPerches([-14, 0, -30]) } })
+      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { stumps: stumpPerches([-14, 0, -30]) } })
       const tracker = new FloaterTracker()
       let most = 0, fewest = Infinity, fastest = 0
       for (let i = 0; i < 120 * 10; i++) {

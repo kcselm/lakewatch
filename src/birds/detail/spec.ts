@@ -4,8 +4,10 @@ const hex = z.string().regex(/^#[0-9a-f]{6}$/i, 'expected #rrggbb')
 const pos = z.number().positive()
 const unit = z.number().min(0).max(1)
 const range = z.tuple([unit, unit])
+/** a crest's tuft: see detailSchema's `parts` */
+const crestLobe = z.object({ at: z.string(), dx: z.number().optional(), length: pos, lie: z.number().min(-45).max(45) })
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch'] as const
+export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest'] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -30,7 +32,7 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch']), s: range.optional(), t: range.optional() }),
+  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest']), s: range.optional(), t: range.optional() }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -161,8 +163,14 @@ export const detailSchema = z.object({
     /** [s, height as a fraction of the chord], s from wrist (0) to tip (1) */
     outline: z.array(z.tuple([unit, z.number().min(0)])).min(3),
   }),
-  /** 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone */
-  tail: z.object({ shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional() }),
+  /**
+   * 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone.
+   * `fan`: degrees between the outer feathers with the tail fully fanned (PoseState.tailSpread 1), each column of
+   * feathers turning about its own root on a bone of its own; without it the tail never fans.
+   */
+  tail: z.object({
+    shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional(), fan: z.number().min(0).max(180).optional(),
+  }),
   /** 'webbed': a membrane between the three front toes (ducks); 'lobed': a flap along each toe segment (Coot, grebes) */
   feet: z.enum(['webbed', 'lobed']).optional(),
   /** lobed feet: how wide the middle toe is across its lobes at their widest, metres (default 0.2 × measurements.toe) */
@@ -175,13 +183,24 @@ export const detailSchema = z.object({
    * long trailing back from the top of the head at the station `at`, `droop` degrees below the horizontal in the
    * traced side view and sagging a little further toward their tips, on a bone that hangs from the head, so they go
    * wherever the head goes.
-   * Painted as the parts 'curl' and 'plume'. One part of each kind.
+   * 'crest': a shaggy crest in two `lobes`, a tuft at each lobe's station `at` (`dx` metres forward along the spine),
+   * each a few tapering strands `length` metres long, lying back `lie` degrees above straight back in the traced side
+   * view; each lobe on a bone of its own that hangs from the head ('crest' the first, 'crestBack' the second), which
+   * PoseState.crestRaise turns up about the lobe's base by `raise` degrees. A crest that names no `versions` is on every
+   * bird of the species.
+   * Painted as the parts 'curl', 'plume' and 'crest'. One part of each kind.
    */
   parts: z.array(z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('curl'), at: z.string(), dx: z.number().optional(), height: pos, versions: z.array(z.string().min(1)).min(1) }),
     z.object({
       kind: z.literal('plume'), at: z.string(), dx: z.number().optional(), length: pos,
       droop: z.number().min(-30).max(90), versions: z.array(z.string().min(1)).min(1),
+    }),
+    z.object({
+      kind: z.literal('crest'),
+      lobes: z.tuple([crestLobe, crestLobe]),
+      raise: z.number().min(0).max(60),
+      versions: z.array(z.string().min(1)).min(1).optional(),
     }),
   ])).optional(),
   stepLength: pos.optional(),
@@ -192,6 +211,18 @@ export const detailSchema = z.object({
    * bird in the reference photo. The builder puts it at y = 0. Required for a species whose posture is 'swimming'.
    */
   float: z.object({ waterline: z.number() }).optional(),
+  /**
+   * A percher's branch: its radius, metres, and optionally `top`, the height of the branch's top under the hips in the
+   * traced side view (the profile frame), where the reference photo's feet stand. The builder sets the bird's feet on
+   * the branch's top at y = 0 and curls its toes round it: reaching down to `top` as far as the legs allow, or without
+   * it crouched. Required for a species whose posture is 'perched', and only for one.
+   */
+  perch: z.object({ radius: pos, top: z.number().optional() }).optional(),
+  /**
+   * A fish the bird can hold in its bill (PoseState.fish), crosswise or turned to swallow (PoseState.fishTurn): its
+   * length, metres. One fish shape serves every bird, scaled to this.
+   */
+  fish: z.object({ length: pos }).optional(),
   /**
    * A swimmer that also stands and walks (a goose): one bird, built floating on its waterline, with its legs built
    * standing from `measurements`, so `PoseState.afloat` takes it from its float (1) to its feet (0). Needs `float`.
@@ -218,10 +249,24 @@ export const detailSchema = z.object({
    *   the slots between them opening until, at the tip, each feather keeps `fill` of its share of the chord.
    * - `beat`: a wingbeat, degrees: the inner wing swings `shoulder` either side of `lift` (positive: up), the hand
    *   `hand` either side of the inner wing's line, `lag` of a beat behind it.
-   * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's.
+   * - `glide`: the wing held still, degrees: the inner wing's angle above level, and the hand's from the inner wing's;
+   *   and, if `sweep` says so, the inner wing swept at the shoulder and the hand at the wrist (positive: forward), the
+   *   half-closed wing of a kingfisher's glide. PoseState.glide eases the wing into it.
    * - `dry`: the wing held out to dry (a cormorant's), degrees: the inner wing swept `sweep` back and raised `shoulder`
    *   above level, the hand swept `handSweep` further back and turned `hand` from the inner wing's line (negative:
    *   hanging). PoseState.dry holds it; a bird without it ignores PoseState.dry.
+   * - `pitch`: degrees the body's long axis rises toward the head at the shoulder, in the traced side view (default 0).
+   *   The wing is laid out in the body's plane, its chord along that axis, and turns about the body's own axes: a
+   *   bird traced upright on a perch flies with its wing where its body has it, once its lean levels the body.
+   * - `hover`: a second stroke, of the shape of `beat`, with the inner wing also sweeping `sweep` either side of square
+   *   about the body's vertical axis, forward on the downstroke and back on the upstroke. PoseState.wingStroke blends
+   *   from `beat` (0) to it (1). The body's tilt, set through its lean, tips the stroke plane toward the horizontal.
+   * - `fold`: how the wing closes as PoseState.wingSpread falls, degrees at the closed end: the inner wing swept at the
+   *   shoulder and the hand at the wrist (positive: forward; a fold sweeps back) about the body's vertical axis, and
+   *   each twisted about its own span (positive: the leading edge up), so the wing lies back along the flank. Its
+   *   feathers gather onto the folded wing's place as it closes (the geometry's 'fold' morph target), and the folded
+   *   wing takes over where the two coincide. Without it the wing opens all at once, its stroke growing with
+   *   wingSpread, and the swap comes at 0.05.
    * Painted as 'wingSpread' above and 'wingUnder' below: s along the span, t from the leading edge (0) to the trailing.
    */
   flight: z.object({
@@ -231,10 +276,23 @@ export const detailSchema = z.object({
     wrist: z.number().min(0.2).max(0.8),
     fingers: z.object({ count: z.number().int().min(2).max(8), from: z.number().min(0.5).max(0.95), fill: z.number().min(0.3).max(0.95) }).optional(),
     beat: z.object({ shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit }),
-    glide: z.object({ shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45) }),
+    glide: z.object({
+      shoulder: z.number().min(-30).max(30), hand: z.number().min(-45).max(45),
+      sweep: z.object({ shoulder: z.number().min(-60).max(30), hand: z.number().min(-90).max(30) }).optional(),
+    }),
     dry: z.object({
       shoulder: z.number().min(-30).max(80), sweep: z.number().min(0).max(80),
       hand: z.number().min(-90).max(30), handSweep: z.number().min(0).max(90),
+    }).optional(),
+    pitch: z.number().min(-60).max(60).optional(),
+    hover: z.object({
+      shoulder: z.number().min(0).max(80), lift: z.number().min(-30).max(30), hand: z.number().min(0).max(80), lag: unit,
+      sweep: z.number().min(0).max(45),
+    }).optional(),
+    // the hand's fold is held under 120° either way, so where the skin blends across the wrist it never turns inside out
+    fold: z.object({
+      sweep: z.object({ shoulder: z.number().min(-150).max(30), hand: z.number().min(-120).max(30) }),
+      twist: z.object({ shoulder: z.number().min(-120).max(120), hand: z.number().min(-120).max(120) }),
     }).optional(),
   }).optional(),
   plumage: z.array(layerSchema),
@@ -249,6 +307,7 @@ export const detailSchema = z.object({
     if (i > 0 && s <= list[i - 1]![0]) ctx.addIssue({ code: 'custom', message: 'flight outline points must run from the shoulder to the tip', path: ['flight', 'outline', i] })
     if (trail > lead) ctx.addIssue({ code: 'custom', message: "the wing's trailing edge lies behind its leading edge", path: ['flight', 'outline', i] })
   })
+  if (d.tail.fan !== undefined && d.tail.shape === 'none') ctx.addIssue({ code: 'custom', message: 'a bird without a tail has none to fan', path: ['tail', 'fan'] })
   if (d.flight && (d.flight.outline[0]![0] !== 0 || d.flight.outline.at(-1)![0] !== 1)) {
     ctx.addIssue({ code: 'custom', message: 'the flight outline runs from s = 0 to s = 1', path: ['flight', 'outline'] })
   }
@@ -263,9 +322,10 @@ export const detailSchema = z.object({
   need('occiput', ['profile'])
   need('eye', ['profile'])
   d.parts?.forEach((p, i) => {
-    need(p.at, ['parts', i, 'at'])
+    if (p.kind === 'crest') p.lobes.forEach((l, k) => need(l.at, ['parts', i, 'lobes', k, 'at']))
+    else need(p.at, ['parts', i, 'at'])
     if (d.parts!.findIndex(q => q.kind === p.kind) !== i) ctx.addIssue({ code: 'custom', message: `more than one ${p.kind}`, path: ['parts', i] })
-    for (const v of p.versions) {
+    for (const v of p.versions ?? []) {
       if (!(v in d.variants)) ctx.addIssue({ code: 'custom', message: `part version ${v} is not one of detail.variants`, path: ['parts', i, 'versions'] })
     }
   })

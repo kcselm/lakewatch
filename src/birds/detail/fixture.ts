@@ -169,6 +169,105 @@ export const TEST_HERON_SPEC: SpeciesSpec = parseSpeciesSpec({
 })
 
 /**
+ * A test percher for the perched posture: about a Belted Kingfisher's size (docs/research/2026-09-30-belted-kingfisher.md,
+ * sections 2.6, 6 and 9: 325 mm bill tip to tail tip with the body 31° below level toward the tail, the eye 124 mm
+ * above the perch's top, the tail tip 157 mm behind it and 47 mm below, the bill 4° below level), a big head on a short
+ * neck, on a branch 35 mm across. Its outline is set by eye from those numbers for the builder's tests, not traced: the
+ * kingfisher's own tracing never breaks them.
+ */
+export const TEST_PERCHER_DETAIL: DetailSpec = {
+  measurements: {
+    length: 0.325, culmen: 0.0595, billDepth: 0.016, billWidth: 0.011,
+    tarsus: 0.0114, tibia: 0.008, toe: 0.0158, wingChord: 0.164, tail: 0.093,
+  },
+  profile: [
+    { label: 'rear',     x: -0.092, y: -0.065, up: 0.005, down: 0.005, halfWidth: 0.006 },
+    { label: 'rump',     x: -0.084, y: -0.059, up: 0.010, down: 0.010, halfWidth: 0.012 },
+    { label: 'tailBase', x: -0.073, y: -0.051, up: 0.016, down: 0.016, halfWidth: 0.018 },
+    { label: 'hip',      x: 0,      y: 0,      up: 0.030, down: 0.032, halfWidth: 0.026 },
+    { label: 'flank',    x: 0.010,  y: 0.015,  up: 0.030, down: 0.033, halfWidth: 0.027 },
+    { label: 'breast',   x: 0.018,  y: 0.030,  up: 0.027, down: 0.031, halfWidth: 0.025 },
+    { label: 'neckBase', x: 0.022,  y: 0.045,  up: 0.020, down: 0.023, halfWidth: 0.020 },
+    { label: 'neckMid',  x: 0.025,  y: 0.056,  up: 0.018, down: 0.020, halfWidth: 0.018 },
+    { label: 'nape',     x: 0.028,  y: 0.064,  up: 0.019, down: 0.019, halfWidth: 0.019 },
+    { label: 'occiput',  x: 0.033,  y: 0.071,  up: 0.020, down: 0.019, halfWidth: 0.020 },
+    { label: 'crown',    x: 0.041,  y: 0.076,  up: 0.020, down: 0.019, halfWidth: 0.021 },
+    { label: 'eye',      x: 0.051,  y: 0.079,  up: 0.018, down: 0.018, halfWidth: 0.020 },
+    { label: 'lores',    x: 0.064,  y: 0.079,  up: 0.012, down: 0.012, halfWidth: 0.013 },
+    { label: 'billBase', x: 0.072,  y: 0.078,  up: 0.008, down: 0.008, halfWidth: 0.0055 },
+  ],
+  rig: { neckBase: 'neckBase', neckMid: 'neckMid', head: 'occiput', hip: 'hip', tailBase: 'tailBase' },
+  bill: { taper: 1, curve: -0.01 },
+  eye: { radius: 0.0045, t: 0.4, iris: '#3a2618' },
+  wing: {
+    wrist: [0.02, 0.03], droop: 40,
+    outline: [[0, 0.05], [0.16, 0.17], [0.36, 0.18], [0.55, 0.16], [0.74, 0.094], [0.93, 0.036], [1, 0.01]],
+  },
+  // fanned to 140° at tailSpread 1, the braking bird's widest, so a hover's 100° is about 0.7
+  // (kingfisher-flight-and-plunge.md, sections 4.3 and 8.3)
+  tail: { shape: 'square', angle: 9, fan: 140 },
+  perch: { radius: 0.0175 },
+  // the research's double crest, a tuft at the crown and one at the occiput, lying back along the head and raised 35°
+  // (belted-kingfisher.md, section 5.2: 30-40°), its top about 20 mm above the eye's centre lowered and 30 raised
+  // (section 10); and its 80 mm fish (section 7.1). Lengths and lies set by eye to those numbers
+  parts: [{
+    kind: 'crest',
+    lobes: [{ at: 'crown', dx: 0.004, length: 0.024, lie: 18 }, { at: 'occiput', dx: -0.002, length: 0.028, lie: -25 }],
+    raise: 35,
+  }],
+  fish: { length: 0.08 },
+  plumage: [
+    { kind: 'base', where: { part: 'skin', from: 'rear', to: 'billBase' }, top: '#5a7a96', side: '#6f8ba3', bottom: '#f2f0ea' },
+    { kind: 'fill', where: { part: 'wingFold' }, color: '#55728c' },
+    { kind: 'fill', where: { part: 'bill' }, color: '#2a2a2c' },
+    { kind: 'fill', where: { part: 'legs' }, color: '#5c5650' },
+    { kind: 'fill', where: { part: 'crest' }, color: '#55728c' },
+  ],
+  variants: {},
+  sources: ['test fixture'],
+}
+
+export const TEST_PERCHER_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_SPEC, code: 'testpercher', commonName: 'Test Percher', length: 0.325, posture: 'perched', detail: TEST_PERCHER_DETAIL,
+})
+
+/**
+ * The test percher with a wing to fly on: the Belted Kingfisher's planform, strokes and fold
+ * (docs/research/2026-09-30-kingfisher-flight-and-plunge.md). The outline is the research's traced station table
+ * (section 2.3) at its half-span of 1.47 × the wing chord, 0.241 m, the wrist at 0.37 of it (section 2.4), and the outer
+ * five primaries parting over the last 12% (section 2.3: slots 15-25 mm). The strokes are its estimates (sections 3.3,
+ * 4.3 and 8): a beat of 100° (+55° to −45°), a hover of 120° sweeping about ±18° (the hover table's −15° to +20°) with
+ * its hand bent less, and a glide on half-closed wings (the inner wing back 12°, the hand back 30° more). Its pitch is
+ * the fixture's trunk, tail base to neck base, 45° above level. The fold's turns are set by eye on the wing drawn
+ * through its fold: the inner wing swept 90° back and twisted 90° leading edge down, so it lies back along the flank
+ * with its upper face out, and the hand swept 10° further. A hand twisted with it, or an inner wing twisted less, held
+ * the wing out in a tent over the back for the middle of the fold. Frozen here, so the kingfisher's own tracing never
+ * breaks the builder's tests.
+ */
+export const TEST_FLIER_DETAIL: DetailSpec = {
+  ...TEST_PERCHER_DETAIL,
+  flight: {
+    span: 0.241,
+    outline: [
+      [0, 0, -0.0986], [0.1, -0.0034, -0.1054], [0.2, -0.0065, -0.1097], [0.3, -0.0065, -0.1114], [0.37, -0.0065, -0.1095],
+      [0.5, -0.0002, -0.1032], [0.6, 0.0019, -0.0938], [0.7, 0.0031, -0.0832], [0.8, 0.0084, -0.0646], [0.9, 0.0118, -0.0485],
+      [0.95, 0.013, -0.0345], [1, 0.0084, 0.0084],
+    ],
+    wrist: 0.37,
+    fingers: { count: 5, from: 0.88, fill: 0.7 },
+    pitch: 45,
+    beat: { shoulder: 50, lift: 5, hand: 20, lag: 0.12 },
+    hover: { shoulder: 60, lift: 0, hand: 10, lag: 0.1, sweep: 18 },
+    glide: { shoulder: 3, hand: -3, sweep: { shoulder: -12, hand: -30 } },
+    fold: { sweep: { shoulder: -90, hand: -10 }, twist: { shoulder: -90, hand: 0 } },
+  },
+}
+
+export const TEST_FLIER_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_PERCHER_SPEC, code: 'testflier', commonName: 'Test Flier', detail: TEST_FLIER_DETAIL,
+})
+
+/**
  * A test goose for the amphibious builder: about a Canada Goose's size (docs/research/2026-09-30-canada-goose.md,
  * sections 2 and 6: a 0.64 m bird floating with its back 0.13 m above the water, its crown about 0.25 m, a draft of
  * 0.06 m; tarsus 92 mm, toe 82 mm), its neck a five-joint chain in a short S, floating on its waterline 35 mm below the

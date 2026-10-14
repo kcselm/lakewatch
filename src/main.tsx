@@ -8,13 +8,14 @@ import { lakeHeightfield, FLAT } from './world/heightfield'
 import { createTerrain, terrainSurface } from './world/terrain'
 import { createWater } from './world/water'
 import { RippleBuffer } from './world/ripples'
+import { SplashBuffer, createSplash } from './world/splash'
 import { bakeWaterDepth } from './world/waterDepth'
 import { createMirror, NO_REFLECT } from './world/mirror'
 import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
 import { createReeds, createGrass } from './world/vegetation'
-import { createTree, createSnag, createStumps, createTreeLine } from './world/trees'
+import { createTree, createSnag, createStumps, createDeadBranch, createTreeLine, LAKE_TREES } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
 import { prepareBirds } from './birds/prewarm'
@@ -193,6 +194,9 @@ water.setReflections(settings.reflections)
 addEventListener('resize', () => { const s = world.renderer.getDrawingBufferSize(new THREE.Vector2()); mirror.setSize(s.x, s.y) })
 ;(water.object.material as THREE.ShaderMaterial).uniforms.uSunDir!.value.copy(sunDirection(world.palette))
 world.add(water)
+// spray where a bird plunges, drawn after the water and out of its mirror
+const splashes = new SplashBuffer(makeRng(31))
+world.add(createSplash(splashes, world.palette))
 
 world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
 // the near grass is out of the mirror: it stands behind the player's bank, and reflecting 12 000 blades costs a lot
@@ -207,15 +211,16 @@ lawn.object.layers.set(NO_REFLECT)
 world.add(lawn)
 
 world.add(createTreeLine(heightfield, world.palette))
-for (const [i, [tx, tz]] of [[-26, 4], [-18, 9], [30, 6], [38, -2], [-44, -30], [48, -34]].entries()) {
+for (const [i, [tx, tz]] of LAKE_TREES.entries()) {
   world.add(createTree(tx!, tz!, heightfield, 100 + i, world.wind))
 }
 const perches: Record<string, Vec3 | Vec3[]> = {}
 const snagZone = loc.zones['snag']
-if (snagZone?.kind === 'point') {
-  const snag = createSnag(snagZone.position)
-  world.scene.add(snag.object)
-  perches['snag'] = [snag.perchPoint.x, snag.perchPoint.y, snag.perchPoint.z]
+if (snagZone?.kind === 'point') world.scene.add(createSnag(snagZone.position).object)
+// a perch on the snag is a place on its branch; every other perch is a dead branch of its own, leaning from the bank
+for (const zone of Object.values(loc.zones)) {
+  if (zone.kind !== 'perches') continue
+  for (const p of zone.perches) if (p.on === 'branch') world.scene.add(createDeadBranch(p, surface).object)
 }
 const stumpsZone = loc.zones['stumps']
 if (stumpsZone?.kind === 'point') {
@@ -252,6 +257,8 @@ const spawnEvents: SpawnEvents = {
     flockPositions.delete(key)
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
+  // a call a behaviour asks for (the kingfisher's rattle): the call player plays it at once if the cap allows
+  call: id => calls.ask(id),
 }
 // Behind the title card, every atlas the cast needs paints in a worker while the main thread places each detailed
 // species' folded wing, the costly part of its first build, a species at a time. Then the cast is built, and Begin
@@ -259,7 +266,7 @@ const spawnEvents: SpawnEvents = {
 prepareBirds(loc, {
   worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
   onProgress: (done, total) => painting.set({ done, total }),
-  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, seed: 42, events: spawnEvents, perches })),
+  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, splashes, seed: 42, events: spawnEvents, perches })),
 }).then(() => {
   painting.set({ ready: true })
 }).catch(err => {
@@ -324,6 +331,8 @@ if (import.meta.env.DEV) {
   ;(window as unknown as { __lakewatch: unknown }).__lakewatch = {
     /** every bird now in the scene: its species, version, behaviour, and where it is */
     birds: () => registry.all().map(b => ({ id: b.id, species: b.species, variant: b.variant, behavior: b.behavior, x: b.position.x, y: b.position.y, z: b.position.z })),
+    /** start a spray on the water at (x, z), to look at it without waiting for a plunge */
+    splash: (x: number, z: number, size?: number) => splashes.spawn(x, z, size),
     /** turn the view to look at a point of the world */
     lookAt: (x: number, y: number, z: number) => {
       const c = world.camera.position

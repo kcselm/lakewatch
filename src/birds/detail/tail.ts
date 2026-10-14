@@ -2,9 +2,11 @@ import * as THREE from 'three'
 import type { Profile } from './profile'
 import type { DetailSpec } from './spec'
 import type { Mesher } from './mesher'
+import { FAN_BONES } from './rig'
 
 const TAIL_S = 6
-const TAIL_T = 7
+/** columns of feathers across the tail: one a fan bone (FAN_BONES), so a fanning tail turns each about its root */
+const TAIL_T = FAN_BONES.length
 /** tail width at the root, as a fraction of the body's full width at the tail base */
 export const ROOT_WIDTH = 0.55
 /** tail width at the tip, as a multiple of the root width */
@@ -27,6 +29,11 @@ export interface TailResult {
   /** middle of the tip edge */
   tip: THREE.Vector3
   width: number
+  /**
+   * A fanning tail (`tail.fan`): the axis its columns turn about (the tail's up, unit), and each column's root and its
+   * turn, radians about that axis, at the full fan (positive swings it toward +z, the bird's right). Null otherwise.
+   */
+  fan: { axis: THREE.Vector3; roots: THREE.Vector3[]; turns: number[] } | null
 }
 
 /**
@@ -39,7 +46,7 @@ export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): Tail
   // no tail: the tail bone sits at the tail base and moves the rear of the body instead (the builder finds the tip)
   if (detail.tail.shape === 'none') {
     const root = new THREE.Vector3(base.point.x, base.point.y, 0)
-    return { root, tip: root.clone(), width: 0 }
+    return { root, tip: root.clone(), width: 0, fan: null }
   }
   const L = detail.measurements.tail
   const a = THREE.MathUtils.degToRad(detail.tail.angle ?? 0)
@@ -59,13 +66,16 @@ export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): Tail
       (t - 0.5) * w,
     )
   }
+  const fan = detail.tail.fan
+  // a fanning tail's columns each ride their own bone; any other tail is all on the tail bone, as it always was
+  const bone = (j: number) => (fan === undefined ? 'tail' : FAN_BONES[j]!)
   for (const face of ['tail', 'tailUnder'] as const) {
     const grid: number[][] = []
     for (let i = 0; i < TAIL_S; i++) {
       const row: number[] = []
       for (let j = 0; j < TAIL_T; j++) {
         const s = i / (TAIL_S - 1), t = j / (TAIL_T - 1)
-        row.push(m.vertex(point(s, t, face === 'tail' ? 0.0003 : -0.0003), face, s, t, [['tail', 1]]))
+        row.push(m.vertex(point(s, t, face === 'tail' ? 0.0003 : -0.0003), face, s, t, [[bone(j), 1]]))
       }
       grid.push(row)
     }
@@ -78,5 +88,24 @@ export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): Tail
       }
     }
   }
-  return { root: point(0, 0.5, 0), tip: point(1, 0.5, 0), width: rootW }
+  return { root: point(0, 0.5, 0), tip: point(1, 0.5, 0), width: rootW, fan: fan === undefined ? null : fanTurns(fan, point, back) }
+}
+
+/**
+ * How far each column of a tail turns at the full fan: from where it lies closed, already splayed a little as the tail
+ * widens to its tip, to its share of the fan, the outer columns `fan` degrees apart and the rest evenly between them.
+ * Angles are taken in the tail's plane, about its up.
+ */
+function fanTurns(fan: number, point: (s: number, t: number, lift: number) => THREE.Vector3, back: THREE.Vector2) {
+  const axis = new THREE.Vector3(back.y, -back.x, 0)
+  const along = new THREE.Vector3(back.x, back.y, 0)
+  const roots: THREE.Vector3[] = [], turns: number[] = []
+  for (let j = 0; j < TAIL_T; j++) {
+    const t = j / (TAIL_T - 1)
+    const root = point(0, t, 0), line = point(1, t, 0).sub(root)
+    const closed = Math.atan2(line.z, line.dot(along))
+    roots.push(root)
+    turns.push(THREE.MathUtils.degToRad(fan) * (t - 0.5) - closed)
+  }
+  return { axis, roots, turns }
 }

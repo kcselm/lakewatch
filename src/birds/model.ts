@@ -33,6 +33,11 @@ export interface PoseState {
   /** radians the head turns after the neck and any reach; positive raises the bill (a heron swallowing) */
   headPitch: number
   /**
+   * radians the head turns about the neck's axis, after headPitch; positive turns the bill to the bird's left (a
+   * kingfisher watching the water, or beating a fish on its branch)
+   */
+  headYaw: number
+  /**
    * an amphibious bird (a goose): 1 floating, its waterline on the origin and its legs folded away (paddling if
    * `paddle` says so); 0 standing on its feet on the origin's ground, walking with `gait`; between, the body's height
    * and the legs blend from the one to the other. Every other bird ignores it
@@ -52,13 +57,28 @@ export interface PoseState {
    * the feet (y = 0), as a prop; a perched cormorant's, its body raised
    */
   tailProp: number
+  /** 0 flapping .. 1 hovering: a flight wing's stroke, blended from its beat to its hover; a bird without a hover ignores it */
+  wingStroke: number
+  /**
+   * 0 down .. 1 folded up under the belly: a perched bird's legs in flight, tucked once it is away and lowered again to
+   * land; any other bird ignores it
+   */
+  legsUp: number
+  /** 0 lowered .. 1 raised: a crest turned up about its base; a bird without one ignores it */
+  crestRaise: number
+  /** 0 closed .. 1 fully fanned: the tail spread about its base (a kingfisher hovering); a bird whose tail doesn't fan ignores it */
+  tailSpread: number
+  /** 0 none .. 1 held: a fish in the bill; a bird that holds none ignores it */
+  fish: number
+  /** 0 crosswise .. 1 lengthwise, head first: a held fish turned in the bill to be swallowed */
+  fishTurn: number
 }
 
 export function defaultPose(): PoseState {
   return {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
-    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, afloat: 1, pouch: 0, glide: 0,
-    dry: 0, tailProp: 0,
+    paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, headYaw: 0, afloat: 1, pouch: 0, glide: 0,
+    dry: 0, tailProp: 0, crestRaise: 0, tailSpread: 0, fish: 0, fishTurn: 0, wingStroke: 0, legsUp: 0,
   }
 }
 

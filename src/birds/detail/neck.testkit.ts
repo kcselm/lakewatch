@@ -116,3 +116,27 @@ export function passThrough(m: DetailedBirdModel, fromU = 0, eps = 0.0005, skip 
   }
   return worst
 }
+
+/**
+ * How sharply the posed skin bends between each ring and the next, degrees, one value per ring (rings - 2 of them): the
+ * largest angle, all round the ring, between the normals of a quad of the loft and of the quad after it along the
+ * spine. A skin that twists in one step, where a turned head meets a neck that didn't turn, creases here, though it
+ * neither folds back nor passes through itself.
+ */
+export function posedCreases(m: DetailedBirdModel): number[] {
+  const rings = posedRings(m)
+  const quad = (i: number, j: number) => {
+    const k = (j + 1) % RADIAL
+    return rings[i + 1]![k]!.clone().sub(rings[i]![j]!).cross(rings[i + 1]![j]!.clone().sub(rings[i]![k]!))
+  }
+  return Array.from({ length: rings.length - 2 }, (_, i) => {
+    let worst = 0
+    for (let j = 0; j < RADIAL; j++) {
+      const a = quad(i, j), b = quad(i + 1, j)
+      // a quad squeezed to nothing where rings bunch on the inside of a bend has no direction to measure
+      if (a.lengthSq() < 1e-16 || b.lengthSq() < 1e-16) continue
+      worst = Math.max(worst, a.angleTo(b))
+    }
+    return THREE.MathUtils.radToDeg(worst)
+  })
+}

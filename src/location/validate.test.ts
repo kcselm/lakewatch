@@ -38,6 +38,33 @@ describe('validateCast', () => {
     const bad = { ...loc, cast: [{ ...loc.cast[0]!, behavior: 'flyover' as const }] }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['cast[0]: flyover needs a lane zone, water is polygon'])
   })
+  describe('perches', () => {
+    const catalog = [bird('belkin1', ['wetland']), bird('rewbla', ['wetland'])]
+    const perch = (name: string, on: 'snag' | 'branch' = 'branch') => ({ name, on, position: [0, -5] as [number, number], height: 3, radius: 0.02, facing: 0 })
+    const withPerches = (perches: ReturnType<typeof perch>[], extra: Location['zones'] = {}, cast: Location['cast'] = [{ species: 'belkin1', behavior: 'kingfisher', zone: 'perches', count: 1 }]): Location => ({
+      ...loc, zones: { ...loc.zones, ...extra, perches: { kind: 'perches', perches } }, cast,
+    })
+    it('passes a kingfisher on a perches zone', () => {
+      expect(validateCast(withPerches([perch('near'), perch('far')]), catalog)).toEqual([])
+    })
+    it('requires kingfisher to use a perches zone, and perch a point zone', () => {
+      const onPoint = withPerches([perch('near')], { reed: { kind: 'point', position: [0, 2, 0] } }, [
+        { species: 'belkin1', behavior: 'kingfisher', zone: 'reed', count: 1 },
+        { species: 'rewbla', behavior: 'perch', zone: 'perches', count: 1 },
+      ])
+      expect(validateCast(onPoint, catalog)).toEqual([
+        'cast[0]: kingfisher needs a perches zone, reed is point',
+        'cast[1]: perch needs a point zone, perches is perches',
+      ])
+    })
+    it('names a perch given twice', () => {
+      expect(validateCast(withPerches([perch('near'), perch('far'), perch('near')]), catalog)).toEqual(['zone perches: perch near is listed twice'])
+    })
+    it('needs a snag for a perch on it', () => {
+      expect(validateCast(withPerches([perch('snag', 'snag')]), catalog)).toEqual(['zone perches: perch snag is on the snag, but there is no snag point zone'])
+      expect(validateCast(withPerches([perch('snag', 'snag')], { snag: { kind: 'point', position: [0, 0, -5] } }), catalog)).toEqual([])
+    })
+  })
   it('rejects a concave polygon zone', () => {
     const bad = { ...loc, zones: { water: { kind: 'polygon' as const, points: [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]] as [number, number][] } } }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['zone water: polygon must be convex'])

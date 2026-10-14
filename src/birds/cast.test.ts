@@ -13,8 +13,8 @@ import { targetCandidates } from '../player/candidates'
  * strikes. The geese never find a bank to walk up here (the ground is a metre down everywhere), so they spend all their
  * time on the water, dipping and tipping up: the most they can ring it.
  */
-/** the snag's perch, and the stumps' (main.tsx builds them; here, where they would be) */
-const PERCHES = { snag: [22, 3, -48] as [number, number, number], stumps: stumpPerches([-14, 0, -30]) }
+/** the stumps' perches (main.tsx builds them; here, where they would be) */
+const PERCHES = { stumps: stumpPerches([-14, 0, -30]) }
 
 function ringers() {
   const lake = loadLocation()

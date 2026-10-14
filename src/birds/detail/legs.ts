@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Profile } from './profile'
 import type { DetailSpec } from './spec'
-import { tube, lens, type Mesher } from './mesher'
+import { tube, lens, sweep, type Mesher } from './mesher'
 import { solveLeg } from './gait'
 
 /** the hip joint sits this fraction of the belly depth below the spine */
@@ -10,6 +10,12 @@ const HIP_DEPTH = 0.35
 const HIP_SPREAD = 0.4
 /** standing, the hip is this fraction of the leg's full reach above the foot */
 const STAND = 0.92
+/**
+ * perched, the hip is this fraction of the leg's full reach above the foot: a crouch, the belly a few mm over the toes.
+ * By eye: "in the perched bird only the toes show, curled round the perch, and sometimes a few mm of tarsus"
+ * (docs/research/2026-09-30-belted-kingfisher.md, section 5.3)
+ */
+const PERCH_STAND = 0.75
 /** tarsus diameter as a fraction of tarsus length */
 const TARSUS_THICKNESS = 0.045
 /** default step length as a fraction of leg length (tibia + tarsus) */
@@ -40,12 +46,38 @@ export interface LegLayout {
   foot: THREE.Vector3
   /** a swimmer's legs, folded back under the body with the toes trailing; a standing bird's stand on the ground */
   swimming: boolean
+  /** a perched bird's branch radius, metres: its feet sit on the branch's top and its toes curl round it; else null */
+  perch: number | null
 }
 
-export function legLayout(detail: DetailSpec, profile: Profile, swimming = false): LegLayout {
+/**
+ * The lowest point of the body's side view straight below `x`: where the lower outline (each section's spine point less
+ * its `down` along its axis) crosses x, the lowest crossing if it crosses more than once; null if it never does.
+ */
+function underside(profile: Profile, x: number): number | null {
+  const N = 400
+  let best: number | null = null, prev: THREE.Vector2 | null = null
+  for (let i = 0; i <= N; i++) {
+    const s = profile.sampleAt(i / N)
+    const p = s.point.clone().addScaledVector(s.axis, -s.down)
+    if (prev && prev.x !== p.x && (prev.x - x) * (p.x - x) <= 0) {
+      const y = prev.y + ((x - prev.x) / (p.x - prev.x)) * (p.y - prev.y)
+      if (best === null || y < best) best = y
+    }
+    prev = p
+  }
+  return best
+}
+
+export function legLayout(detail: DetailSpec, profile: Profile, posture: 'standing' | 'swimming' | 'perched' = 'standing'): LegLayout {
+  const swimming = posture === 'swimming'
+  const perch = posture === 'perched' ? detail.perch?.radius ?? null : null
+  if (posture === 'perched' && perch === null) throw new Error('a perched bird needs detail.perch, the branch its toes curl round')
   const s = profile.sampleAt(profile.uOf(detail.rig.hip))
   const hip = new THREE.Vector3(s.point.x, s.point.y - s.down * HIP_DEPTH, s.halfWidth * HIP_SPREAD)
-  const bellyY = s.point.y - s.down
+  // a percher's body slants, so the belly under its hip is where the body's lower outline passes below it, not the
+  // hip station's own `down`, which lies along a normal leaning toward the breast
+  const bellyY = perch === null ? s.point.y - s.down : underside(profile, s.point.x) ?? s.point.y - s.down
   const m = detail.measurements
   const tibia = (hip.y - bellyY) + m.tibia
   const standHeight = STAND * (tibia + m.tarsus)
@@ -54,15 +86,21 @@ export function legLayout(detail: DetailSpec, profile: Profile, swimming = false
   if (swimming) {
     const knee = hip.clone().add(new THREE.Vector3(Math.cos(SWIM_TIBIA), Math.sin(SWIM_TIBIA), 0).multiplyScalar(tibia))
     const foot = knee.clone().add(new THREE.Vector3(Math.cos(SWIM_TARSUS), Math.sin(SWIM_TARSUS), 0).multiplyScalar(m.tarsus))
-    return { hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight: hip.y - foot.y, footY, tarsusRadius, knee, foot, swimming }
+    return { hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight: hip.y - foot.y, footY, tarsusRadius, knee, foot, swimming, perch }
   }
-  const target = { x: hip.x, y: hip.y - standHeight }
+  // perched, the bird crouches over its feet, but never so low that the intertarsal joint drops below them (into the
+  // branch): at sqrt(tibia² - tarsus²) the tarsus lies level
+  // a traced branch top sets the crouch: the foot joint its toes' radius above it, the legs no straighter than standing
+  const top = detail.perch?.top
+  const crouch = top === undefined ? PERCH_STAND * (tibia + m.tarsus) : Math.min(STAND * (tibia + m.tarsus), hip.y - (top + footY))
+  const height = perch === null ? standHeight : Math.max(crouch, Math.sqrt(Math.max(0, tibia ** 2 - m.tarsus ** 2)))
+  const target = { x: hip.x, y: hip.y - height }
   const { joint, foot } = solveLeg({ x: hip.x, y: hip.y }, target, tibia, m.tarsus)
   return {
-    hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight, footY, tarsusRadius,
+    hip, bellyY, tibia, tarsus: m.tarsus, toe: m.toe, standHeight: height, footY, tarsusRadius,
     knee: new THREE.Vector3(joint.x, joint.y, hip.z),
     foot: new THREE.Vector3(foot.x, foot.y, hip.z),
-    swimming,
+    swimming, perch,
   }
 }
 
@@ -103,6 +141,10 @@ export function buildLegs(m: Mesher, layout: LegLayout, feet: FeetOptions = {}):
     tube(m, hip, knee, r * 1.5, r * 1.1, 'legs', 0.5, 0.5, [[B.tibia, 1]])
     tube(m, knee.clone().add(new THREE.Vector3(0.6 * r, 0, 0)), knee.clone().add(new THREE.Vector3(-0.6 * r, 0, 0)), r * 1.25, r * 1.25, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
     tube(m, knee, foot, r, r * 0.9, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
+    if (layout.perch !== null) {
+      perchedToes(m, layout, layout.perch, foot, side, B.toes)
+      continue
+    }
     // standing, the toes spread forward along the ground; a swimmer's trail back in line with the tarsus
     const along = layout.swimming ? new THREE.Vector3(Math.cos(SWIM_TARSUS), Math.sin(SWIM_TARSUS), 0) : new THREE.Vector3(1, 0, 0)
     const footFirst = m.indexCount
@@ -146,4 +188,27 @@ export function buildLegs(m: Mesher, layout: LegLayout, feet: FeetOptions = {}):
     out.push({ name: side > 0 ? 'footR' : 'footL', indexFirst: footFirst, indexCount: m.indexCount - footFirst })
   }
   return out
+}
+
+/** how many segments a curled toe is swept in */
+const CURL_SEGMENTS = 6
+
+/**
+ * A percher's toes, curled round its branch: the branch runs across the bird (along z), its top under the foot, the
+ * foot joint the toes' own radius above it. The front toes wrap forward and down over the branch, each spreading
+ * sideways by its angle as on the ground, and the hind toe wraps back and down; each keeps its length along the curve.
+ */
+function perchedToes(m: Mesher, layout: LegLayout, radius: number, foot: THREE.Vector3, side: 1 | -1, bone: 'toesR' | 'toesL') {
+  const r = layout.tarsusRadius
+  // the toes' centrelines lie on a circle about the branch's axis, through the foot joint
+  const centre = new THREE.Vector3(foot.x, foot.y - layout.footY - radius, 0)
+  const around = radius + layout.footY
+  const curl = (length: number, angle: number, dir: 1 | -1) => Array.from({ length: CURL_SEGMENTS + 1 }, (_, k) => {
+    const t = k / CURL_SEGMENTS
+    const theta = (t * length * Math.cos(angle)) / around
+    return new THREE.Vector3(centre.x + dir * around * Math.sin(theta), centre.y + around * Math.cos(theta), foot.z + t * length * Math.sin(angle))
+  })
+  const taper = (from: number, to: number) => Array.from({ length: CURL_SEGMENTS + 1 }, (_, k) => r * (from + ((to - from) * k) / CURL_SEGMENTS))
+  for (const toe of TOES) sweep(m, curl(layout.toe * toe.length, toe.angle * side, 1), taper(0.7, 0.45), 'legs', [[bone, 1]], 5)
+  sweep(m, curl(layout.toe * 0.25, 0, -1), taper(0.6, 0.4), 'legs', [[bone, 1]], 5)
 }

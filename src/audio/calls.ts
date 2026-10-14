@@ -42,8 +42,17 @@ export interface CallCandidate { id: number; species: string; distance: number }
 export interface CallRequest { id: number; species: string; prefer: CallSchedule['prefer'] }
 
 export interface CallScheduler {
-  /** Birds due to call now, nearest first, at most (max - active) of them. */
+  /**
+   * Birds to call now, at most (max - active) of them: first those whose behaviour asked for a call since the last
+   * tick, then those due by their timers, each nearest first.
+   */
   tick(now: number, birds: readonly CallCandidate[], active: number): CallRequest[]
+  /**
+   * A behaviour asks for its bird's call now (the kingfisher's rattle as it takes off). It plays at the next tick if
+   * the cap leaves room, and is dropped if not, or if the bird isn't among those offered then: a call tied to a
+   * moment would be wrong late. A call played this way puts the bird's next timed one off by a full interval.
+   */
+  ask(id: number): void
 }
 
 export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: Record<string, CallSchedule>; silent?: ReadonlySet<string> } = {}): CallScheduler {
@@ -51,12 +60,15 @@ export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: 
   const schedules = opts.schedules ?? CALL_SCHEDULES
   const silent = opts.silent ?? SILENT
   const nextAt = new Map<number, number>()
+  const asked = new Set<number>()
   const scheduleFor = (species: string) => schedules[species] ?? DEFAULT_SCHEDULE
   const between = ([lo, hi]: [number, number]) => lo + rng() * (hi - lo)
 
   return {
+    ask(id) { asked.add(id) },
     tick(now, birds, active) {
       const due: CallCandidate[] = []
+      const asking: CallCandidate[] = []
       const present = new Set<number>()
       for (const b of birds) {
         if (silent.has(b.species)) continue
@@ -66,12 +78,21 @@ export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: 
           t = now + between(scheduleFor(b.species).every) * rng()     // stagger first calls
           nextAt.set(b.id, t)
         }
-        if (t <= now) due.push(b)
+        if (asked.has(b.id)) asking.push(b)
+        else if (t <= now) due.push(b)
       }
+      asked.clear()
       for (const id of [...nextAt.keys()]) if (!present.has(id)) nextAt.delete(id)   // birds that left (flocks)
+      asking.sort((a, b) => a.distance - b.distance)
       due.sort((a, b) => a.distance - b.distance)
-      const slots = Math.max(0, max - active)
+      let slots = Math.max(0, max - active)
       const out: CallRequest[] = []
+      for (const b of asking) {
+        if (slots === 0) break                         // no room: the ask is dropped, and its timer left as it was
+        slots--
+        out.push({ id: b.id, species: b.species, prefer: scheduleFor(b.species).prefer })
+        nextAt.set(b.id, now + between(scheduleFor(b.species).every))
+      }
       due.forEach((b, i) => {
         if (i < slots) {
           out.push({ id: b.id, species: b.species, prefer: scheduleFor(b.species).prefer })

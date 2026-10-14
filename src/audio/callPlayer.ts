@@ -35,6 +35,11 @@ export interface CallPlayerDeps {
 
 export interface CallPlayer {
   update(dt: number): void
+  /**
+   * The bird `id`'s behaviour asks for its call now: it plays at the next update if the simultaneous-call cap allows,
+   * and moves with the bird. An ask is let go while the audio is locked, or while the bird is already calling.
+   */
+  ask(id: number): void
   /** voices sounding plus clips still loading */
   readonly active: number
 }
@@ -55,11 +60,16 @@ function worldPos(inst: CallBird): THREE.Vector3 {
 export function createCallPlayer(deps: CallPlayerDeps): CallPlayer {
   const scheduler = deps.scheduler ?? createCallScheduler(deps.rng)
   const live: { voice: Voice; id: number }[] = []
-  let pending = 0
+  /** the birds whose clips are loading */
+  const pending: number[] = []
   let now = 0
 
   return {
-    get active() { return live.length + pending },
+    get active() { return live.length + pending.length },
+    ask(id) {
+      if (!deps.engine.unlocked || pending.includes(id) || live.some(v => v.id === id)) return
+      scheduler.ask(id)
+    },
     update(dt) {
       now += dt
       for (let i = live.length - 1; i >= 0; i--) {
@@ -74,10 +84,10 @@ export function createCallPlayer(deps: CallPlayerDeps): CallPlayer {
         // a bird out of sight (a diver all the way under the water) doesn't call
         .filter(b => b.behavior !== 'flyover' && b.model.group.visible)
         .map(b => ({ id: b.id, species: b.species, distance: worldPos(b).distanceTo(listener) }))
-      for (const req of scheduler.tick(now, cands, live.length + pending)) {
+      for (const req of scheduler.tick(now, cands, live.length + pending.length)) {
         const clip = pickClip(deps.birdOf(req.species), req.prefer, deps.rng)
         if (!clip) continue
-        pending++
+        pending.push(req.id)
         deps.engine.load('/' + clip.file)
           .then(buffer => {
             const inst = deps.registry.get(req.id)
@@ -85,7 +95,7 @@ export function createCallPlayer(deps: CallPlayerDeps): CallPlayer {
             live.push({ id: req.id, voice: deps.engine.playAt(buffer, worldPos(inst), 'calls', { refDistance: REF_DISTANCE, maxDistance: MAX_DISTANCE }) })
           })
           .catch(err => console.warn(`call ${clip.file}: ${String(err)}`))
-          .finally(() => { pending-- })
+          .finally(() => { pending.splice(pending.indexOf(req.id), 1) })
       }
     },
   }

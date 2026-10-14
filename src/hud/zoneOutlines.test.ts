@@ -18,6 +18,21 @@ describe('zoneSegments', () => {
     expect(s[0]).toEqual([[0.5, 2, 3], [1.5, 2, 3]])
     expect(s[2]).toEqual([[1, 1.5, 3], [1, 2.5, 3]])
   })
+  it('marks each perch with a cross at its point and a tick the way it faces', () => {
+    const s = zoneSegments({
+      kind: 'perches', perches: [
+        { name: 'a', on: 'branch', position: [1, 3], height: 2, radius: 0.02, facing: 90 },
+        { name: 'b', on: 'snag', position: [-4, -6], height: 4, radius: 0.05, facing: 0 },
+      ],
+    }, ground)
+    expect(s).toHaveLength(8)
+    expect(s[0]).toEqual([[0.5, 2, 3], [1.5, 2, 3]])
+    expect(s[3]![0]).toEqual([1, 2, 3])
+    expect(s[3]![1][0]).toBeCloseTo(2, 9)                    // facing 90: toward +x
+    expect(s[3]![1][2]).toBeCloseTo(3, 9)
+    expect(s[7]![1][0]).toBeCloseTo(-4, 9)                   // facing 0: toward -z
+    expect(s[7]![1][2]).toBeCloseTo(-7, 9)
+  })
   it('draws a lane as its altitude band', () => {
     const s = zoneSegments({ kind: 'lane', from: [-10, 0, -20], to: [10, 0, -20], altitude: [40, 80] }, ground)
     expect(s).toHaveLength(4)

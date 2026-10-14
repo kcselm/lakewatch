@@ -21,6 +21,11 @@ const BASE_RING = 0.0015
 const LANDMARK = 0.005
 /** a joint this close to the one before it along the neck is parked there, with no length (metres) */
 const PARKED = 1e-4
+/**
+ * Bones a model may lack: a crest's and a fanning tail's, which the builder gained after the first model was made. No
+ * skin rides them, so one the model lacks is parked on its parent's joint, as a lofted bird without the part has it.
+ */
+const OPTIONAL_BONES: readonly BoneName[] = ['crest', 'crestBack', 'tailL3', 'tailL2', 'tailL1', 'tailR1', 'tailR2', 'tailR3']
 
 /** Parse a glb (the bytes of <model>.glb) into its scene. Works without a DOM: the glb holds no images. */
 export function parseGlb(bytes: ArrayBuffer): Promise<THREE.Group> {
@@ -43,7 +48,7 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
   const skin = skins[0]!
   const fileBones = skin.skeleton.bones
   const names = fileBones.map(b => b.name)
-  const missing = BONE_NAMES.filter(n => !names.includes(n))
+  const missing = BONE_NAMES.filter(n => !names.includes(n) && !OPTIONAL_BONES.includes(n))
   if (missing.length) throw new Error(`${spec.code}: the model's skeleton lacks ${missing.join(', ')}`)
   for (const b of fileBones) {
     if (!(b.name in BONE_INDEX)) throw new Error(`${spec.code}: the model has a bone the builder doesn't: ${b.name}`)
@@ -52,6 +57,7 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
     if (got !== want) throw new Error(`${spec.code}: ${b.name}'s parent is ${got}, not ${want}`)
   }
   const joints = Object.fromEntries(fileBones.map(b => [b.name, b.getWorldPosition(new THREE.Vector3())])) as Joints
+  for (const n of OPTIONAL_BONES) if (!names.includes(n)) joints[n] = joints[BONE_PARENT[n]!].clone()
   const marks = Object.fromEntries(MARKS.map(n => {
     const o = scene.getObjectByName(`mark_${n}`)
     if (!o) throw new Error(`${spec.code}: the model has no landmark mark_${n}`)
@@ -140,7 +146,7 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
   const layout: LegLayout = {
     hip: hipR, bellyY, tibia, tarsus, toe: A.measurements.toe,
     standHeight: hipR.y - footR.y, footY: footR.y - sole, tarsusRadius: (A.measurements.tarsus * 0.045) / 2,
-    knee: kneeR, foot: footR, swimming: swimming && !amphibious,
+    knee: kneeR, foot: footR, swimming: swimming && !amphibious, perch: null,
   }
   // standing, the hips over the origin and the soles on y = 0
   const ashore = new THREE.Vector3(-hipR.x, -sole, 0)
@@ -149,7 +155,7 @@ export function authoredBuilt(spec: SpeciesSpec, scene: THREE.Object3D): Built {
   const bodyLength = line.slice(1).reduce((s, p, k) => s + p.distanceTo(line[k]!), 0)
   const neckAlong = chain ? joints[chain[1]!].clone().sub(joints[chain[0]!]) : null
   geometry.deleteAttribute('_part')
-  return { profile: null, layout, geometry, joints, anatomy, ashore, bodyLength, neckAlong }
+  return { profile: null, layout, geometry, joints, anatomy, fan: null, ashore, bodyLength, neckAlong }
 }
 
 /**

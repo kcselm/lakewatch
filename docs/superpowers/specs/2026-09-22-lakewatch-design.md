@@ -59,7 +59,7 @@ lakewatch/
     world/                  terrain, water, vegetation, sky, lighting, wind
     birds/                  BirdModel interface, procedural builder, gltf loader
     birds/species/          one spec file per species
-    behavior/               swim, wade, probe, perch, flyover, hover
+    behavior/               swim, wade, probe, perch, flyover, kingfisher
     audio/                  ambience mixer, call scheduler, event sounds
     player/                 look controls, optics, reticle, identification
     ui/                     Preact: field guide, life list, cards, credits
@@ -105,6 +105,7 @@ normalized, short fades, a gentle high-pass to reduce recording hiss.
     "mudflat":    { "kind": "polygon", "points": [...] },
     "far-shore":  { "kind": "polygon", "points": [...] },
     "snag":       { "kind": "point",   "position": [...] },
+    "perches":    { "kind": "perches", "perches": [{ "name": "snag", "on": "snag", "position": [...], "height": 4.07, "radius": 0.054, "facing": 180 }, ...] },
     "sky":        { "kind": "lane",    "from": [...], "to": [...], "altitude": [40, 80] }
   },
   "cast": [
@@ -112,7 +113,7 @@ normalized, short fades, a gentle high-pass to reduce recording hiss.
     { "species": "mallar3", "behavior": "swim",    "zone": "open-water", "count": 4, "plumage": "mixed" },
     { "species": "grbher3", "behavior": "wade",    "zone": "far-shore",  "count": 1 },
     { "species": "leasan",  "behavior": "probe",   "zone": "mudflat",    "count": 5 },
-    { "species": "belkin1", "behavior": "hover",   "zone": "snag",       "count": 1 },
+    { "species": "belkin1", "behavior": "kingfisher", "zone": "perches", "count": 1, "plumage": "female" },
     { "species": "amwpel",  "behavior": "flyover", "zone": "sky",        "count": 9, "everySeconds": [120, 240], "plumage": { "adult": 9 } },
     { "species": "amwpel",  "behavior": "swim",    "zone": "far-water",  "count": 5, "plumage": { "adult": 4, "juvenile": 1 } },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky",        "count": 14, "everySeconds": [180, 360] }
@@ -151,7 +152,9 @@ The player stands on a low bank. Left foreground: reed bed. Right
 foreground: mudflat curving away, and past it a low grassy flat that slopes gently into the
 water, where the geese graze. Middle: open water, and left of centre a cluster of drowned stumps standing in it, where
 the cormorants perch. Far side: a shallow
-wading shelf along the waterline where the herons feed, a snag in the water, a gravel bar, a tree line under the sky. Placement is designed
+wading shelf along the waterline where the herons feed, a snag in the water, a gravel bar, a tree line under the sky.
+The kingfisher's perches: a branch of the snag, and dead branches leaning out from the bank, the nearest about 33 m
+out, in binocular range. Placement is designed
 for three viewing distances: naked-eye foreground, binocular mid-water,
 telescope far shore.
 
@@ -237,9 +240,12 @@ Three implementations:
   herons bend a six-joint neck between named shapes; see
   `2026-09-27-herons-design.md`. The American White Pelican is detailed on
   the water and in flight, with a pouch under its bill and a wing to fly on;
-  see `2026-09-30-pelican-design.md`. The Canada Goose on the lake is amphibious: it floats
+  see `2026-09-30-pelican-design.md`.
+ The Canada Goose on the lake is amphibious: it floats
   and stands, `afloat` passing it between the two at the shore; see `2026-09-30-canada-goose-design.md`. Its flyover
-  stays a block model.
+  stays a block model. The Belted Kingfisher is detailed and perched, its toes round a branch, with a spread wing
+  that flaps, hovers, glides and folds onto the body, a crest it raises, and a fish it holds; see
+  `2026-09-30-kingfisher-design.md`.
 - **Authored**: a detailed species with an `authored` block (not `detail`) is made in Blender
   (`scripts/blender/<code>/`, built headless) on the detailed builder's skeleton: its glb (the mesh, its skin, a part
   for each vertex, and named landmarks) and each version's colour, normal, and roughness maps live in
@@ -254,7 +260,8 @@ coot head-pump, heron stalk, strike, swallow, and hunch, plover
 run-stop-look-peck,
 sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
 shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
-pelican bill-dip, drain, and swallow, flap and glide, goose walk out, graze, look up, walk in,
+pelican bill-dip, drain, and swallow, flap and glide, goose walk out, graze, look up, walk in, kingfisher flight,
+hover, plunge, and fish handling, its head bob, tail flick, crest, and head turn, spray where a kingfisher plunges,
 cormorant dive, swallow, and wing-drying,
 preen and wing-stretch idles.
 
@@ -265,9 +272,9 @@ preen and wing-stretch idles.
 | swim | Forage in the species' style: a dabbler cruises, loafs, dips its head, and upends; a shoveler skims with its bill in the water and spins in pairs; a coot pumps its head, pecks at the surface, and makes short jump-dives; a grebe dives and surfaces metres away, or sinks until only its head shows; a pelican loafs with its neck in an S or its head sunk on its shoulders, and the group swims abreast and dips their bills together; a cormorant loafs low in the water, then fishes in bouts of dives, sliding under head first and staying down about 22 s, surfacing a few metres on, now and then with a fish it swallows head first in forward-upward jerks. Swimmers keep their distance from each other |
 | wade | Forage in the species' style: a heron stands in the shallows with its neck coiled, waits, stalks a slow step at a time, strikes, swallows with its head tipped up, and hunches between feeding bouts; herons keep their distance from each other. Other waders take slow steps along a shore zone, stand still for long stretches, and strike |
 | probe | Forage in the species' style: a plover runs, stops dead, looks, and pecks, each bird on its own; a sandpiper walks and picks in a loose group that moves together; a dowitcher stands belly-deep in a tight flock and stitches, its bill going down and up and its head dipping into the water |
-| perch | Sit on the snag, shuffle, stretch, short loop flight and return. A cormorant stands upright on a stump with its tail propped, rests with its neck drawn in or erect, and in drying sessions holds its wings out, wrists up and hands hanging, facing into the wind |
+| perch | Sit on a reed perch, shuffle, stretch, short loop flight and return. A cormorant stands upright on a stump with its tail propped, rests with its neck drawn in or erect, and in drying sessions holds its wings out, wrists up and hands hanging, facing into the wind |
 | flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. A detailed species flies as skinned birds that flap and glide, the flapping passing down the line; a block species is instanced, per-bird wingbeat phase |
-| hover | Hold over water, dive, return to perch |
+| kingfisher | Perch over the water, watching, bobbing, flicking the tail; plunge from the perch, or fly out, hover, and plunge; come up and fly to a perch, beating and swallowing any fish; fly low between perches, rattling |
 
 Each behavior is a small state machine with a seeded random source so it
 is testable.
@@ -288,7 +295,8 @@ the sound.
   Wind-in-reeds gain follows the wind gust curve.
 - **Bird calls**: each species has a call schedule (interval range, call
   versus song preference). Clips play positionally from the registry
-  position. A cap on simultaneous calls, nearer birds win.
+  position. A cap on simultaneous calls, nearer birds win. A behaviour may also ask for a call, as the kingfisher's
+  rattle in flight does; it plays within the same cap.
 - **Flock audio**: one moving source per flyover flock. A flock of a
   species that never calls here (the pelicans, silent away from their
   colonies) crosses in silence, and its birds are never scheduled to call.
@@ -357,7 +365,7 @@ accuracy.
   Begin waits while the birds' plumage atlases paint in a Web Worker, the
   folded wings are placed a species at a time, the authored birds' models and
   maps load, and the cast is built. One count covers them all: "Getting the
-  birds ready… N of 46".
+  birds ready… N of 49".
 - **HUD** (plain DOM): reticle, current optic, prompt text, dev overlay
   toggle showing frame time, bird count, wind state, zone outlines.
 - **Field guide** (Preact): species list with seen state, detail panel
