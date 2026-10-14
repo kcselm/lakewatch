@@ -1,7 +1,8 @@
 # Red-winged Blackbird: design spec
 
 Date: 2026-10-13
-Status: draft, for the user's review
+Status: built (see "Performance" as built, "Changed during implementation" and "Known soft spots"); the
+user's check through the binoculars and telescope to come
 Builds on: `2026-09-30-kingfisher-design.md` (the perched posture, `headYaw`,
 `tailSpread`, `legsUp`, asked-for calls, the style's settings table),
 `2026-09-26-swimmers-design.md` (per-version cast counts), and
@@ -621,6 +622,58 @@ a real GPU):
 
 It compares them against the build before this round, and thins the stems if
 the frame rate falls.
+
+As built, against the build before this round (`da452c5`), both production builds served side by side with the dev
+hook switched on to aim the view (`lookAt`), two loads each, headless Chromium on this machine:
+
+| | Before this round (da452c5) | This round |
+|---|---|---|
+| Title card's count | 49 | 54 (the three versions' atlases, and the folded wing placed for each of the two sizes) |
+| Atlases | 28, 28 MiB (512² RGBA) | 31, 31 MiB |
+| Begin enabled | 10.7, 10.8 s | 12.3, 11.9 s |
+| By eye, the default view | 29.1, 31.7 fps | 28.7, 30.1 fps |
+| Binoculars on the bed | 37.1, 35.9 fps | 35.0, 32.7 fps |
+| Telescope on the singer (before: the block male at `reed-perch`) | 36.8, 36.6 fps | 35.9, 34.8 fps |
+
+Begin comes about 1.3 s later and the bed in the binoculars costs 2-3 fps here, about 7%. The stems are not thinned:
+headless rates say little about a real GPU, and the user's check on their own is what decides it.
+
+## Changed during implementation
+
+- **The cast entry names its post** (`"post": "reed-perch"`, a new optional field, validated as a point zone), rather
+  than the spawner knowing `reed-perch` by name. The spawner hands each blackbird the reed bed's stems, its entry's
+  group, its version and size, the post and the player's place, and refuses a blackbird without stems.
+- **The shoulders' front-on width** under the full spread is tested at 1.3-2.1 times, not 1.3-1.5: the spec's figure
+  came from one video's frames, while the full spread the research names for front-on (its wings out 30°) is about
+  twice as wide at the shoulders. The model sits between them.
+- **Riding the stem is measured from where the stem would settle.** The stem field gains `restAt`: the stem's axis
+  bent by the wind's steady drag and the birds' weight, without its turbulence or swing. The body counter-rotates
+  about the feet by 0.9 of the swing from that point (lean and roll, the head's lever the model's own 0.105 m a
+  radian), so the head moves a third as far as the feet or less. Measured from where the feet sat a few seconds
+  before, the bird's own weight settling the stem in the first seconds read as sway, and the head drifted with it.
+  The straddle's roll toward the lower foot is taken from the settled stems too.
+- **Feeding keeps the body at the top's angle**: it leans over the spike 0.08 rad (from 50° to 45°) and the bill
+  drops to 48° below level; the first build tipped the whole body forward 0.6 rad, nearly level.
+- **The tules stand on the bed's water side** (z about -7 to -10), not at z -11 to -14, where the ground is
+  0.7-1.5 m under the water, below the reeds' band.
+- **XC678807** is filed on xeno-canto as a female; its songs are a male's konk-la-ree, so it is used as his.
+  XC469000, a run of chack notes, is retyped a call.
+- **The study screen** shows no "Alert" pose for the blackbird (its neck isn't a chain that stretches): its poses are
+  "At rest" and "Song spread". At rest it holds its shoulder at 0.15, the buff bar showing.
+- **The dev hook** gains `inspect(id)`: a bird's behaviour and pose, to read what a bird is doing in the game.
+
+## Known soft spots
+
+- **The stalks are a little stiff**: alone they sway at 1.5-1.9 Hz, inside the 1.0-2.0 Hz asked but toward its top;
+  the stiffness (0.12 N m²) is the research's estimate, inferred and not measured.
+- **The singer's stalk top stands at about 2.7 m in the world** (its spike 1.85-2.0 m above ground that is itself
+  about 0.8 m up), not at the old point's 1.9 m.
+- **Feeding pitches the head 0.65 rad down** on a cattail top, past the viewer's slider (0.5); no fold showed in the
+  game at the telescope's range, but it is the hardest the head turns.
+- **The buff bar under a fully drawn red** shows as separate buff feather tips between the coverts, not one smooth
+  band.
+- **The bed costs 2-3 fps headless** with the binoculars on it (see "Performance"); not measured on a real GPU.
+- **The grades' mix, the bouts and the idles' shares are estimates**, as the research marks them.
 
 ## Build order
 
