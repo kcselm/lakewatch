@@ -13,5 +13,5 @@ export const BEHAVIORS: Record<'swim' | 'wade' | 'probe' | 'perch' | 'kingfisher
   kingfisher: createKingfisher,
 }
 
-export type { BehaviorContext, BehaviorController, BehaviorFactory, Perch } from './types'
+export type { BehaviorContext, BehaviorController, BehaviorFactory, CallAsk, Perch } from './types'
 export { turnToward, approach, polygonOf, perchOf } from './types'

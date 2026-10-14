@@ -3,6 +3,17 @@ import type { Rng } from '../catalog/types'
 import type { PoseState } from '../birds/model'
 import type { Foraging } from '../birds/spec'
 import type { GooseUnit } from './goose'
+import type { SongCue } from '../audio/cues'
+
+/**
+ * What a behaviour asks its bird to say: its species' call as the catalog has it; or, played from a cue, the next song
+ * (whose first note sounds `lead` seconds after onStart is called, the cue saying when its trill starts and it ends,
+ * relative to that note) or a single check.
+ */
+export type CallAsk =
+  | { kind: 'call' }
+  | { kind: 'song'; onStart?: (lead: number, cue: SongCue) => void }
+  | { kind: 'check'; onStart?: (lead: number) => void }
 
 /** A flock's shared record: its target, and when the target next moves on. Flockmates hold the same object. */
 export interface FlockGroup {
@@ -83,8 +94,13 @@ export interface BehaviorContext {
   onRipple?: (x: number, z: number, size?: number) => void
   /** spray where the bird goes into the water at (x, z); `size` 1, the default, is a kingfisher's plunge (src/world/splash.ts) */
   onSplash?: (x: number, z: number, size?: number) => void
-  /** asks for the bird's call now; the call scheduler plays it at once if the simultaneous-call cap allows, else drops it */
-  onCall?: () => void
+  /**
+   * asks for the bird's call now; the call scheduler plays it at once if the simultaneous-call cap allows, else drops
+   * it. With no ask, the species' call (the kingfisher's rattle); a song or a check is played from one of its cues
+   * (audio/cues.ts), and `onStart` hears, in the frame the sound is scheduled, how many seconds from now its first note
+   * sounds. A dropped ask never calls back.
+   */
+  onCall?: (ask?: CallAsk) => void
   group?: FlockGroup
   /** world-space perch point for perch and kingfisher; the spawner takes it from the point zone, or a perches zone's first */
   perch?: Vec3

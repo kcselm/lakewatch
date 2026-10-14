@@ -10,7 +10,20 @@ export interface Voice {
   follow(p: THREE.Vector3): void
 }
 
-export interface PlayOptions { volume?: number; loop?: boolean }
+export interface PlayOptions {
+  volume?: number
+  loop?: boolean
+  /** seconds into the buffer to start from (a cue's start); default 0 */
+  offset?: number
+  /** seconds of the buffer to play from `offset`; default to its end. The voice ends when they are played */
+  duration?: number
+  /** seconds from now to start the sound, on the audio clock; default 0, at once. The voice counts as playing meanwhile */
+  delay?: number
+  /** seconds to fade in over from the start, so a cut into the middle of a recording doesn't click */
+  fadeIn?: number
+  /** seconds to fade out over before the end of `duration` (needs it), for the same reason */
+  fadeOut?: number
+}
 export interface PlayAtOptions extends PlayOptions { refDistance?: number; maxDistance?: number; rolloff?: number }
 
 class VoiceImpl implements Voice {
@@ -112,10 +125,34 @@ export class AudioEngine {
   private start(node: THREE.Audio | THREE.PositionalAudio, layer: AudioLayer, buffer: AudioBuffer, o: PlayOptions): Voice {
     node.setBuffer(buffer)
     node.setLoop(o.loop ?? false)
+    if (o.offset !== undefined) node.offset = Math.max(0, o.offset)
+    if (o.duration !== undefined) node.duration = Math.max(0, o.duration)
+    const delay = Math.max(0, o.delay ?? 0)
+    if (o.fadeIn || o.fadeOut) node.setFilters([this.envelope(delay, o)])
     const voice = new VoiceImpl(node, layer, o.volume ?? 1, () => this.layers[layer], v => this.release(v))
     this.voices.add(voice)
-    node.play()
+    node.play(delay)             // source.start(currentTime + delay, offset, duration)
     return voice
+  }
+
+  /**
+   * A gain of the voice's own between its source and its volume, ramped up from silence over `fadeIn` at the start and
+   * down to silence over the last `fadeOut` of `duration`, so setVolume (the layer sliders) never fights it.
+   */
+  private envelope(delay: number, o: PlayOptions): GainNode {
+    const env = this.context.createGain()
+    const g = env.gain
+    const t0 = this.context.currentTime + delay
+    const fadeIn = Math.max(0, o.fadeIn ?? 0)
+    g.setValueAtTime(fadeIn > 0 ? 0 : 1, t0)
+    if (fadeIn > 0) g.linearRampToValueAtTime(1, t0 + fadeIn)
+    const fadeOut = Math.max(0, o.fadeOut ?? 0)
+    if (fadeOut > 0 && o.duration !== undefined) {
+      const t1 = t0 + o.duration
+      g.setValueAtTime(1, Math.max(t0 + fadeIn, t1 - fadeOut))
+      g.linearRampToValueAtTime(0, t1)
+    }
+    return env
   }
 
   private release(v: VoiceImpl): void {

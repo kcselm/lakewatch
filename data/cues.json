@@ -1,0 +1,28 @@
+{
+  "rewbla": {
+    "note": "Marked by hand on the shipped files from 32 kHz spectrograms and 10 ms band-energy envelopes (src/audio/cues.ts). XC678807 is 45.2-62.0 s of the recording, cut and made game-ready with processClip; xeno-canto files it as a female, but its songs are a male's konk-la-ree (intro notes, a buzzy trill, terminal notes) and its single notes between them are checks. XC703912 keeps only its first song, the focal bird's: its second is a different song about 7 LUFS quieter, and its third runs past the clip's end. XC469000 is a run of chack notes, not song: it is retyped a call and has no cues.",
+    "clips": [
+      {
+        "file": "media/audio/rewbla-XC678807.mp3",
+        "type": "song",
+        "xcId": "XC678807",
+        "recordist": "Barry Edmonston",
+        "license": "CC BY-NC-SA 4.0",
+        "sourceUrl": "https://xeno-canto.org/678807"
+      }
+    ],
+    "retype": { "XC469000": "call" },
+    "songs": [
+      { "file": "media/audio/rewbla-XC703912.mp3", "start": 2.8, "trill": 3.06, "end": 3.89 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 1.84, "trill": 2.19, "end": 2.7 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 7.46, "trill": 7.79, "end": 8.28 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 13.75, "trill": 14.08, "end": 14.69 }
+    ],
+    "checks": [
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 0.49, "end": 0.72 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 5.61, "end": 5.79 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 10.47, "end": 10.7 },
+      { "file": "media/audio/rewbla-XC678807.mp3", "start": 16.21, "end": 16.44 }
+    ]
+  }
+}

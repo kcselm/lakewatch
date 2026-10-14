@@ -1,11 +1,17 @@
 import raw from '../../data/birds.json'
 import { parseBirds } from './schema'
+import { withCueClips } from '../audio/cues'
 import type { Bird } from './types'
 
 let cache: Bird[] | null = null
 
+/**
+ * The harvested catalog, with the cue file's clips added and its types corrected (data/cues.json): they are kept
+ * apart from the generated birds.json so a rebuild keeps them, and joined here so every reader, the credits among
+ * them, sees one list.
+ */
 export function loadCatalog(): Bird[] {
-  if (!cache) cache = parseBirds(raw)
+  if (!cache) cache = withCueClips(parseBirds(raw))
   return cache
 }
 

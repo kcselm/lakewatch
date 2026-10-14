@@ -3,7 +3,7 @@ import type { Location, Behavior, LaneZone, Vec3, CastEntry, PerchesZone } from 
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
-import { BEHAVIORS, type BehaviorContext, type BehaviorController, type Perch } from '../behavior'
+import { BEHAVIORS, type BehaviorContext, type BehaviorController, type CallAsk, type Perch } from '../behavior'
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
@@ -26,8 +26,8 @@ export interface SpawnEvents {
   flockMove?(key: string, x: number, y: number, z: number): void
   flockEnd?(key: string): void
   effect?(name: 'splash' | 'flap', x: number, y: number, z: number): void
-  /** a bird's behaviour asks for its call now: the bird's registry id */
-  call?(id: number): void
+  /** a bird's behaviour asks for its call now: the bird's registry id, and what it asks for (none: its species' call) */
+  call?(id: number, ask?: CallAsk): void
 }
 
 export interface SpawnDeps {
@@ -210,7 +210,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
       onSplash: (x, z, size) => deps.splashes?.spawn(x, z, size),
-      onCall: () => deps.events?.call?.(id),
+      onCall: ask => deps.events?.call?.(id, ask),
       // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
