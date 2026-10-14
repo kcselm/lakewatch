@@ -59,7 +59,7 @@ lakewatch/
     world/                  terrain, water, vegetation, sky, lighting, wind
     birds/                  BirdModel interface, procedural builder, gltf loader
     birds/species/          one spec file per species
-    behavior/               swim, wade, probe, perch, flyover, kingfisher
+    behavior/               swim, wade, probe, perch, flyover, kingfisher, blackbird
     audio/                  ambience mixer, call scheduler, event sounds
     player/                 look controls, optics, reticle, identification
     ui/                     Preact: field guide, life list, cards, credits
@@ -154,7 +154,8 @@ water, where the geese graze. Middle: open water, and left of centre a cluster o
 the cormorants perch. Far side: a shallow
 wading shelf along the waterline where the herons feed, a snag in the water, a gravel bar, a tree line under the sky.
 The kingfisher's perches: a branch of the snag, and dead branches leaning out from the bank, the nearest about 33 m
-out, in binocular range. Placement is designed
+out, in binocular range. In the reed bed, five red-winged blackbirds cling to the cattails and tules, their singer on
+the stalk nearest `reed-perch`, 9.4 m out. Placement is designed
 for three viewing distances: naked-eye foreground, binocular mid-water,
 telescope far shore.
 
@@ -183,6 +184,9 @@ Each is a module with one job and an `update(dt, wind)` entry point.
   behind a swimmer bend the surface rather than brighten it, and every bird in
   the water has a contact line. See `2026-09-30-water-design.md`.
 - **Vegetation**: instanced reed and grass blades with vertex-shader sway. A grazed lawn of short blades on the geese's flat.
+  In the reed bed (`createReedBed`), cattail stalks with their spikes and tules stand among narrow cattail leaves; each
+  stem is a damped oscillator swayed by the wind and the birds on it, its bend shared by the CPU and the shader, so a
+  blackbird's feet stay on it; see `2026-10-13-red-winged-blackbird-design.md`.
   Gusts roll across the bed as a moving front rather than in sync. Noise
   tint so the bed is not uniform.
 - **Stumps**: four drowned stumps standing in open water left of centre (`createStumps`), each top a cormorant's perch.
@@ -245,7 +249,9 @@ Three implementations:
   and stands, `afloat` passing it between the two at the shore; see `2026-09-30-canada-goose-design.md`. Its flyover
   stays a block model. The Belted Kingfisher is detailed and perched, its toes round a branch, with a spread wing
   that flaps, hovers, glides and folds onto the body, a crest it raises, and a fish it holds; see
-  `2026-09-30-kingfisher-design.md`.
+  `2026-09-30-kingfisher-design.md`. The Red-winged Blackbird is detailed in three versions, a female the male scaled
+  (`detail.sizes`), its toes round the stems it holds (`perch.stems`) and a song spread its pose opens (`detail.display`:
+  `epaulet`, `epauletRaise`, `fluff`, `wingHold`, `gape`); see `2026-10-13-red-winged-blackbird-design.md`.
 - **Authored**: a detailed species with an `authored` block (not `detail`) is made in Blender
   (`scripts/blender/<code>/`, built headless) on the detailed builder's skeleton: its glb (the mesh, its skin, a part
   for each vertex, and named landmarks) and each version's colour, normal, and roughness maps live in
@@ -262,7 +268,8 @@ sandpiper walk-and-pick, dowitcher stitch, dabbler tip-up and head-dip,
 shoveler skim and pair spin, coot jump-dive, grebe roll-under and sink,
 pelican bill-dip, drain, and swallow, flap and glide, goose walk out, graze, look up, walk in, kingfisher flight,
 hover, plunge, and fish handling, its head bob, tail flick, crest, and head turn, spray where a kingfisher plunges,
-cormorant dive, swallow, and wing-drying,
+cormorant dive, swallow, and wing-drying, blackbird stem grips, climbs, steps, flutters, feeding at a cattail head,
+and the song spread timed to each song's cue, the body riding the swaying stem so the head stays steady,
 preen and wing-stretch idles.
 
 ### Behaviors
@@ -275,6 +282,7 @@ preen and wing-stretch idles.
 | perch | Sit on a reed perch, shuffle, stretch, short loop flight and return. A cormorant stands upright on a stump with its tail propped, rests with its neck drawn in or erect, and in drying sessions holds its wings out, wrists up and hands hanging, facing into the wind |
 | flyover | Flock enters at one sky edge on a timer, crosses in formation (pelican line, goose V), exits. A detailed species flies as skinned birds that flap and glide, the flapping passing down the line; a block species is instanced, per-bird wingbeat phase |
 | kingfisher | Perch over the water, watching, bobbing, flicking the tail; plunge from the perch, or fly out, hover, and plunge; come up and fly to a perch, beating and swallowing any fish; fly low between perches, rattling |
+| blackbird | Cling to a cattail or tule stem, riding it as it sways; look about, preen, feed at a cattail head, flick the tail; climb, step and flutter between stems; check now and then; the singing male sings in bouts with the song spread, graded and timed to each song |
 
 Each behavior is a small state machine with a seeded random source so it
 is testable.
@@ -296,7 +304,9 @@ the sound.
 - **Bird calls**: each species has a call schedule (interval range, call
   versus song preference). Clips play positionally from the registry
   position. A cap on simultaneous calls, nearer birds win. A behaviour may also ask for a call, as the kingfisher's
-  rattle in flight does; it plays within the same cap.
+  rattle in flight does; it plays within the same cap. A blackbird asks for a song or a check, played from cues marked
+  on the clips (`data/cues.json`); a song is scheduled 0.4 s ahead and its start reported, so the spread meets the
+  song. Red-winged blackbirds are never timed: they only call when asked.
 - **Flock audio**: one moving source per flyover flock. A flock of a
   species that never calls here (the pelicans, silent away from their
   colonies) crosses in silence, and its birds are never scheduled to call.

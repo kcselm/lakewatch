@@ -15,6 +15,8 @@ import { STRIKE } from '../../behavior/wade'
 import { heronFor } from '../../behavior/heron'
 import { CANADA_GOOSE } from '../../behavior/goose'
 import { KINGFISHER } from '../../behavior/kingfisher'
+import { GRIPS } from '../../behavior/grips'
+import { GRADES } from '../../behavior/spread'
 
 /** how far along its normal a point on the wing looks for the loft, each way, metres */
 const REACH = 0.05
@@ -74,11 +76,22 @@ function foldClearances(m: DetailedBirdModel, K = 4): Clearance[] {
       box[f * 6 + 3 + a] = Math.max(tris[f * 9 + a]!, tris[f * 9 + 3 + a]!, tris[f * 9 + 6 + a]!)
     }
   }
-  const folded = (i: number) => bone.getX(i) === BONE_INDEX.wingFoldR || bone.getX(i) === BONE_INDEX.wingFoldL
+  // the folded wing's own surface: a song spread's cover and coverts ride its bones too, but lie over it (their own
+  // guard is in display.test.ts)
+  const onWing = (i: number) => {
+    const x = uv.getX(i) * ATLAS_SIZE, y = uv.getY(i) * ATLAS_SIZE, r = REGIONS.wingFold
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
+  }
+  const folded = (i: number) => (bone.getX(i) === BONE_INDEX.wingFoldR || bone.getX(i) === BONE_INDEX.wingFoldL) && onWing(i)
   const sOf = (i: number) => (uv.getX(i) * ATLAS_SIZE - REGIONS.wingFold.x - PAD) / (REGIONS.wingFold.w - 2 * PAD)
   const at = (i: number) => new THREE.Vector3(pos[i * 3]!, pos[i * 3 + 1]!, pos[i * 3 + 2]!)
   const out: Clearance[] = []
   const p = [0, 0, 0], d = [0, 0, 0]
+  // a wing built with its inside faced too (a song spread's, held out from the body) has each triangle twice, once
+  // each way round: its outer face is the one that clears the skin
+  const key = (f: number) => [index[f]!, index[f + 1]!, index[f + 2]!].sort((x, y) => x - y).join()
+  const twice = new Map<string, number>()
+  for (let f = 0; f < index.length; f += 3) twice.set(key(f), (twice.get(key(f)) ?? 0) + 1)
   for (let f = 0; f < index.length; f += 3) {
     const ia = index[f]!, ib = index[f + 1]!, ic = index[f + 2]!
     if (!folded(ia) || !folded(ib) || !folded(ic)) continue
@@ -86,6 +99,7 @@ function foldClearances(m: DetailedBirdModel, K = 4): Clearance[] {
     const normal = b.clone().sub(a).cross(c.clone().sub(a))
     if (normal.length() < 1e-10) continue
     normal.normalize()
+    if (twice.get(key(f))! > 1 && normal.z * (a.z + b.z + c.z) < 0) continue
     d[0] = normal.x; d[1] = normal.y; d[2] = normal.z
     for (let i = 0; i <= K; i++) {
       for (let j = 0; j <= K - i; j++) {
@@ -225,6 +239,19 @@ const POSES: Record<string, Record<string, Patch>> = {
     'the head turned': { headYaw: KINGFISHER.idle.turn.yaw[1], crestRaise: 1 },
     'the tail flicked': { tailTilt: KINGFISHER.idle.flick.tilt[1] },
     swallowing: { headPitch: KINGFISHER.handle.pitch[1], fish: 1, fishTurn: 1 },
+  },
+  // on its stems (behavior/grips.ts), and the song spread at each grade and the bill-tilt (behavior/spread.ts)
+  rewbla: {
+    'on a stalk': { leanX: GRIPS.stalk.lean },
+    'on a cattail top, peering over it': { leanX: 0.35, headPitch: -0.7 },
+    'the head turned, the tail flicked': { headYaw: 1.2, tailTilt: 0.5 },
+    ...Object.fromEntries(([0, 1, 2, 3, 'tilt'] as const).map(g => {
+      const v = GRADES[g]
+      return [`spread, grade ${g}`, {
+        epaulet: v.epaulet ?? 0.15, epauletRaise: v.epauletRaise, fluff: v.fluff, wingHold: v.wingHold, tailSpread: v.tailSpread,
+        tailTilt: v.tailTilt ?? 0, leanX: v.lean ?? 0, neckExtend: v.neckExtend, headPitch: v.headPitch, gape: v.gape,
+      }]
+    })),
   },
 }
 

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { ATLAS_SIZE, PAD, REGIONS, pixelST } from './atlas'
 import { compileLayer, hashString, hexRGB, pointMm, skinSpan, type Frame, type Out, type Px, type RGB } from './layers'
 import { createProfile, type Profile } from '../detail/profile'
-import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
+import { layersFor, sizedDetail, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
 import { SPAN, ROOT_CHORD, outlineAt, flightEdges } from '../detail/wing'
 import { tailWidth } from '../detail/tail'
 import { billScale, pouchFrame } from '../detail/bill'
@@ -54,6 +54,24 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
     pouch: detail.bill.pouch ? flat(pouchFrame(detail).lengthMm, pouchFrame(detail).widthMm) : flat(1, () => 1),
     // every strand of the crest shares the region, s along it: the longer lobe sets its length
     crest: flat(Math.max(...(crest?.lobes.map(l => l.length) ?? [0.001])) * 1000, () => 2 * Math.PI * CREST_RADIUS * 1000),
+    // a song spread's cover and coverts take their share of the folded wing's chord and height; the mouth the bill's
+    cover: patchFrame(detail, detail.display?.shoulder, detail.display?.shoulder.margin ?? 0),
+    coverts: patchFrame(detail, detail.display?.coverts, 0),
+    mouth: flat(m.culmen * 1000, () => m.billWidth * 1000),
+  }
+}
+
+/** A patch of the folded wing (s and t ranges, widened by `margin` all round) as a paint frame, mm; a stand-in without one. */
+function patchFrame(detail: DetailSpec, patch: { s: [number, number]; t: [number, number] } | undefined, margin: number): Frame {
+  const noLabels = (label: string): number => { throw new Error(`station label "${label}" used outside the skin`) }
+  if (!patch) return { lengthMm: 1, widthMm: () => 1, uOf: noLabels }
+  const chord = detail.measurements.wingChord * 1000
+  const s0 = Math.max(0, patch.s[0] - margin), s1 = Math.min(1, patch.s[1] + margin)
+  const t0 = Math.max(0, patch.t[0] - margin), t1 = Math.min(1, patch.t[1] + margin)
+  return {
+    lengthMm: (s1 - s0) * chord,
+    widthMm: s => Math.max((t1 - t0) * outlineAt(detail.wing.outline, s0 + s * (s1 - s0)) * chord, 0.01),
+    uOf: noLabels,
   }
 }
 
@@ -185,8 +203,9 @@ export interface PaintedAtlas extends AtlasJob { pixels: Uint8ClampedArray; ms: 
 
 /** Paint one species' atlas for one version, here and now. */
 export function paintSpecies(spec: SpeciesSpec, variant?: string): Uint8ClampedArray {
-  const detail = spec.detail
-  if (!detail) throw new Error(`${spec.code}: no detail block to paint`)
+  if (!spec.detail) throw new Error(`${spec.code}: no detail block to paint`)
+  // a version of its own size has its own skin and so its own layout
+  const detail = sizedDetail(spec.detail, variant)
   return paintAtlas({ code: spec.code, detail, layers: layersFor(detail, variant), profile: createProfile(detail.profile) })
 }
 

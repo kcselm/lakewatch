@@ -10,6 +10,10 @@ import { MALLARD } from '../behavior/dabbler'
 import { companyOf } from '../behavior/swim'
 import { heronFor } from '../behavior/heron'
 import { BEHAVIORS, type BehaviorController } from '../behavior'
+import { loadLocation } from '../location'
+import { lakeHeightfield } from '../world/heightfield'
+import { terrainSurface } from '../world/terrain'
+import { createStemField, layoutStems } from '../world/stems'
 
 const loc = (cast: Location['cast']): Location => ({
   id: 'l', name: 'L', region: '', habitat: 'wetland', season: 'early-autumn', timeOfDay: 'morning',
@@ -514,5 +518,36 @@ describe('perches from a list (the stumps)', () => {
   it('still shares one perch among every bird of a zone that has only one', () => {
     const d = deps({ snag: [1, 2, 3] })
     expect(() => spawnCast(loc([{ species: 'rewbla', behavior: 'perch', zone: 'snag', count: 2, plumage: 'male' }]), d)).not.toThrow()
+  })
+})
+
+describe('spawnCast blackbirds', () => {
+  const lake = loadLocation()
+  const bed = { ...lake, cast: lake.cast.filter(e => e.behavior === 'blackbird') }
+  const hf = lakeHeightfield(7), surface = terrainSurface(hf)
+  const ground = (x: number, z: number) => surface.sample(x, z)
+  const deps = (stems: boolean) => ({
+    registry: new BirdRegistry(), wind: new Wind({ ...lake.wind, seed: 1 }), ground, ripples: new RippleBuffer(), seed: 42,
+    ...(stems ? { stems: createStemField(layoutStems({ heightfield: hf, ground })) } : {}),
+  })
+  it("puts the entry's five on the reed bed's stems in their versions, the singer by his post", () => {
+    const d = deps(true)
+    const world = spawnCast(bed, d)
+    for (let i = 0; i < 30; i++) world.update(1 / 30, d.wind)
+    const birds = d.registry.all()
+    expect(birds.map(b => b.variant).sort()).toEqual(['female', 'female', 'firstYearMale', 'male', 'male'])
+    for (const b of birds) {
+      const p = b.model.group.position
+      // up a stem, off the ground
+      expect(p.y - ground(p.x, p.z), `${b.variant} ${b.id}`).toBeGreaterThan(0.4)
+    }
+    // the singer, a male, on the stalk nearest the post
+    const post = lake.zones['reed-perch']!
+    if (post.kind !== 'point') throw new Error('reed-perch is a point')
+    const nearest = Math.min(...birds.filter(b => b.variant === 'male').map(b => Math.hypot(b.model.group.position.x - post.position[0], b.model.group.position.z - post.position[2])))
+    expect(nearest).toBeLessThan(1)
+  })
+  it('needs the stems', () => {
+    expect(() => spawnCast(bed, deps(false))).toThrow(/stems/)
   })
 })

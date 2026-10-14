@@ -5,7 +5,7 @@ import { billTipNow } from './measure'
 import { defaultPose, type PoseState } from '../model'
 import { paintAtlas } from '../paint/painter'
 import { createProfile } from './profile'
-import { layersFor } from './spec'
+import { layersFor, sizedDetail } from './spec'
 
 /**
  * FNV-1a over 32-bit integers. Every float is rounded to a micrometre (or a millionth of a texture) first, so the
@@ -110,6 +110,7 @@ const EXPECTED: Record<string, { geometry: string; poses: string }> = {
   cangoo: { geometry: 'b33c2b2a', poses: '78f1259e' },         // the Canada Goose, detailed (goose Task 6)
   amwpel: { geometry: '97b7e899', poses: '090f7a1e' },         // the American White Pelican, detailed (the pelican round)
   belkin1: { geometry: '08eb3202', poses: '91be1992' },        // the Belted Kingfisher, detailed and perched (the kingfisher round)
+  rewbla: { geometry: 'd77de24a', poses: 'bc079d6a' },         // the Red-winged Blackbird, detailed, on stems, with its song spread (the red-wing round)
 }
 
 describe('the shipped detailed birds build exactly as before', () => {
@@ -127,7 +128,8 @@ describe('the shipped detailed birds build exactly as before', () => {
 
 /** Every texel of a species' painted atlas, for one plumage. */
 function atlasPrint(spec: (typeof SPECIES)[string], variant?: string): string {
-  const d = spec.detail!
+  // a version of a size of its own is painted on its own skin, as the game paints it; every other is the species' own
+  const d = sizedDetail(spec.detail!, variant)
   const px = paintAtlas({ code: spec.code, detail: d, layers: layersFor(d, variant), profile: createProfile(d.profile) })
   const h = hasher()
   for (let i = 0; i < px.length; i += 4) h.int(px[i]! | (px[i + 1]! << 8) | (px[i + 2]! << 16))
@@ -165,6 +167,9 @@ const EXPECTED_ATLAS: Record<string, string> = {
   amwpel: '1e4378fc', 'amwpel:adult': '1e4378fc', 'amwpel:juvenile': '72d8102c',
   // new: the Belted Kingfisher's two versions (the kingfisher round); with no version it paints the female's
   belkin1: 'd138ec16', 'belkin1:female': 'd138ec16', 'belkin1:male': 'bbf02c32',
+  // new: the Red-winged Blackbird's three versions (the red-wing round), the female on a skin of her own size; with no
+  // version it paints the adult male's
+  rewbla: '7aafc645', 'rewbla:male': '7aafc645', 'rewbla:firstYearMale': '837b8c05', 'rewbla:female': '98a473ff',
 }
 
 describe('the shipped detailed birds paint exactly as before', () => {

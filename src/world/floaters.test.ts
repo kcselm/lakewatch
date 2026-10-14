@@ -10,6 +10,7 @@ import { RippleBuffer } from './ripples'
 import { lakeHeightfield } from './heightfield'
 import { terrainSurface } from './terrain'
 import { bakeWaterDepth } from './waterDepth'
+import { createStemField, layoutStems } from './stems'
 
 function bird(id: number, x: number, y: number, z: number, behavior = 'swim', visible = true, floating = behavior === 'swim'): BirdInstance {
   const group = new THREE.Group()
@@ -78,12 +79,15 @@ describe('FloaterTracker', () => {
 
 describe('the whole cast in the water', () => {
   it('keeps every bird in the water under MAX_FLOATERS, and gives a cruising duck the speed of a full wake', () => {
-    const surface = terrainSurface(lakeHeightfield(7))
+    const hf = lakeHeightfield(7)
+    const surface = terrainSurface(hf)
     const depth = bakeWaterDepth(surface)
+    // the reed bed's stems, which the blackbirds hold
+    const stems = layoutStems({ heightfield: hf, ground: (x, z) => surface.sample(x, z) })
     for (const seed of [42, 7, 11]) {
       const wind = new Wind({ direction: 240, strength: 0.35, gustiness: 0.5, seed: 1 })
       const registry = new BirdRegistry()
-      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { stumps: stumpPerches([-14, 0, -30]) } })
+      const world = spawnCast(loadLocation(), { registry, wind, ground: (x, z) => surface.sample(x, z), ripples: new RippleBuffer(), seed, perches: { stumps: stumpPerches([-14, 0, -30]) }, stems: createStemField(stems) })
       const tracker = new FloaterTracker()
       let most = 0, fewest = Infinity, fastest = 0
       for (let i = 0; i < 120 * 10; i++) {

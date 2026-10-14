@@ -3,7 +3,8 @@ import type { Bird } from './types'
 
 const habitatSchema = z.enum(['wetland', 'forest', 'shoreline', 'urban'])
 
-const audioClipSchema = z.object({
+/** One recording; the cue file (src/audio/cues.ts) lists the clips it adds in the same shape. */
+export const audioClipSchema = z.object({
   file: z.string().min(1),
   type: z.enum(['song', 'call']),
   xcId: z.string().min(1),

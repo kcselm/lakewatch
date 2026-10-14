@@ -9,14 +9,14 @@ import type { SpeciesSpec } from '../birds/spec'
  */
 
 /** A pose the study stage can hold a bird in. */
-export type StudyPose = 'rest' | 'alert' | 'flight' | 'dry' | 'ashore'
+export type StudyPose = 'rest' | 'alert' | 'flight' | 'dry' | 'ashore' | 'spread'
 
 export interface PoseOption { id: StudyPose; label: string }
 
 /**
  * The poses a species can be shown in: at rest always; alert where its neck is a chain that stretches (herons, the
  * goose, the pelican, the cormorant); in flight where it has a flight wing; drying its wings where it has a drying
- * pose; and ashore where it both swims and stands.
+ * pose; ashore where it both swims and stands; and its song spread where it has one, played with its song.
  */
 export function posesFor(spec: SpeciesSpec): PoseOption[] {
   const out: PoseOption[] = [{ id: 'rest', label: 'At rest' }]
@@ -25,6 +25,7 @@ export function posesFor(spec: SpeciesSpec): PoseOption[] {
   if (spec.detail?.flight || spec.authored?.flight) out.push({ id: 'flight', label: 'In flight' })
   if (spec.detail?.flight?.dry || spec.authored?.flight?.dry) out.push({ id: 'dry', label: 'Drying its wings' })
   if (spec.detail?.amphibious || spec.authored?.amphibious) out.push({ id: 'ashore', label: 'Ashore' })
+  if (spec.detail?.display) out.push({ id: 'spread', label: 'Song spread' })
   return out
 }
 
@@ -69,6 +70,7 @@ function habit(e: CastEntry): string {
     case 'wade': return `${n === 1 ? 'One wades' : `${n} wade`} in ${zone}`
     case 'probe': return `${n === 1 ? 'One feeds' : `${n} feed`} on ${zone}`
     case 'perch': return `${n === 1 ? 'One perches' : `${n} perch`} ${e.zone.startsWith('reed') ? 'in' : 'on'} ${zone}`
+    case 'blackbird': return `${n === 1 ? 'One clings' : `${n} cling`} to the cattails and tules in ${zone}${e.post ? ', a male singing from his stalk' : ''}`
     case 'kingfisher': return `${n === 1 ? 'One hunts' : `${n} hunt`} from ${zone}, hovering and plunging`
     case 'flyover': return `Flocks of up to ${n} fly over ${zone}${e.formation === 'vee' ? ' in a V' : e.formation === 'line' ? ' in a line' : ''} every few minutes`
   }

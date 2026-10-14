@@ -8,7 +8,10 @@ export interface CallSchedule {
 
 export const DEFAULT_SCHEDULE: CallSchedule = { every: [30, 90], prefer: 'any' }
 
-/** Per-species cadence. Herons and egrets are nearly silent; wrens and blackbirds never stop. */
+/**
+ * Per-species cadence. Herons and egrets are nearly silent; wrens never stop. The red-winged blackbirds have none:
+ * their checks and songs are asked for by their behaviour (ASKED_ONLY).
+ */
 export const CALL_SCHEDULES: Record<string, CallSchedule> = {
   y00475:  { every: [15, 50], prefer: 'call' },
   mallar3: { every: [20, 70], prefer: 'call' },
@@ -19,7 +22,6 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
   grbher3: { every: [120, 300], prefer: 'call' },
   greegr:  { every: [120, 300], prefer: 'call' },
   killde:  { every: [12, 40], prefer: 'call' },
-  rewbla:  { every: [8, 25], prefer: 'song' },
   marwre:  { every: [10, 30], prefer: 'song' },
   belkin1: { every: [40, 120], prefer: 'call' },
   // eight on the lake: a call every 15 s between them, a loafing and grazing family being mostly quiet (estimate)
@@ -35,6 +37,13 @@ export const CALL_SCHEDULES: Record<string, CallSchedule> = {
  * (docs/research/2026-09-30-american-white-pelican.md, section 7.6).
  */
 export const SILENT: ReadonlySet<string> = new Set(['amwpel', 'doccor'])
+
+/**
+ * Species whose calls are only ever asked for: the scheduler never times one, but their behaviour's asks still go
+ * through it and its cap. Red-winged blackbirds check and sing when their behaviour says so, each song timed to its
+ * spread (docs/superpowers/specs/2026-10-13-red-winged-blackbird-design.md, "Calls").
+ */
+export const ASKED_ONLY: ReadonlySet<string> = new Set(['rewbla'])
 
 export const MAX_SIMULTANEOUS_CALLS = 3
 
@@ -55,10 +64,19 @@ export interface CallScheduler {
   ask(id: number): void
 }
 
-export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: Record<string, CallSchedule>; silent?: ReadonlySet<string> } = {}): CallScheduler {
+export interface CallSchedulerOptions {
+  max?: number
+  schedules?: Record<string, CallSchedule>
+  silent?: ReadonlySet<string>
+  /** species never timed, only asked for (default ASKED_ONLY) */
+  askedOnly?: ReadonlySet<string>
+}
+
+export function createCallScheduler(rng: Rng, opts: CallSchedulerOptions = {}): CallScheduler {
   const max = opts.max ?? MAX_SIMULTANEOUS_CALLS
   const schedules = opts.schedules ?? CALL_SCHEDULES
   const silent = opts.silent ?? SILENT
+  const askedOnly = opts.askedOnly ?? ASKED_ONLY
   const nextAt = new Map<number, number>()
   const asked = new Set<number>()
   const scheduleFor = (species: string) => schedules[species] ?? DEFAULT_SCHEDULE
@@ -73,6 +91,10 @@ export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: 
       for (const b of birds) {
         if (silent.has(b.species)) continue
         present.add(b.id)
+        if (askedOnly.has(b.species)) {                // no timer: it calls when asked, and only then
+          if (asked.has(b.id)) asking.push(b)
+          continue
+        }
         let t = nextAt.get(b.id)
         if (t === undefined) {
           t = now + between(scheduleFor(b.species).every) * rng()     // stagger first calls
@@ -91,7 +113,7 @@ export function createCallScheduler(rng: Rng, opts: { max?: number; schedules?: 
         if (slots === 0) break                         // no room: the ask is dropped, and its timer left as it was
         slots--
         out.push({ id: b.id, species: b.species, prefer: scheduleFor(b.species).prefer })
-        nextAt.set(b.id, now + between(scheduleFor(b.species).every))
+        if (!askedOnly.has(b.species)) nextAt.set(b.id, now + between(scheduleFor(b.species).every))
       }
       due.forEach((b, i) => {
         if (i < slots) {

@@ -89,7 +89,7 @@ export function Study({ species, specs, habits, locationName, seen, clipVolume, 
         ))}
       </nav>
       <div class="study-stage">
-        {spec && <Stage spec={spec} version={version} pose={pose} />}
+        {spec && <Stage spec={spec} version={version} pose={pose} volume={clipVolume} />}
         <div class="study-controls">
           {versions.length > 0 && (
             <div class="chips" role="group" aria-label="Plumage">
@@ -149,7 +149,7 @@ export function Study({ species, specs, habits, locationName, seen, clipVolume, 
 }
 
 /** The 3D stage: one StudyStage for as long as the study is open, showing whichever bird, plumage, and pose is chosen. */
-function Stage({ spec, version, pose }: { spec: SpeciesSpec; version: string | undefined; pose: StudyPose }) {
+function Stage({ spec, version, pose, volume }: { spec: SpeciesSpec; version: string | undefined; pose: StudyPose; volume: number }) {
   const host = useRef<HTMLDivElement>(null)
   const stage = useRef<StudyStage | null>(null)
   const poseRef = useRef(pose)
@@ -171,6 +171,7 @@ function Stage({ spec, version, pose }: { spec: SpeciesSpec; version: string | u
     void stage.current?.show(spec, version, poseRef.current)
   }, [spec, version])
   useEffect(() => { stage.current?.setPose(pose) }, [pose])
+  useEffect(() => { stage.current?.setVolume(volume) }, [volume])
 
   return (
     <div class="study-canvas">

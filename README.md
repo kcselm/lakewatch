@@ -42,7 +42,7 @@ modelled species, with its plumages, poses, field marks, photo and calls.
 
     src/            game code (world, birds, behavior, audio, ui, study, ...)
     src/birds/species/   one file per bird model
-    data/           scene, bird catalog, and ambience manifest
+    data/           scene, bird catalog, song and call cues (cues.json), and ambience manifest
     public/media/   photos and audio (~20 MB, shipped with the site)
     public/models/  Blender-authored bird models (committed)
     scripts/        data harvest and Blender build scripts
@@ -57,9 +57,13 @@ behavior are covered in their own specs and in `docs/research/`.
 These only work on the dev server:
 
 - `/viewer.html` compares two species at true scale through the game's
-  optics, over a reference photo.
-- `window.__lakewatch` exposes `birds()`, `lookAt(x, y, z)`, and
-  `splash(x, z)` for capture scripts.
+  optics, over a reference photo. For the red-winged blackbird it also has
+  the song spread's sliders, graded spreads played against a song, and
+  stems to hold (a stalk, a cattail top, a tule, or two to straddle) that
+  can sway.
+- `window.__lakewatch` exposes `birds()`, `inspect(id)` (a bird's
+  behaviour and pose), `lookAt(x, y, z)`, and `splash(x, z)` for capture
+  scripts.
 
 ## Bird models
 

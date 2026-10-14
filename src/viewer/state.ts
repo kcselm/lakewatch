@@ -9,6 +9,10 @@ export const FIELD_VIEWS = {
   scope35: { label: 'telescope, 35 m (open water)', distance: 35, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
   scope65: { label: 'telescope, 65 m (far shore)', distance: 65, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
   bino15: { label: 'binoculars, 15 m (near water)', distance: 15, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  // the singing red-winged blackbird's post in the reeds
+  bino9: { label: 'binoculars, 9.4 m (the reed bed)', distance: 9.4, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
+  scope9: { label: 'telescope, 9.4 m (the reed bed)', distance: 9.4, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
+  scope5: { label: 'telescope, 5 m (the near edge of the reeds)', distance: 5, fov: OPTICS.telescope.fov, near: OPTICS.telescope.near },
   bino22: { label: 'binoculars, 22 m', distance: 22, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino35: { label: 'binoculars, 35 m (the geese on the flat)', distance: 35, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
   bino65: { label: 'binoculars, 65 m', distance: 65, fov: OPTICS.binoculars.fov, near: OPTICS.binoculars.near },
@@ -68,7 +72,19 @@ export interface ViewerState {
   /** the lake, as in the game: opaque water at y = 0 (a swimmer's waterline) and no ground; `see` makes it see-through */
   float: boolean; see: boolean
   wire: boolean; skel: boolean; uv: boolean; atlas: boolean; stations: boolean
+  /**
+   * a song spread (a red-winged blackbird's): the shoulder bared (ep) and its coverts erected (er), the feathers fluffed
+   * (fl, -0.3 sleeked), the wings held out (wh), the bill open (gp)
+   */
+  ep: number; er: number; fl: number; wh: number; gp: number
+  /** a percher whose toes take stems, on one: '' its branch, 'stalk', 'top' (a cattail's), 'tule', 'straddle' (two tules) */
+  stem: string
+  /** the stem swaying, the bird riding it */
+  sway: boolean
 }
+
+/** the stems the viewer can stand a stem-holding percher on */
+export const STEMS = ['', 'stalk', 'top', 'tule', 'straddle'] as const
 
 /** each number's range: a value outside it is clamped */
 const NUMBERS = {
@@ -76,9 +92,10 @@ const NUMBERS = {
   depth: [-0.4, 0.3], angle: [0, Math.PI / 2], paddle: [0, 1], sink: [0, 0.15], bob: [-0.2, 0.2], tail: [-0.5, 1],
   pitch: [-0.5, 1.4], afloat: [0, 1], pouch: [0, 1], glide: [0, 1], raise: [0, 80], dry: [0, 1], prop: [0, 1],
   stroke: [0, 1], fan: [0, 1], yaw: [-1.6, 1.6], crest: [0, 1], fish: [0, 1], turn: [0, 1], legs: [0, 1],
+  ep: [0, 1], er: [0, 1], fl: [-0.3, 1], wh: [0, 1], gp: [0, 1],
 } as const satisfies Record<string, readonly [number, number]>
 const NUMBER_KEYS = Object.keys(NUMBERS) as (keyof typeof NUMBERS)[]
-const FLAGS = ['walk', 'flap', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations'] as const
+const FLAGS = ['walk', 'flap', 'float', 'see', 'wire', 'skel', 'uv', 'atlas', 'stations', 'sway'] as const
 const STRINGS = ['a', 'av', 'b', 'bv'] as const
 
 /** What the viewer can show: species codes it knows, and each one's plumages. */
@@ -109,6 +126,8 @@ export function parseState(hash: string, defaults: ViewerState, catalog?: Catalo
   if (view && (VIEWS as readonly string[]).includes(view)) s.view = view as View
   const field = p.get('field')
   if (field !== null && (field === '' || field in FIELD_VIEWS)) s.field = field as FieldView
+  const stem = p.get('stem')
+  if (stem !== null && (STEMS as readonly string[]).includes(stem)) s.stem = stem
   return s
 }
 
@@ -117,6 +136,7 @@ export function stateHash(s: ViewerState): string {
   for (const k of STRINGS) p.set(k, s[k])
   p.set('view', s.view)
   p.set('field', s.field)
+  p.set('stem', s.stem)
   for (const k of NUMBER_KEYS) p.set(k, String(s[k]))
   for (const k of FLAGS) p.set(k, s[k] ? '1' : '0')
   return '#' + p.toString()

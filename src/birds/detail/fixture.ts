@@ -232,6 +232,40 @@ export const TEST_PERCHER_SPEC: SpeciesSpec = parseSpeciesSpec({
 })
 
 /**
+ * The test percher as a singer on stems, for the song spread and the grips: a red-winged blackbird's long legs and toes
+ * (docs/research/2026-10-13-red-winged-blackbird.md, section 2.8), toes that take any stem, a shoulder patch under a
+ * cover, coverts that rise, feathers that fluff, wings that hold out and a bill that gapes (detail.display, with the
+ * red-wing's numbers, docs/research/2026-10-13-blackbird-display-and-reeds.md, section 8), and a second version,
+ * `small`, of a size of its own (0.85, its tarsus given outright), as a female red-wing is.
+ */
+export const TEST_SINGER_DETAIL: DetailSpec = {
+  ...TEST_PERCHER_DETAIL,
+  measurements: { ...TEST_PERCHER_DETAIL.measurements, tarsus: 0.0295, tibia: 0.005, toe: 0.0218 },
+  perch: { radius: 0.004, stems: true },
+  display: {
+    shoulder: { s: [0, 0.35], t: [0.05, 0.9], margin: 0.06, gap: 0.0012 },
+    coverts: { s: [0, 0.26], t: [0.06, 0.76], turn: 46, raise: 8, forward: 0.004, out: 0.002, grow: 1.1 },
+    fluff: { body: 0.0045, head: 0.002 },
+    hold: { out: 35, droop: 10 },
+    gape: 30,
+  },
+  sizes: { small: { scale: 0.85, measurements: { tarsus: 0.0269 } } },
+  plumage: [
+    ...TEST_PERCHER_DETAIL.plumage,
+    { kind: 'fill', where: { part: 'wingFold', s: [0, 0.27], t: [0.05, 0.78] }, color: '#dc3a1c' },
+    { kind: 'fill', where: { part: 'cover' }, color: '#55728c' },
+    { kind: 'fill', where: { part: 'coverts' }, color: '#dc3a1c' },
+    { kind: 'fill', where: { part: 'mouth' }, color: '#5b3b3c' },
+  ],
+  variants: { big: [], small: [] },
+}
+TEST_SINGER_DETAIL.variants = { big: TEST_SINGER_DETAIL.plumage, small: TEST_SINGER_DETAIL.plumage }
+
+export const TEST_SINGER_SPEC: SpeciesSpec = parseSpeciesSpec({
+  ...TEST_PERCHER_SPEC, code: 'testsinger', commonName: 'Test Singer', detail: TEST_SINGER_DETAIL, variants: { big: {}, small: {} },
+})
+
+/**
  * The test percher with a wing to fly on: the Belted Kingfisher's planform, strokes and fold
  * (docs/research/2026-09-30-kingfisher-flight-and-plunge.md). The outline is the research's traced station table
  * (section 2.3) at its half-span of 1.47 × the wing chord, 0.241 m, the wrist at 0.37 of it (section 2.4), and the outer

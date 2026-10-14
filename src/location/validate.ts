@@ -9,7 +9,7 @@ export type CastSpecs = Readonly<Record<string, Pick<SpeciesSpec, 'variants' | '
 
 const ZONE_KIND_FOR_BEHAVIOR = {
   swim: 'polygon', wade: 'polygon', probe: 'polygon',
-  perch: 'point', kingfisher: 'perches', flyover: 'lane',
+  perch: 'point', kingfisher: 'perches', flyover: 'lane', blackbird: 'polygon',
 } as const
 
 export function validateCast(loc: Location, birds: readonly Bird[], specs: CastSpecs = SPECIES): string[] {
@@ -51,6 +51,7 @@ export function validateCast(loc: Location, birds: readonly Bird[], specs: CastS
       errors.push(`cast[${i}]: zone ${entry.zone} does not exist`)
       return
     }
+    if (entry.post !== undefined && loc.zones[entry.post]?.kind !== 'point') errors.push(`cast[${i}]: the post ${entry.post} is not a point zone`)
     const want = ZONE_KIND_FOR_BEHAVIOR[entry.behavior]
     if (zone.kind !== want) {
       errors.push(`cast[${i}]: ${entry.behavior} needs a ${want} zone, ${entry.zone} is ${zone.kind}`)

@@ -7,11 +7,14 @@ import { defaultPose, type BirdModel, type PoseState } from '../birds/model'
 import { ensureAuthored } from '../birds/models'
 import type { SpeciesSpec } from '../birds/spec'
 import { CORMORANT_PERCH } from '../behavior/cormorant'
+import { GRIPS, holdOn } from '../behavior/grips'
+import { spreadPose, spreadLength } from '../behavior/spread'
+import { songCues, type SongCue } from '../audio/cues'
 import type { StudyPose } from './study'
 
 /**
  * The study screen's stage: one bird on a turntable under the lake's morning light, on the water if it swims, on the
- * ground if it stands, on its branch if it perches. Drag to turn it, scroll to zoom; left alone, the view turns
+ * ground if it stands, on its branch if it perches, on a cattail stalk if it holds stems. Drag to turn it, scroll to zoom; left alone, the view turns
  * slowly round it. A renderer of its own, so the lake's can stop while the study is open.
  */
 
@@ -23,6 +26,17 @@ const REFRAME = 0.6
 const IDLE = 5
 /** a perch's length, metres: the branch the kingfisher stands on, lying across under its feet */
 const BRANCH = 0.4
+/**
+ * a cattail stalk for a bird that holds stems: 8 mm across where it is held, `STALK_HOLD` metres up, running on 25 cm
+ * above (the viewer's)
+ */
+const STALK_RADIUS = 0.004
+const STALK_HOLD = 0.35
+/** the song spread: from half a second before each song's first note, so its onset comes before it; 1.5 s between songs */
+const SONG_LEAD = 0.5
+const SONG_GAP = 1.5
+/** a male's resting epaulet, its buff bar showing (behavior/blackbird.ts) */
+const REST_EPAULET = 0.15
 /** the 10 cm grid on the ground, for scale */
 const CELL = 0.1
 
@@ -48,10 +62,16 @@ export class StudyStage {
   private readonly grid: THREE.Group
   private readonly water: THREE.Mesh
   private readonly branch: THREE.Mesh
+  private readonly stalk: THREE.Mesh
   private readonly resize: ResizeObserver
   private model: BirdModel | null = null
   private spec: SpeciesSpec | null = null
+  private version: string | undefined
   private poseId: StudyPose = 'rest'
+  /** the song playing with the spread: its cue, the clip, and the song's clock (seconds from its first note) */
+  private song: { cue: SongCue; audio: HTMLAudioElement; t: number } | null = null
+  private songs = 0
+  private volume = 1
   private readonly pose: PoseState = defaultPose()
   /** where the bird's feet (or waterline) stand: lifted for a percher on its branch, and in flight */
   private readonly base = new THREE.Vector3()
@@ -96,7 +116,12 @@ export class StudyStage {
     this.water.receiveShadow = true
     this.branch = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, BRANCH, 20), new THREE.MeshStandardMaterial({ color: '#6b5d4f', roughness: 1 }))
     this.branch.castShadow = this.branch.receiveShadow = true
-    this.scene.add(this.ground, this.grid, this.water, this.branch)
+    this.stalk = new THREE.Mesh(
+      new THREE.CylinderGeometry(STALK_RADIUS * 0.8, STALK_RADIUS * 1.6, STALK_HOLD + 0.25, 10, 8).translate(0, (STALK_HOLD + 0.25) / 2, 0),
+      new THREE.MeshStandardMaterial({ color: '#9aa060', roughness: 0.9 }),
+    )
+    this.stalk.castShadow = this.stalk.receiveShadow = true
+    this.scene.add(this.ground, this.grid, this.water, this.branch, this.stalk)
 
     this.camera.position.set(0.6, 0.22, 0.75)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -124,6 +149,7 @@ export class StudyStage {
       this.clear()
       this.model = model
       this.spec = spec
+      this.version = version
       this.scene.add(model.group)
       this.setPose(pose)
     } catch (err) {
@@ -136,12 +162,16 @@ export class StudyStage {
   /** Hold the bird on the stage in another pose, and frame it there. */
   setPose(pose: StudyPose): void {
     this.poseId = pose
+    this.hush()
     if (!this.model || !this.spec) return
     const spec = this.spec
     const swims = spec.posture === 'swimming' && pose !== 'ashore' && pose !== 'dry'
-    const radius = spec.detail?.perch?.radius
-    // a percher stands on its branch's top: the branch lies across under its feet on the ground, the bird on it
-    this.base.set(0, radius ? 2 * radius : 0, 0)
+    const stems = !!spec.detail?.perch?.stems
+    const radius = stems ? undefined : spec.detail?.perch?.radius
+    // a percher stands on its branch's top: the branch lies across under its feet on the ground, the bird on it; a bird
+    // that holds stems clasps a stalk standing from the ground, the stalk a little ahead of its feet
+    this.base.set(stems ? -GRIPS.stalk.ahead * this.size() : 0, radius ? 2 * radius : stems ? STALK_HOLD : 0, 0)
+    this.stalk.visible = stems
     this.branch.visible = !!radius
     if (radius) {
       this.branch.scale.set(radius, 1, radius)
@@ -162,9 +192,16 @@ export class StudyStage {
     this.reframe()
   }
 
+  /** How loud the songs of the spread play, 0-1 (the clips' volume). */
+  setVolume(volume: number): void {
+    this.volume = volume
+    if (this.song) this.song.audio.volume = volume
+  }
+
   dispose(): void {
     cancelAnimationFrame(this.frame)
     this.request++
+    this.hush()
     this.resize.disconnect()
     this.controls.dispose()
     this.clear()
@@ -173,7 +210,19 @@ export class StudyStage {
     this.renderer.domElement.remove()
   }
 
+  /** stops the spread's song */
+  private hush(): void {
+    this.song?.audio.pause()
+    this.song = null
+  }
+
+  /** the bird's size against its species' traced one (a female red-wing's 0.85) */
+  private size(): number {
+    return (this.version && this.spec?.detail?.sizes?.[this.version]?.scale) || 1
+  }
+
   private clear(): void {
+    this.hush()
     if (!this.model) return
     this.scene.remove(this.model.group)
     this.model.dispose()
@@ -208,13 +257,53 @@ export class StudyStage {
       p.lean.x = CORMORANT_PERCH.lean
       p.tailProp = 1
       p.neckExtend = 0.6
-    } else {
+    } else if (pose !== 'spread') {
       p.headYaw = Math.sin(this.clock * 0.55) * 0.35 + Math.sin(this.clock * 0.21) * 0.15
     }
+    if (this.stalk.visible) {
+      // its feet round the stalk, the upper the right, its body at the stalk grip's angle
+      const at = (h: number) => new THREE.Vector3(0, h, 0)
+      const up = new THREE.Vector3(0, 1, 0)
+      p.feet = {
+        right: holdOn(at(STALK_HOLD + GRIPS.stalk.apart / 2), up, STALK_RADIUS, this.base, 0),
+        left: holdOn(at(STALK_HOLD - GRIPS.stalk.apart / 2), up, STALK_RADIUS, this.base, 0),
+      }
+      p.lean.x = GRIPS.stalk.lean
+    }
+    // a bird with a song spread at rest as in the game, its shoulder's edge showing
+    if (spec.detail?.display) p.epaulet = REST_EPAULET
+    if (pose === 'spread') this.sing(dt, p)
     this.model!.pose(p)
     const g = this.model!.group
     g.position.copy(this.base)
     if (this.water.visible && !flying) g.position.y += Math.sin(this.clock * 1.4) * 0.003
+  }
+
+  /**
+   * The song spread: the species' songs in turn, each played from its cue, with a full spread on the song's own clock
+   * (the clip's time while it plays), so the red comes up as the song starts and is fullest at its trill.
+   */
+  private sing(dt: number, p: PoseState): void {
+    const cues = songCues(this.spec!.code)
+    if (cues.length === 0) return
+    if (!this.song) {
+      const cue = cues[this.songs++ % cues.length]!
+      const audio = new Audio('/' + cue.file)
+      audio.volume = this.volume
+      audio.currentTime = Math.max(0, cue.start - SONG_LEAD)
+      audio.play().catch(() => {})
+      this.song = { cue, audio, t: -SONG_LEAD }
+    }
+    const s = this.song
+    const shape = { trill: s.cue.trill - s.cue.start, end: s.cue.end - s.cue.start }
+    // the clip's clock while it plays (held at the lead while it loads); the frame clock once it is stopped at the song's end
+    if (!s.audio.paused) s.t = s.audio.currentTime - s.cue.start
+    else s.t += dt
+    if (s.t > shape.end + 0.15 && !s.audio.paused) s.audio.pause()
+    const v = spreadPose(3, s.t, shape, { epaulet: REST_EPAULET, tailTilt: p.tailTilt, lean: p.lean.x })
+    Object.assign(p, { epaulet: v.epaulet, epauletRaise: v.epauletRaise, fluff: v.fluff, wingHold: v.wingHold, tailSpread: v.tailSpread, tailTilt: v.tailTilt, neckExtend: v.neckExtend, headPitch: v.headPitch, gape: v.gape })
+    p.lean.x = v.lean
+    if (s.t > spreadLength(shape) + SONG_GAP) this.song = null
   }
 
   /** The posed bird's bounds in the world: over a whole wingbeat in flight, so the framing holds for every stroke. */

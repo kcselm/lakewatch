@@ -1,4 +1,4 @@
-import { createCallScheduler, CALL_SCHEDULES, MAX_SIMULTANEOUS_CALLS } from './calls'
+import { createCallScheduler, CALL_SCHEDULES, MAX_SIMULTANEOUS_CALLS, ASKED_ONLY } from './calls'
 import { makeRng } from '../catalog/rng'
 
 const bird = (id: number, species: string, distance: number) => ({ id, species, distance })
@@ -34,11 +34,43 @@ describe('createCallScheduler', () => {
 
   it('carries the species preference and defaults unknown species', () => {
     const s = createCallScheduler(makeRng(4))
-    const birds = [bird(1, 'rewbla', 5), bird(2, 'zzz', 6)]
+    const birds = [bird(1, 'marwre', 5), bird(2, 'zzz', 6)]
     s.tick(0, birds, 0)
     const out = s.tick(1e6, birds, 0)
     expect(out.find(r => r.id === 1)?.prefer).toBe('song')
     expect(out.find(r => r.id === 2)?.prefer).toBe('any')
+  })
+
+  describe('a species only ever asked for', () => {
+    it('never times a red-winged blackbird: their checks and songs come only when their behaviour asks', () => {
+      expect(ASKED_ONLY.has('rewbla')).toBe(true)
+      expect(CALL_SCHEDULES['rewbla']).toBeUndefined()
+      const s = createCallScheduler(makeRng(21))
+      const bed = [bird(1, 'rewbla', 9), bird(2, 'rewbla', 11), bird(3, 'rewbla', 14), bird(4, 'rewbla', 7), bird(5, 'rewbla', 12)]
+      const species = new Map<number, string>()
+      for (let now = 0; now < 3600; now += 0.5) for (const r of s.tick(now, [...bed, bird(6, 'marwre', 20)], 0)) species.set(r.id, r.species)
+      expect([...species.values()]).toEqual(['marwre'])    // the Marsh Wren keeps its timed song
+    })
+    it('plays its asks under the cap like any other: nearest first, the rest dropped', () => {
+      const s = createCallScheduler(makeRng(22))
+      const bed = [bird(1, 'rewbla', 9), bird(2, 'rewbla', 11), bird(3, 'rewbla', 14), bird(4, 'rewbla', 7), bird(5, 'rewbla', 12)]
+      s.tick(0, bed, 0)
+      for (const b of bed) s.ask(b.id)
+      expect(s.tick(0.1, bed, 1).map(r => r.id)).toEqual([4, 1])         // two slots left of three
+      expect(s.tick(0.2, bed, 0)).toEqual([])                            // the dropped asks are gone
+      s.ask(3)
+      expect(s.tick(0.3, bed, MAX_SIMULTANEOUS_CALLS)).toEqual([])       // no room: dropped
+      s.ask(3)
+      expect(s.tick(0.4, bed, 0).map(r => r.id)).toEqual([3])
+    })
+    it('is a setting: a scheduler told of none times the blackbirds, and one told of the wren never times it', () => {
+      const birds = [bird(1, 'rewbla', 5), bird(2, 'marwre', 6)]
+      const timed = createCallScheduler(makeRng(23), { askedOnly: new Set() })
+      timed.tick(0, birds, 0)
+      expect(timed.tick(1e6, birds, 0).map(r => r.id).sort()).toEqual([1, 2])
+      const quietWren = createCallScheduler(makeRng(23), { askedOnly: new Set(['marwre', 'rewbla']) })
+      for (let now = 0; now < 600; now += 1) expect(quietWren.tick(now, birds, 0)).toEqual([])
+    })
   })
 
   it('the dowitcher and Pectoral prefer calls, so autumn never plays their breeding songs', () => {

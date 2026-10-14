@@ -3,12 +3,13 @@ import type { Location, Behavior, LaneZone, Vec3, CastEntry, PerchesZone } from 
 import type { Rng } from '../catalog/types'
 import { makeRng } from '../catalog/rng'
 import { randomPointInPolygon } from '../location/zones'
-import { BEHAVIORS, type BehaviorContext, type BehaviorController, type Perch } from '../behavior'
+import { BEHAVIORS, type BehaviorContext, type BehaviorController, type CallAsk, type Perch } from '../behavior'
 import { companyOf } from '../behavior/swim'
 import { startSpot } from '../behavior/swimmer'
 import { heronStart, heronFor } from '../behavior/heron'
 import { gooseUnits, placeIn, type GooseUnit } from '../behavior/goose'
 import { createFlyover, flightFor, type Formation, type FlyoverController } from '../behavior/flyover'
+import { blackbirdGroup, type BlackbirdContext, type BlackbirdGroup } from '../behavior/blackbird'
 import { createBirdModel } from './factory'
 import { buildPlaceholder } from './placeholder'
 import { buildFlock, type FlockModel } from './flock'
@@ -19,6 +20,7 @@ import type { Wind } from '../world/wind'
 import type { RippleBuffer } from '../world/ripples'
 import type { SplashBuffer } from '../world/splash'
 import type { WorldModule } from '../world/scene'
+import type { StemField } from '../world/stems'
 
 /** Things the spawner reports outward (audio hooks); every callback is optional. */
 export interface SpawnEvents {
@@ -26,8 +28,8 @@ export interface SpawnEvents {
   flockMove?(key: string, x: number, y: number, z: number): void
   flockEnd?(key: string): void
   effect?(name: 'splash' | 'flap', x: number, y: number, z: number): void
-  /** a bird's behaviour asks for its call now: the bird's registry id */
-  call?(id: number): void
+  /** a bird's behaviour asks for its call now: the bird's registry id, and what it asks for (none: its species' call) */
+  call?(id: number, ask?: CallAsk): void
 }
 
 export interface SpawnDeps {
@@ -44,6 +46,8 @@ export interface SpawnDeps {
    * of the zone takes the next of its own (the stumps'); point zones not listed here perch at their own position
    */
   perches?: Record<string, Vec3 | Vec3[]>
+  /** the reed bed's stems, which the blackbirds hold (and swing): a cast with blackbirds needs them */
+  stems?: StemField
 }
 
 /**
@@ -53,6 +57,8 @@ export interface SpawnDeps {
 export interface Individual {
   species: string; variant?: string; behavior: Behavior; zone: string; groupKey: string
   ashore?: string; groups?: number[]; index?: number
+  /** a blackbird entry's birds: the point zone the singer sings by */
+  post?: string
 }
 export interface FlockEntry {
   species: string; variant?: string; zone: string; count: number; everySeconds: [number, number]; formation: Formation; groupKey: string
@@ -97,7 +103,7 @@ export function expandCast(loc: Location, rng: Rng): Individual[] {
     }
     versionsFor(entry, rng).forEach((variant, index) => {
       const goose = entry.groups || entry.ashore ? { ashore: entry.ashore, groups: entry.groups ?? [entry.count], index } : {}
-      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}`, ...goose })
+      out.push({ species: entry.species, variant, behavior: entry.behavior, zone: entry.zone, groupKey: `cast${i}`, ...goose, ...(entry.post ? { post: entry.post } : {}) })
     })
   })
   return out
@@ -152,7 +158,7 @@ interface LiveFlock {
   ids: number[]; proxies: THREE.Group[]
 }
 
-export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { object: THREE.Group } {
+export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { object: THREE.Group; inspect(id: number): { controller: BehaviorController; pose: PoseState } | undefined } {
   const object = new THREE.Group()
   const rng = makeRng(deps.seed)
   const groups = new Map<string, NonNullable<BehaviorContext['group']>>()
@@ -166,7 +172,11 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   /** each goose entry's units, by its group key: its family and its loose units */
   const units = new Map<string, GooseUnit[]>()
   const birds: LiveBird[] = []
+  /** each bird's behaviour and pose by its registry id, for the dev hook */
+  const byId = new Map<number, LiveBird>()
   const flocks: LiveFlock[] = []
+  /** each blackbird entry's birds, by its group key: where each is, which is the singer */
+  const blackbirds = new Map<string, BlackbirdGroup>()
   /** how many birds have taken a perch from each zone's list */
   const taken = new Map<string, number>()
   const perchFor = (name: string, fallback: Vec3): Vec3 => {
@@ -202,15 +212,20 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       groups.set(key, { targetX: gx, targetZ: gz, retargetAt: company?.retargetSeconds ?? 0 })
     }
     const group = groups.get(key)!
+    const blackbird = ind.behavior === 'blackbird' && zone.kind === 'polygon'
+    if (blackbird && !deps.stems) throw new Error(`${ind.species}: a blackbird needs the reed bed's stems`)
+    if (blackbird && !blackbirds.has(key)) blackbirds.set(key, blackbirdGroup())
+    const post = ind.post ? loc.zones[ind.post] : undefined
     let id = -1                                        // the bird's registry id, once it is added below
-    const ctx: BehaviorContext = {
+    // (a blackbird's extras: the stems, its entry's group, its version and size, the singer's post, the player's place)
+    const ctx: BlackbirdContext = {
       zone,
       rng: makeRng(Math.floor(rng() * 1e9)),
       wind: () => ({ dirX: deps.wind.state.dir.x, dirZ: deps.wind.state.dir.y, effective: deps.wind.effective() }),
       ground: deps.ground,
       onRipple: (x, z, size) => deps.ripples.spawn(x, z, size),
       onSplash: (x, z, size) => deps.splashes?.spawn(x, z, size),
-      onCall: () => deps.events?.call?.(id),
+      onCall: ask => deps.events?.call?.(id, ask),
       // a probing or swimming flock's shared record; for herons, their species' group, so each keeps its own species' spacing
       group: ind.behavior === 'probe' || swim || heron ? group : undefined,
       perch,
@@ -221,6 +236,10 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
       unit: swim && ind.index !== undefined ? unitOf(ind) : undefined,
       ...traits,
       onEvent: (name, x, y, z) => deps.events?.effect?.(name, x, y, z),
+      ...(blackbird ? {
+        stems: deps.stems, blackbirds: blackbirds.get(key), variant: ind.variant, size: sizeOf(ind.species, ind.variant),
+        post: post?.kind === 'point' ? post.position : undefined, vantage: loc.vantage.position,
+      } : {}),
     }
     const [sx, sz] = company && zone.kind === 'polygon' ? startSpot(zone, rng, group, company, swimmers)
       : heron && zone.kind === 'polygon' ? heronStart(zone, rng, group, heronFor(ind.species).spacing, herons)
@@ -234,6 +253,13 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     id = deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose }).id
     object.add(model.group)
     birds.push({ controller, pose, model })
+    byId.set(id, birds[birds.length - 1]!)
+  }
+
+  /** a version's size against its species' traced bird (a female blackbird's 0.85) */
+  function sizeOf(species: string, variant: string | undefined): number {
+    const sizes = hasSpec(species) ? getSpec(species).detail?.sizes : undefined
+    return (variant && sizes?.[variant]?.scale) || 1
   }
 
   function unitOf(ind: Individual): { unit: GooseUnit; place: number } {
@@ -280,6 +306,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
 
   return {
     object,
+    inspect: id => byId.get(id),
     update(dt) {
       for (const b of birds) {
         b.controller.update(dt, b.pose)

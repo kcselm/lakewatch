@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Profile } from './profile'
 import type { DetailSpec } from './spec'
-import { tube, lens, sweep, type Mesher } from './mesher'
+import { tube, lens, sweep, Mesher } from './mesher'
 import { solveLeg } from './gait'
 
 /** the hip joint sits this fraction of the belly depth below the spine */
@@ -122,6 +122,8 @@ export interface FeetOptions {
   kind?: 'webbed' | 'lobed'
   /** lobed: the middle toe's width across its lobes, metres */
   lobeWidth?: number
+  /** a percher whose toes take stems (detail.perch.stems): its toes are props made round each stem (toeGeometry), not skin */
+  stems?: boolean
 }
 
 /**
@@ -142,7 +144,7 @@ export function buildLegs(m: Mesher, layout: LegLayout, feet: FeetOptions = {}):
     tube(m, knee.clone().add(new THREE.Vector3(0.6 * r, 0, 0)), knee.clone().add(new THREE.Vector3(-0.6 * r, 0, 0)), r * 1.25, r * 1.25, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
     tube(m, knee, foot, r, r * 0.9, 'legs', 0.5, 0.5, [[B.tarsus, 1]])
     if (layout.perch !== null) {
-      perchedToes(m, layout, layout.perch, foot, side, B.toes)
+      if (!feet.stems) perchedToes(m, layout, layout.perch, foot, side, B.toes)
       continue
     }
     // standing, the toes spread forward along the ground; a swimmer's trail back in line with the tarsus
@@ -192,6 +194,13 @@ export function buildLegs(m: Mesher, layout: LegLayout, feet: FeetOptions = {}):
 
 /** how many segments a curled toe is swept in */
 const CURL_SEGMENTS = 6
+/** a toe round a stem: the most segments it is swept in, about one every 40 degrees of its turn round the stem */
+const STEM_SEGMENTS = 24
+/**
+ * how far apart a toe's turns round a thin stem lie along it, as a multiple of the toe's thickness: a toe long enough to
+ * go round more than once spirals, so it never runs into itself or its neighbours
+ */
+const TURN_SPACING = 1.5
 
 /**
  * A percher's toes, curled round its branch: the branch runs across the bird (along z), its top under the foot, the
@@ -211,4 +220,44 @@ function perchedToes(m: Mesher, layout: LegLayout, radius: number, foot: THREE.V
   const taper = (from: number, to: number) => Array.from({ length: CURL_SEGMENTS + 1 }, (_, k) => r * (from + ((to - from) * k) / CURL_SEGMENTS))
   for (const toe of TOES) sweep(m, curl(layout.toe * toe.length, toe.angle * side, 1), taper(0.7, 0.45), 'legs', [[bone, 1]], 5)
   sweep(m, curl(layout.toe * 0.25, 0, -1), taper(0.6, 0.4), 'legs', [[bone, 1]], 5)
+}
+
+/**
+ * One foot's toes round a stem of `radius` metres, for a percher whose toes take stems: in the foot's own frame, the
+ * foot joint at the origin and the stem's axis along z, `radius` plus the toes' own radius below it (as perchedToes
+ * curls them round a branch under the foot). The three front toes wrap forward (+x) and down, spreading along the stem
+ * by their angles, the hind toe back; each keeps its length along the curve, so on a thin stem a toe goes round more
+ * than once, on a spiral that keeps its turns apart. `side` 1 is the right foot (its outer toe toward +z). Painted
+ * as the legs.
+ */
+export function toeGeometry(layout: LegLayout, radius: number, side: 1 | -1): THREE.BufferGeometry {
+  const m = new Mesher()
+  const r = layout.tarsusRadius
+  const around = radius + layout.footY
+  const thick = 2 * 0.7 * r
+  // the least angle off square to the stem at which a turn round it advances TURN_SPACING thicknesses along it
+  const spiral = Math.atan((TURN_SPACING * thick) / (2 * Math.PI * around))
+  const curl = (length: number, angle: number, dir: 1 | -1) => {
+    const turns = (length * Math.cos(angle)) / (2 * Math.PI * around)
+    // a toe that would come round to its own root, or the hind toe's, spirals clear of it
+    const a = turns > 0.8 ? Math.sign(angle || side) * Math.max(Math.abs(angle), spiral) : angle
+    const n = Math.max(CURL_SEGMENTS, Math.min(STEM_SEGMENTS, Math.ceil((length * Math.cos(a)) / around / 0.7)))
+    return Array.from({ length: n + 1 }, (_, k) => {
+      const t = k / n
+      const theta = (t * length * Math.cos(a)) / around
+      return new THREE.Vector3(dir * around * Math.sin(theta), -around + around * Math.cos(theta), t * length * Math.sin(a))
+    })
+  }
+  const taper = (n: number, from: number, to: number) => Array.from({ length: n }, (_, k) => r * (from + ((to - from) * k) / (n - 1)))
+  for (const toe of TOES) {
+    const path = curl(layout.toe * toe.length, toe.angle * side, 1)
+    sweep(m, path, taper(path.length, 0.7, 0.45), 'legs', [['toesR', 1]], 5)
+  }
+  const hind = curl(layout.toe * 0.25, 0, -1)
+  sweep(m, hind, taper(hind.length, 0.6, 0.4), 'legs', [['toesR', 1]], 5)
+  const g = m.geometry()
+  // a plain mesh hung from the foot: it needs no skin
+  g.deleteAttribute('skinIndex')
+  g.deleteAttribute('skinWeight')
+  return g
 }

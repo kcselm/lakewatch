@@ -41,7 +41,7 @@
     { "species": "greegr",  "behavior": "wade",  "zone": "far-shallows", "count": 2 },
     { "species": "killde",  "behavior": "probe", "zone": "mudflat",    "count": 3 },
     { "species": "belkin1", "behavior": "kingfisher", "zone": "perches", "count": 1, "plumage": "female" },
-    { "species": "rewbla",  "behavior": "perch", "zone": "reed-perch",   "count": 1, "plumage": "male" },
+    { "species": "rewbla",  "behavior": "blackbird", "zone": "reeds", "count": 5, "plumage": { "male": 2, "firstYearMale": 1, "female": 2 }, "post": "reed-perch" },
     { "species": "marwre",  "behavior": "perch", "zone": "reed-perch-2", "count": 1 },
     { "species": "cangoo",  "behavior": "flyover", "zone": "sky", "count": 14, "everySeconds": [150, 360], "formation": "vee" },
     { "species": "cangoo",  "behavior": "swim",    "zone": "goose-water", "ashore": "goose-flat", "count": 8, "groups": [5, 3] },

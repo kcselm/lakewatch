@@ -25,6 +25,8 @@ describe('study', () => {
     expect(poses('cangoo')).toEqual(['rest', 'alert', 'ashore'])
     // the authored cormorant: its neck, flight wing, and drying pose are in its authored block
     expect(poses('doccor')).toEqual(['rest', 'alert', 'flight', 'dry', 'ashore'])
+    // the red-wing's song spread
+    expect(poses('rewbla')).toEqual(['rest', 'spread'])
   })
 
   it("names a species' plumage versions in its spec's order, and none for a bird with one plumage", () => {
@@ -39,7 +41,8 @@ describe('study', () => {
     const loc = loadLocation()
     expect(habitsAt(loc, 'killde')).toEqual(['3 feed on the mudflat'])
     expect(habitsAt(loc, 'belkin1')).toEqual(['One hunts from dead branches over the water, hovering and plunging'])
-    expect(habitsAt(loc, 'rewbla')).toEqual(['One perches in the reeds'])
+    expect(habitsAt(loc, 'rewbla')).toEqual(['5 cling to the cattails and tules in the reeds, a male singing from his stalk'])
+    expect(habitsAt(loc, 'marwre')).toEqual(['One perches in the reeds'])
     expect(habitsAt(loc, 'cangoo')).toEqual([
       'Flocks of up to 14 fly over the lake in a V every few minutes',
       '8 swim on the water off the grassy flat, and walk out to graze on the grassy flat on the right',

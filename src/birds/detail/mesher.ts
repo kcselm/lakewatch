@@ -8,9 +8,11 @@ export type Weights = readonly (readonly [BoneName, number])[]
 
 /**
  * The geometry's morph targets, in the order they are stored: a pouch filling, and a flight wing's feathers gathered
- * onto the folded wing. A geometry carries only the ones some vertex moves in, so a pouch alone is still target 0.
+ * onto the folded wing; a song spread's feathers fluffed, its shoulder's cover drawn up (in two stages, each a chord of
+ * the way round the wing), and its coverts raised. A geometry carries only the ones some vertex moves in, so a pouch
+ * alone is still target 0.
  */
-export const MORPHS = ['pouch', 'fold'] as const
+export const MORPHS = ['pouch', 'fold', 'fluff', 'coverHalf', 'coverFull', 'raise'] as const
 export type Morph = (typeof MORPHS)[number]
 
 /** Collects vertices (position, atlas uv, skinning) and triangles for one skinned geometry. */
@@ -23,9 +25,9 @@ export class Mesher {
   /** part of every vertex, for measurement and tests */
   readonly parts: Part[] = []
   /** where some vertices go at the full weight of each morph target (by vertex, in the frame they were given in) */
-  private readonly morphed: Record<Morph, Map<number, THREE.Vector3>> = { pouch: new Map(), fold: new Map() }
+  private readonly morphed: Record<Morph, Map<number, THREE.Vector3>> = Object.fromEntries(MORPHS.map(t => [t, new Map()])) as Record<Morph, Map<number, THREE.Vector3>>
   /** the normal some vertices take at the full weight of a morph target, where it isn't the rest mesh's */
-  private readonly morphedNormal: Record<Morph, Map<number, THREE.Vector3>> = { pouch: new Map(), fold: new Map() }
+  private readonly morphedNormal: Record<Morph, Map<number, THREE.Vector3>> = Object.fromEntries(MORPHS.map(t => [t, new Map()])) as Record<Morph, Map<number, THREE.Vector3>>
 
   get count(): number { return this.pos.length / 3 }
   get indexCount(): number { return this.index.length }
