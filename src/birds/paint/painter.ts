@@ -4,7 +4,7 @@ import { compileLayer, hashString, hexRGB, pointMm, skinSpan, type Frame, type O
 import { createProfile, type Profile } from '../detail/profile'
 import { layersFor, PARTS, type DetailSpec, type Layer, type Part } from '../detail/spec'
 import { SPAN, ROOT_CHORD, outlineAt, flightEdges } from '../detail/wing'
-import { ROOT_WIDTH, TIP_SPREAD } from '../detail/tail'
+import { tailWidth } from '../detail/tail'
 import { billScale, pouchFrame } from '../detail/bill'
 import { CURL_LENGTH, CURL_RADIUS, PLUME_RADIUS, CREST_RADIUS } from '../detail/extras'
 import type { SpeciesSpec } from '../spec'
@@ -31,8 +31,7 @@ export function partFrames(detail: DetailSpec, profile: Profile): Record<Part, F
   const spread = F
     ? flat(F.span * 1000, s => { const e = flightEdges(F, s); return Math.max((e.lead - e.trail) * 1000, 0.01) })
     : flat(SPAN * m.wingChord * 1000, s => ROOT_CHORD * m.wingChord * 1000 * (1 - 0.85 * s ** 1.3))
-  const tailRoot = profile.sampleAt(profile.uOf(detail.rig.tailBase)).halfWidth * 2 * ROOT_WIDTH * 1000
-  const tail = flat(m.tail * 1000, s => tailRoot * (1 + (TIP_SPREAD - 1) * s))
+  const tail = flat(m.tail * 1000, s => tailWidth(detail, profile, s) * 1000)
   const curl = detail.parts?.find(p => p.kind === 'curl'), plume = detail.parts?.find(p => p.kind === 'plume')
   const crest = detail.parts?.find(p => p.kind === 'crest')
   return {

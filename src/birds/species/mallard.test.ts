@@ -6,6 +6,10 @@ import { eyePlacement, billCenter } from '../detail/bill'
 import { defaultPose } from '../model'
 import { MALLARD as DABBLING } from '../../behavior/dabbler'
 import { built, atlas, within, draftShare, hueIn } from './swimmer.testkit'
+import { createProfile, sectionOffset } from '../detail/profile'
+import { worstFold } from '../detail/loft'
+import { tailWidth } from '../detail/tail'
+import { REGIONS, ATLAS_SIZE } from '../paint/atlas'
 
 // Bounds from docs/research/2026-09-25-mallard.md, section 10 (Söderquist et al. 2014, Baird et al. 1884, AVONET, the
 // NHMO skin, photo-measured), and section 9 for the wingtips and the breast's front, in mm, at rest with the waterline
@@ -14,20 +18,30 @@ import { built, atlas, within, draftShare, hueIn } from './swimmer.testkit'
 //
 // Heights above the water are taken from the midline waterline: the level line through the points where the water
 // meets the bird's midline, at the stern and at the breast. The Mallard sits near the low end of the research's
-// height bounds (back 70.8 against 70-90, crown 86.4 against 85-115), and its waterline length (252) near the low end
+// height bounds (back 70.8 against 70-90, crown 86.0 against 85-115), and its waterline length (252) near the low end
 // of 250-335, for two reasons:
 // - The research measured its photos from the near-side waterline directly below each point. The photos were taken
 //   from a little above (7 degrees for the traced drake, 13 for the relaxed female), so that line dips 7-15 mm below
 //   the midline along the flank, and every height read from it comes out higher.
 // - The profile is a drake's photo scaled so his culmen is 53 mm, the mean of the sexes. A drake's own culmen is
 //   55.1 mm, so every length and height here is 4% under the traced drake's.
-// Between them, the traced drake's back, 77 in the research, is 70.8 here, and his crown, 96, is 86.4. Buoyancy agrees
+// Between them, the traced drake's back, 77 in the research, is 70.8 here, and his crown, 96, is 86.0. Buoyancy agrees
 // with the midline: at its 60.6 mm draft the hull displaces 0.93 L, for birds of 1.03-1.26 kg.
 
 const D = parseSpeciesSpec(MALLARD).detail!
 const A = built(MALLARD, 'male')
 const VERSIONS = ['male', 'maleMoult', 'female'] as const
 const bone = (m: typeof A.model, name: string) => m.mesh.skeleton.bones.find(b => b.name === name)!
+/** the rest-pose places of the vertices painted on a part */
+const partAt = (m: typeof A.model, part: keyof typeof REGIONS) => {
+  const uv = m.mesh.geometry.getAttribute('uv') as THREE.BufferAttribute, pos = m.mesh.geometry.getAttribute('position') as THREE.BufferAttribute
+  const r = REGIONS[part], out: THREE.Vector3[] = []
+  for (let i = 0; i < uv.count; i++) {
+    const x = uv.getX(i) * ATLAS_SIZE, y = uv.getY(i) * ATLAS_SIZE
+    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) out.push(new THREE.Vector3().fromBufferAttribute(pos, i))
+  }
+  return out
+}
 
 describe('Mallard: structure', () => {
   it('builds every version as the same bird', () => {
@@ -80,6 +94,48 @@ describe('Mallard: structure', () => {
     const stern = new THREE.Vector3(m.anatomy.waterline.back, 0, 0).applyMatrix4(bone(m, 'body').matrixWorld)
     within(stern.y * 1000, 100, 150, 'stern above the water in the tip-up')
     for (const toes of ['toesR', 'toesL']) expect(bone(m, toes).getWorldPosition(new THREE.Vector3()).y, toes).toBeGreaterThan(0)
+  })
+  it('lofts its head and neck without a crease: no ring folds back over the one before at 64 to 160 rings', () => {
+    const profile = createProfile(D.profile)
+    for (const rings of [64, 96, 128, 160]) expect(worstFold(profile, D.rig, rings), `${rings} rings`).toBe(0)
+  })
+  it('a round head: from the nape to the lores the skin nowhere dips more than a millimetre between its neighbours', () => {
+    // the first fit dipped 4 mm under the eye and at the gape, pits that showed dark; the head's rings now fan round the
+    // throat, and it dips 0.4 mm at most
+    const profile = createProfile(D.profile)
+    const at = (u: number, t: number) => {
+      const s = profile.sampleAt(u), o = sectionOffset(t * Math.PI, s.up, s.down, s.halfWidth)
+      return new THREE.Vector3(s.point.x + s.axis.x * o.n, s.point.y + s.axis.y * o.n, o.z)
+    }
+    const h = 0.003 / profile.length
+    let deepest = 0
+    for (let u = profile.uOf('nape'); u <= profile.uOf('lores'); u += 0.0005) {
+      const s = profile.sampleAt(u)
+      for (let k = 0; k <= 16; k++) {
+        const t = (0.8 * k) / 16, p = at(u, t)
+        const out = p.clone().sub(new THREE.Vector3(s.point.x, s.point.y, 0)).normalize()
+        deepest = Math.max(deepest, -p.clone().sub(at(u - h, t).add(at(u + h, t)).multiplyScalar(0.5)).dot(out))
+      }
+    }
+    expect(deepest * 1000).toBeLessThan(1)
+  })
+  it('a closed tail: narrowing to its tip, its outer feathers folded down below the middle ones', () => {
+    const profile = createProfile(D.profile)
+    within(tailWidth(D, profile, 1) / tailWidth(D, profile, 0), 0.4, 0.7, 'tip width / root width')
+    within(tailWidth(D, profile, 1) * 1000, 20, 40, 'tail width at the tip')
+    // seen from behind, the white outer feathers hang below the grey middle ones
+    const tail = partAt(A.model, 'tail'), back = Math.min(...tail.map(v => v.x))
+    const tip = tail.filter(v => v.x < back + 0.012)
+    const edge = tip.reduce((a, b) => (Math.abs(b.z) > Math.abs(a.z) ? b : a)), middle = tip.reduce((a, b) => (Math.abs(b.z) < Math.abs(a.z) ? b : a))
+    expect(middle.y - edge.y).toBeGreaterThan(0.004)
+  })
+  it('the curl: two loops, one ahead of the other along the back, not side by side', () => {
+    const curl = partAt(A.model, 'curl')
+    const xs = curl.map(v => v.x), zs = curl.map(v => v.z)
+    // one loop is about its height across; two side by side are no longer, two staggered are half again as long
+    const loop = A.model.anatomy.parts[0]!.top.distanceTo(A.model.anatomy.parts[0]!.base)
+    within((Math.max(...xs) - Math.min(...xs)) / loop, 1.2, 1.6, 'curl length / one loop')
+    within((Math.max(...zs) - Math.min(...zs)) * 1000, 4, 8, 'curl width across the back')
   })
   it('the curl: loops about 20 mm high on the rump, their top 45-65 mm above the water, on the male only', () => {
     for (const v of VERSIONS) {

@@ -165,9 +165,13 @@ export function tube(
 
 /**
  * A closed tube swept along `points` (at least two), `radius` at each point, capped at both ends, every face outward.
- * Its rings turn with the path, so it can curl. Texture s runs along it (0..1) at t 0.5.
+ * Its rings turn with the path, so it can curl. Texture s runs along it (0..1) at t 0.5. With `across`, each ring is an
+ * ellipse instead, `across` its radius the other way: for a path in the side view, `radius` in the side view and
+ * `across` along z (a ribbon seen flat from the side).
  */
-export function sweep(m: Mesher, points: THREE.Vector3[], radius: number[], part: Part, weights: Weights, radial = 6): { indexFirst: number; indexCount: number } {
+export function sweep(
+  m: Mesher, points: THREE.Vector3[], radius: number[], part: Part, weights: Weights, radial = 6, across?: number[],
+): { indexFirst: number; indexCount: number } {
   const indexFirst = m.indexCount
   const rings: number[][] = []
   let u1 = new THREE.Vector3()
@@ -180,7 +184,7 @@ export function sweep(m: Mesher, points: THREE.Vector3[], radius: number[], part
     const row: number[] = []
     for (let j = 0; j < radial; j++) {
       const th = (j / radial) * Math.PI * 2
-      const p = c.clone().addScaledVector(u1, Math.cos(th) * radius[i]!).addScaledVector(u2, Math.sin(th) * radius[i]!)
+      const p = c.clone().addScaledVector(u1, Math.cos(th) * radius[i]!).addScaledVector(u2, Math.sin(th) * (across ?? radius)[i]!)
       row.push(m.vertex(p, part, i / (points.length - 1), 0.5, weights))
     }
     rings.push(row)

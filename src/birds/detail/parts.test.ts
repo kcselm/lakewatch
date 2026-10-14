@@ -3,7 +3,7 @@ import { createProfile } from './profile'
 import { Mesher, signedVolume } from './mesher'
 import { buildBill, billCenter, buildEyes, eyePlacement } from './bill'
 import { buildFoldedWings, buildSpreadWings, shoulderAt, skinHeight, outlineAt, GAP } from './wing'
-import { buildTail, tipShape } from './tail'
+import { buildTail, tipShape, tailWidth, ROOT_WIDTH, TIP_SPREAD } from './tail'
 import { TEST_DETAIL } from './fixture'
 import type { Part } from './spec'
 
@@ -114,6 +114,26 @@ describe('tail', () => {
     const g = m.geometry()
     expect(meanNormal(m, g, 'tail').y).toBeGreaterThan(0.8)
     expect(meanNormal(m, g, 'tailUnder').y).toBeLessThan(-0.8)
+  })
+  it('widens to its tip in a shallow cup, unless the species sets its own width, spread and vault', () => {
+    const base = profile.sampleAt(profile.uOf(TEST_DETAIL.rig.tailBase)).halfWidth * 2
+    expect(tailWidth(TEST_DETAIL, profile, 0)).toBeCloseTo(base * ROOT_WIDTH, 9)
+    expect(tailWidth(TEST_DETAIL, profile, 1)).toBeCloseTo(base * ROOT_WIDTH * TIP_SPREAD, 9)
+    // a dabbling duck's closed tail: narrowing to its tip, roofed
+    const closed = { ...TEST_DETAIL, tail: { shape: 'square' as const, width: 0.4, spread: 0.5, vault: 0.3 } }
+    expect(tailWidth(closed, profile, 0)).toBeCloseTo(base * 0.4, 9)
+    expect(tailWidth(closed, profile, 1)).toBeCloseTo(base * 0.2, 9)
+    const m = new Mesher()
+    const t = buildTail(m, closed, profile)
+    expect(t.width).toBeCloseTo(base * 0.4, 9)
+    expect(t.tip.distanceTo(t.root)).toBeCloseTo(TEST_DETAIL.measurements.tail, 4)
+    // at the tip, the outer feathers lie the vault's share of its width below the middle ones (along the tail's up, which
+    // leans back as far as the tail's line rises)
+    const back = t.tip.clone().sub(t.root).normalize(), L = t.tip.distanceTo(t.root)
+    const tip = m.parts.flatMap((p, i) => (p === 'tail' ? [m.position(i)] : [])).filter(v => v.clone().sub(t.root).dot(back) > L - 1e-4)
+    const edge = tip.reduce((a, b) => (Math.abs(b.z) > Math.abs(a.z) ? b : a))
+    expect(Math.abs(edge.z) * 2).toBeCloseTo(base * 0.2, 4)
+    expect(t.tip.y - edge.y).toBeCloseTo(0.3 * base * 0.2 * Math.abs(back.x), 3)
   })
   it('shapes the tip: square flat, rounded and wedge longer in the middle, notched shorter', () => {
     expect(tipShape('square', 0.5)).toBe(0)

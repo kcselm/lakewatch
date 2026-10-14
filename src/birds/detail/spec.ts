@@ -63,6 +63,8 @@ export const layerSchema = z.discriminatedUnion('kind', [
     length: pos, width: pos,
     center: hex.optional(), edge: hex, edgeWidth: pos,
     notch: z.object({ color: hex, size: pos, count: z.number().int().positive() }).optional(),
+    /** how loosely the feathers lie: 0 (the default) in even rows, up to 1 shifted and sized at random by about their spacing */
+    jitter: unit.optional(),
     ...common,
   }),
 ])
@@ -167,9 +169,14 @@ export const detailSchema = z.object({
    * 'none': no tail at all (a grebe's is a hidden tuft); the rear of the body is the stern, and it cocks on the tail bone.
    * `fan`: degrees between the outer feathers with the tail fully fanned (PoseState.tailSpread 1), each column of
    * feathers turning about its own root on a bone of its own; without it the tail never fans.
+   * `width`: the tail's width at its root, as a share of the body's full width at the tail base (default 0.55);
+   * `spread`: its width at the tip, as a multiple of the root's (default 1.3: widening; under 1 a closed tail that
+   * narrows to its tip); `vault`: how far its outer feathers lie below its middle ones, as a share of its width there
+   * (default 0.12: a shallow cup; a dabbling duck's closed tail is a steeper roof).
    */
   tail: z.object({
     shape: z.enum(['square', 'rounded', 'wedge', 'notched', 'none']), angle: z.number().optional(), fan: z.number().min(0).max(180).optional(),
+    width: z.number().min(0.1).max(1).optional(), spread: z.number().min(0.2).max(3).optional(), vault: z.number().min(0).max(0.5).optional(),
   }),
   /** 'webbed': a membrane between the three front toes (ducks); 'lobed': a flap along each toe segment (Coot, grebes) */
   feet: z.enum(['webbed', 'lobed']).optional(),
