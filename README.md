@@ -17,6 +17,14 @@ the pure logic. Design spec: `docs/superpowers/specs/2026-09-22-lakewatch-design
     npm test
     npm run build      # typecheck + tests + vite build -> dist/
 
+The title card's "Study the birds" opens the study screen, while the birds
+get ready behind it: every species with a model, turned on a stage of its
+own (drag to turn, scroll to zoom) in each plumage and in the poses its
+model has (at rest, alert, in flight, drying its wings, ashore), with its
+field marks, photo, calls, and where it is on the lake. Its choices are in
+`src/study/study.ts`, its stage in `src/study/stage.ts`; while it is open the
+lake stops drawing (`World.setHidden`).
+
 Keys: click to look (Esc releases the mouse), scroll or B/T for optics,
 E identify, G guide, L life list, O settings, C credits, backtick dev overlay.
 Settings has Water reflections: the water's mirrored render of the scene,

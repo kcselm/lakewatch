@@ -18,6 +18,7 @@ export class World {
   private modules: WorldModule[] = []
   private beforeRenders: (() => void)[] = []
   private paused = false
+  private hidden = false
   private last = 0
 
   constructor(container: HTMLElement, loc: Location) {
@@ -63,6 +64,11 @@ export class World {
     this.paused = p
   }
 
+  /** stops drawing the scene (and its mirror) while a screen covers it all: the study, with a renderer of its own */
+  setHidden(h: boolean): void {
+    this.hidden = h
+  }
+
   start(onFrame?: (dt: number) => void): void {
     this.last = performance.now()
     const tick = (now: number) => {
@@ -73,6 +79,7 @@ export class World {
         for (const m of this.modules) m.update(dt, this.wind)
         onFrame?.(dt)
       }
+      if (this.hidden) { requestAnimationFrame(tick); return }
       // the scene's world matrices, every bird's bones among them, once a frame: the water's mirror renders it too, and
       // each render would otherwise walk the whole scene again
       this.scene.matrixWorldAutoUpdate = true

@@ -14,7 +14,7 @@ const text = (v: VNode<Record<string, unknown>>): string => {
 }
 
 const props = (painting: TitleProps['painting'], unsupported: string | null = null): TitleProps => ({
-  unsupported, painting, onBegin: () => {}, onSettings: () => {}, onCredits: () => {},
+  unsupported, painting, onBegin: () => {}, onStudy: () => {}, onSettings: () => {}, onCredits: () => {},
 })
 const begin = (p: TitleProps) => elements(Title(p)).find(v => v.props.class === 'begin')
 const status = (p: TitleProps) => elements(Title(p)).find(v => v.props.role === 'status')

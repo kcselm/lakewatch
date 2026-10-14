@@ -6,7 +6,7 @@ import { SPECIES } from '../birds/species'
 function makeStore(patch: Partial<GameState> = {}) {
   return createStore<GameState>({
     optic: 'eye', target: null, guideOpen: false, guideMode: 'browse', identifying: null, card: null, lifeListOpen: false,
-    titleOpen: false, settingsOpen: false, creditsOpen: false,
+    titleOpen: false, studyOpen: false, settingsOpen: false, creditsOpen: false,
     ...patch,
   })
 }
@@ -186,5 +186,21 @@ describe('createIdentifyController', () => {
     controller.closeOverlay()
     expect(store.get().creditsOpen).toBe(false)
     expect(store.get().titleOpen).toBe(true)
+  })
+
+  it('ignores the game keys in the study, and Esc goes back from it to the title card', () => {
+    const store = makeStore({ target: TARGET, titleOpen: true, studyOpen: true })
+    const registry = makeRegistry({ 1: { species: 'y00475', identified: false } })
+    const { controller } = makeController(store, registry)
+
+    controller.pressIdentify()
+    controller.toggleGuide()
+    controller.toggleLifeList()
+    controller.toggleSettings()
+    controller.toggleCredits()
+    expect(store.get()).toMatchObject({ studyOpen: true, guideOpen: false, lifeListOpen: false, settingsOpen: false, creditsOpen: false, identifying: null })
+
+    controller.closeOverlay()
+    expect(store.get()).toMatchObject({ studyOpen: false, titleOpen: true })
   })
 })

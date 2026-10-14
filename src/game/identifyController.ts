@@ -81,6 +81,7 @@ export function createIdentifyController(deps: IdentifyControllerDeps): Identify
     else if (s.lifeListOpen) store.set({ lifeListOpen: false })
     else if (s.settingsOpen) store.set({ settingsOpen: false })
     else if (s.creditsOpen) store.set({ creditsOpen: false })
+    else if (s.studyOpen) store.set({ studyOpen: false })
   }
 
   function guess(code: string): void {
