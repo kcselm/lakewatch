@@ -275,7 +275,7 @@ const spawnEvents: SpawnEvents = {
 prepareBirds(loc, {
   worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
   onProgress: (done, total) => painting.set({ done, total }),
-  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, splashes, seed: 42, events: spawnEvents, perches })),
+  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, splashes, seed: 42, events: spawnEvents, perches, stems: reedBed.stems })),
 }).then(() => {
   painting.set({ ready: true })
 }).catch(err => {

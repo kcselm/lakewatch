@@ -14,6 +14,9 @@ import { loadLocation } from '../../location'
 import { BEHAVIORS } from '../../behavior'
 import { speciesTraits, perchesOf } from '../spawn'
 import { makeRng } from '../../catalog/rng'
+import { lakeHeightfield } from '../../world/heightfield'
+import { terrainSurface } from '../../world/terrain'
+import { createStemField, layoutStems } from '../../world/stems'
 
 describe('species specs', () => {
   it('has a spec for every species the lake casts', () => {
@@ -123,12 +126,27 @@ describe('Long-billed Dowitcher: the throat under its resting head', () => {
   })
 })
 
+/** the lake's reed bed for a blackbird: its zone, stems, the singer's post, and a start in the bed */
+function reedBed(post: string | undefined) {
+  const lake = loadLocation()
+  const hf = lakeHeightfield(7), surface = terrainSurface(hf)
+  const p = post ? lake.zones[post] : undefined
+  return {
+    ctx: {
+      zone: lake.zones['reeds']!, ground: (x: number, z: number) => surface.sample(x, z),
+      stems: createStemField(layoutStems({ heightfield: hf, ground: (x, z) => surface.sample(x, z) })),
+      variant: 'male', post: p?.kind === 'point' ? p.position : undefined, vantage: lake.vantage.position,
+    },
+    x: -8, z: -6,
+  }
+}
+
 describe('detailed birds move smoothly under their cast behavior', () => {
   // Each detailed species in the lake's cast, fed by its own behavior for a minute at 60 fps on a flat patch and
   // posed every frame as the game does. The fastest intended motions (a plover's dab, a wader's strike) turn a bone
   // about 0.5-0.6 rad in a frame; a snap (a phase reset, a one-frame strike) turns it 1 rad or more. A bird that works
   // perches gets the lake's, over water everywhere, for long enough to plunge; under the water it is hidden, and comes
-  // up already in its rising pose.
+  // up already in its rising pose. A blackbird gets the lake's reed bed, its stems still (no wind steps them).
   const patch = { kind: 'polygon' as const, points: [[0, 0], [6, 0], [6, 2.5], [0, 2.5]] as [number, number][] }
   const lake = loadLocation()
   const seen = new Set<string>()
@@ -138,6 +156,7 @@ describe('detailed birds move smoothly under their cast behavior', () => {
     seen.add(spec.code)
     const zone = lake.zones[entry.zone]
     const perches = zone?.kind === 'perches' ? { zone, perches: perchesOf(zone), ground: () => -1 } : {}
+    const reeds = entry.behavior === 'blackbird' ? reedBed(entry.post) : undefined
     const seconds = zone?.kind === 'perches' ? 1200 : 60
     it(`${spec.code} (${entry.behavior}): no bone turns more than 0.7 rad in a frame`, () => {
       const m = buildDetailedBird(spec)
@@ -145,8 +164,8 @@ describe('detailed birds move smoothly under their cast behavior', () => {
       const bones = ['body', ...NECK_BONES, 'head'].map(n => m.mesh.skeleton.bones.find(b => b.name === n)!)
       const c = BEHAVIORS[entry.behavior as keyof typeof BEHAVIORS]({
         zone: patch, rng: makeRng(3), wind: () => ({ dirX: 0, dirZ: 0, effective: 0.3 }), ground: () => 0,
-        group: { targetX: 3, targetZ: 1.25, retargetAt: 0 }, ...speciesTraits(spec.code), ...perches,
-      }, 3, 1.25)
+        group: { targetX: 3, targetZ: 1.25, retargetAt: 0 }, ...speciesTraits(spec.code), ...perches, ...reeds?.ctx,
+      }, reeds?.x ?? 3, reeds?.z ?? 1.25)
       const pose = defaultPose()
       let prev: number[] | null = null, worst = 0
       for (let i = 0; i < seconds * 60; i++) {

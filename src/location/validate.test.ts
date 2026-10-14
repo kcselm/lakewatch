@@ -38,6 +38,14 @@ describe('validateCast', () => {
     const bad = { ...loc, cast: [{ ...loc.cast[0]!, behavior: 'flyover' as const }] }
     expect(validateCast(bad, [bird('y00475', ['wetland'])])).toEqual(['cast[0]: flyover needs a lane zone, water is polygon'])
   })
+  it("requires a blackbird entry to use a polygon zone, and its singer's post to be a point zone", () => {
+    const zones: Location['zones'] = { ...loc.zones, post: { kind: 'point', position: [0, 2, 0] } }
+    const entry = { species: 'rewbla', behavior: 'blackbird' as const, zone: 'water', count: 1 }
+    const catalog = [bird('rewbla', ['wetland'])]
+    expect(validateCast({ ...loc, zones, cast: [{ ...entry, post: 'post' }] }, catalog)).toEqual([])
+    expect(validateCast({ ...loc, zones, cast: [{ ...entry, zone: 'post' }] }, catalog)).toEqual(['cast[0]: blackbird needs a polygon zone, post is point'])
+    expect(validateCast({ ...loc, zones, cast: [{ ...entry, post: 'water' }] }, catalog)).toEqual(['cast[0]: the post water is not a point zone'])
+  })
   describe('perches', () => {
     const catalog = [bird('belkin1', ['wetland']), bird('rewbla', ['wetland'])]
     const perch = (name: string, on: 'snag' | 'branch' = 'branch') => ({ name, on, position: [0, -5] as [number, number], height: 3, radius: 0.02, facing: 0 })

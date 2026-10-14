@@ -29,7 +29,7 @@ const perch = z.object({
 const perchesZone = z.object({ kind: z.literal('perches'), perches: z.array(perch).min(1, 'perches needs at least one perch') })
 const zoneSchema = z.discriminatedUnion('kind', [polygonZone, pointZone, laneZone, perchesZone])
 
-export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'kingfisher'])
+export const behaviorSchema = z.enum(['swim', 'wade', 'probe', 'perch', 'flyover', 'kingfisher', 'blackbird'])
 
 const castEntry = z.object({
   species: z.string().min(1),
@@ -51,6 +51,8 @@ const castEntry = z.object({
    * and its young), each later one a loose unit of adults
    */
   groups: z.array(z.number().int().min(1)).min(1).optional(),
+  /** the blackbird style only: the point zone its singer sings by, his post the cattail stalk nearest it */
+  post: z.string().min(1).optional(),
 })
 
 export const locationSchema = z.object({
