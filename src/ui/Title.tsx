@@ -9,11 +9,13 @@ export interface TitleProps {
   unsupported: string | null
   painting: PaintProgress
   onBegin: () => void
+  /** opens the study screen: the birds' models, photos, calls, and marks */
+  onStudy: () => void
   onSettings: () => void
   onCredits: () => void
 }
 
-export function Title({ unsupported, painting, onBegin, onSettings, onCredits }: TitleProps) {
+export function Title({ unsupported, painting, onBegin, onStudy, onSettings, onCredits }: TitleProps) {
   return (
     <div class="title">
       <div class="title-card">
@@ -26,6 +28,7 @@ export function Title({ unsupported, painting, onBegin, onSettings, onCredits }:
             <button class="begin" onClick={onBegin} disabled={!painting.ready}>Begin</button>
             {/* hidden, not removed, once ready: the card is centred, and Begin mustn't move as it enables */}
             <p class={painting.ready ? 'painting ready' : 'painting'} role="status">Getting the birds ready… {painting.done} of {painting.total}</p>
+            <button class="study-open" onClick={onStudy}>Study the birds</button>
           </>
         )}
         <div class="title-links">

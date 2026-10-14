@@ -33,6 +33,7 @@ import { App } from './ui/App'
 import { fieldMarkFor } from './game/identify'
 import { createIdentifyController } from './game/identifyController'
 import { guideSpecies } from './game/guideSpecies'
+import { studySpecies, habitsAt } from './study/study'
 import { creditsFor } from './game/credits'
 import { SPECIES } from './birds/species'
 import { createLifeListStorage } from './game/lifeListStorage'
@@ -102,8 +103,12 @@ function renderApp(unsupported: string | null) {
       onBegin={() => {
         if (!painting.get().ready) return
         void audio?.unlock()
-        game.set({ titleOpen: false })
+        game.set({ titleOpen: false, studyOpen: false })
       }}
+      studySpecies={studySpecies(SPECIES, findBird)}
+      habits={code => habitsAt(loc, code)}
+      onOpenStudy={() => game.set({ studyOpen: true })}
+      onCloseStudy={() => game.set({ studyOpen: false })}
       onOpenSettings={() => game.set({ settingsOpen: true })}
       onOpenCredits={() => game.set({ creditsOpen: true })}
       settings={() => settings}
@@ -163,6 +168,7 @@ function setOptic(m: OpticMode) {
 
 game.subscribe(s => {
   world.setPaused(isPaused(s))
+  world.setHidden(s.studyOpen)
   if (isPaused(s) && document.pointerLockElement) document.exitPointerLock()
 })
 world.setPaused(isPaused(game.get()))

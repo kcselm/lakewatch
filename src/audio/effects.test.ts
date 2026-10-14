@@ -4,7 +4,7 @@ import type { GameState } from '../store/game'
 
 const base: GameState = {
   optic: 'eye', target: null, guideOpen: false, guideMode: 'browse', identifying: null, card: null, lifeListOpen: false,
-  titleOpen: false, settingsOpen: false, creditsOpen: false,
+  titleOpen: false, studyOpen: false, settingsOpen: false, creditsOpen: false,
 }
 
 describe('opticEvent', () => {

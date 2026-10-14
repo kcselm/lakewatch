@@ -46,7 +46,7 @@ describe('targetCandidates', () => {
     const coot = registry.add({ species: 'y00475', model: model(0, 0, -15), behavior: 'swim' })
     const store = createStore<GameState>({
       optic: 'binoculars', target: null, guideOpen: false, guideMode: 'browse', identifying: null, card: null, lifeListOpen: false,
-      titleOpen: false, settingsOpen: false, creditsOpen: false,
+      titleOpen: false, studyOpen: false, settingsOpen: false, creditsOpen: false,
     })
     const controller = createIdentifyController({ store, registry, specs: SPECIES, names: c => c, record: () => {}, exitPointerLock: () => {} })
     /** main.tsx's frame: pick from the candidates, and set the target to it or to nothing */
