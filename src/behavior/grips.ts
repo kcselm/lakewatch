@@ -65,8 +65,10 @@ export function holdOn(at: THREE.Vector3, axis: THREE.Vector3, radius: number, p
  * feet's middle height, facing `heading`.
  */
 export function gripPosition(mid: THREE.Vector3, heading: number, ahead: number, out = new THREE.Vector3()): THREE.Vector3 {
-  return out.set(-ahead, 0, 0).applyAxisAngle(Y, heading).add(mid)
+  const x = mid.x, y = mid.y, z = mid.z
+  return out.set(-ahead, 0, 0).applyAxisAngle(Y, heading).add(TMP.set(x, y, z))
 }
+const TMP = new THREE.Vector3()
 
 /** Where the bird stands to straddle two stems: between its two holds, STRADDLE_DROP (times its size) below them. */
 export function straddlePosition(a: THREE.Vector3, b: THREE.Vector3, size = 1, out = new THREE.Vector3()): THREE.Vector3 {
