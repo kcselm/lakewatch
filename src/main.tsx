@@ -14,7 +14,8 @@ import { createMirror, NO_REFLECT } from './world/mirror'
 import { FloaterTracker } from './world/floaters'
 import { sunDirection } from './world/sky'
 import { scatterInBand } from './world/scatter'
-import { createReeds, createGrass } from './world/vegetation'
+import { createGrass } from './world/vegetation'
+import { createReedBed } from './world/reedbed'
 import { createTree, createSnag, createStumps, createDeadBranch, createTreeLine, LAKE_TREES } from './world/trees'
 import { BirdRegistry } from './birds/registry'
 import { spawnCast, type SpawnEvents } from './birds/spawn'
@@ -204,7 +205,9 @@ world.add(water)
 const splashes = new SplashBuffer(makeRng(31))
 world.add(createSplash(splashes, world.palette))
 
-world.add(createReeds(scatterInBand(heightfield, { minY: -0.5, maxY: 0.7, bounds: [-16, -3, -14, -2], count: 9000, seed: 11 }), world.wind))
+// the reed bed: its leaves, and the stalks and tules the blackbirds hold (reedBed.stems), swayed before the cast moves
+const reedBed = createReedBed({ heightfield, ground: (x, z) => surface.sample(x, z), wind: world.wind })
+world.add(reedBed)
 // the near grass is out of the mirror: it stands behind the player's bank, and reflecting 12 000 blades costs a lot
 const grass = createGrass(scatterInBand(heightfield, { minY: 0.5, maxY: 3, bounds: [-40, 40, -12, 14], count: 12000, seed: 12 }), world.wind)
 grass.object.layers.set(NO_REFLECT)
@@ -264,7 +267,7 @@ const spawnEvents: SpawnEvents = {
   },
   effect: (name, x, y, z) => fx.playAt(name, new THREE.Vector3(x, y, z)),
   // a call a behaviour asks for (the kingfisher's rattle): the call player plays it at once if the cap allows
-  call: id => calls.ask(id),
+  call: (id, ask) => calls.ask(id, ask),
 }
 // Behind the title card, every atlas the cast needs paints in a worker while the main thread places each detailed
 // species' folded wing, the costly part of its first build, a species at a time. Then the cast is built, and Begin
