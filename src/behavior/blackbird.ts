@@ -31,7 +31,10 @@ export interface BlackbirdSettings {
   turn: { yaw: Range; seconds: Range; every: Range }
   /** preening: a stroke at the breast, the flank, the back or under the wing, `stroke` seconds each, nibbling at `nibble` Hz */
   preen: { stroke: Range; nibble: number }
-  /** feeding at a cattail head: leaning over it `lean` radians, the bill `bill` radians below level, thrust in and gaped `thrusts` times of `seconds` */
+  /**
+   * feeding at a cattail head: leaning over it `lean` radians (the body staying within the top's 45-60 degrees: 0.08 takes
+   * its 50 to 45), the bill `bill` radians below level (48 degrees), thrust in and gaped `thrusts` times of `seconds`
+   */
   feed: { lean: number; bill: number; thrusts: Range; seconds: Range }
   /** stretching: both wings up (`spread`), or a wing and a leg down (`hold`), for `seconds` */
   stretch: { seconds: Range; spread: number; hold: number }
@@ -106,7 +109,7 @@ export const BLACKBIRD: BlackbirdSettings = {
   preen: { stroke: [1, 3], nibble: 4 },
   // leaning far forward over the head, the bill 48 degrees below level (photo-measured, research 6); gaping 2-6 times,
   // 0.5-1 s each (estimate; Orians 1961's "gaping")
-  feed: { lean: 0.6, bill: 0.84, thrusts: [2, 6], seconds: [0.5, 1] },
+  feed: { lean: 0.08, bill: 0.84, thrusts: [2, 6], seconds: [0.5, 1] },
   stretch: { seconds: [1, 2], spread: 0.55, hold: 0.6 },
   // 15-30 degrees up in 0.2-0.3 s, every 10-40 s, more often just after landing (estimate)
   flick: { tilt: [0.26, 0.52], seconds: [0.2, 0.3], every: [10, 40], settled: [2, 6], settle: 10 },

@@ -158,7 +158,7 @@ interface LiveFlock {
   ids: number[]; proxies: THREE.Group[]
 }
 
-export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { object: THREE.Group } {
+export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { object: THREE.Group; inspect(id: number): { controller: BehaviorController; pose: PoseState } | undefined } {
   const object = new THREE.Group()
   const rng = makeRng(deps.seed)
   const groups = new Map<string, NonNullable<BehaviorContext['group']>>()
@@ -172,6 +172,8 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
   /** each goose entry's units, by its group key: its family and its loose units */
   const units = new Map<string, GooseUnit[]>()
   const birds: LiveBird[] = []
+  /** each bird's behaviour and pose by its registry id, for the dev hook */
+  const byId = new Map<number, LiveBird>()
   const flocks: LiveFlock[] = []
   /** each blackbird entry's birds, by its group key: where each is, which is the singer */
   const blackbirds = new Map<string, BlackbirdGroup>()
@@ -251,6 +253,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
     id = deps.registry.add({ species: ind.species, variant: ind.variant, model, behavior: ind.behavior, pose }).id
     object.add(model.group)
     birds.push({ controller, pose, model })
+    byId.set(id, birds[birds.length - 1]!)
   }
 
   /** a version's size against its species' traced bird (a female blackbird's 0.85) */
@@ -303,6 +306,7 @@ export function spawnCast(loc: Location, deps: SpawnDeps): WorldModule & { objec
 
   return {
     object,
+    inspect: id => byId.get(id),
     update(dt) {
       for (const b of birds) {
         b.controller.update(dt, b.pose)

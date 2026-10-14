@@ -269,13 +269,18 @@ const spawnEvents: SpawnEvents = {
   // a call a behaviour asks for (the kingfisher's rattle): the call player plays it at once if the cap allows
   call: (id, ask) => calls.ask(id, ask),
 }
+/** the cast, once it is built */
+let cast: ReturnType<typeof spawnCast> | null = null
 // Behind the title card, every atlas the cast needs paints in a worker while the main thread places each detailed
 // species' folded wing, the costly part of its first build, a species at a time. Then the cast is built, and Begin
 // enabled. The card counts all three: atlases, species, and the build.
 prepareBirds(loc, {
   worker: () => new Worker(new URL('./birds/paint/paint.worker.ts', import.meta.url), { type: 'module' }),
   onProgress: (done, total) => painting.set({ done, total }),
-  build: () => world.add(spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, splashes, seed: 42, events: spawnEvents, perches, stems: reedBed.stems })),
+  build: () => {
+    cast = spawnCast(loc, { registry, wind: world.wind, ground: (x, z) => surface.sample(x, z), ripples, splashes, seed: 42, events: spawnEvents, perches, stems: reedBed.stems })
+    world.add(cast)
+  },
 }).then(() => {
   painting.set({ ready: true })
 }).catch(err => {
@@ -340,6 +345,8 @@ if (import.meta.env.DEV) {
   ;(window as unknown as { __lakewatch: unknown }).__lakewatch = {
     /** every bird now in the scene: its species, version, behaviour, and where it is */
     birds: () => registry.all().map(b => ({ id: b.id, species: b.species, variant: b.variant, behavior: b.behavior, x: b.position.x, y: b.position.y, z: b.position.z })),
+    /** a bird's behaviour and pose now, by its id */
+    inspect: (id: number) => cast?.inspect(id),
     /** start a spray on the water at (x, z), to look at it without waiting for a plunge */
     splash: (x: number, z: number, size?: number) => splashes.spawn(x, z, size),
     /** turn the view to look at a point of the world */
