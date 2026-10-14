@@ -318,7 +318,7 @@ describe('probe, dowitcher', () => {
         px = c.x; pz = c.z
       }
     }
-  }, 20_000)   // 20 seeds x 300 s of simulation: about 1.5 s alone, past the 5 s default in a busy full run
+  }, 120_000)   // 20 seeds x 300 s of simulation: about 1.5 s alone, past 20 s in a busy full run
   it('works one patch, then drifts a short way on: the flock target never jumps further than its drift', () => {
     const group = { targetX: 3, targetZ: 0.5, retargetAt: 0 }
     const c = createProbe(dctx(21, { group }), 3, 0.5)

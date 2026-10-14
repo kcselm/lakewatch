@@ -159,7 +159,7 @@ describe('swim', () => {
       })
       start.forEach((g, p) => { if (g < -0.01) expect(clearAt[p], `seed ${seed}, birds ${pairs[p]}: clear of their spacing at`).toBeLessThanOrEqual(10) })
     }
-  })
+  }, 120_000)
   it('slides along the bank: a step out across it keeps the part along it, and one into a corner goes nowhere', () => {
     const b = createSwimmer(ctx(1), 0, -9.99, MALLARD)
     b.moveBy(0.01, -0.02)

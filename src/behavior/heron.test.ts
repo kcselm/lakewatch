@@ -143,7 +143,7 @@ describe('the heron style', () => {
             expect(i - k + 1, `strike at ${f60[i]!.t}`).toBeGreaterThanOrEqual(6)
           }
         }
-      })
+      }, 120_000)
       it('walks only while it stalks: the neck coiled, gait up, and still in every other state', () => {
         const { frames: f } = record(S, 5, 600)
         for (let i = 1; i < f.length; i++) {

@@ -170,7 +170,7 @@ describe('the cormorant style on swim', () => {
   })
   it('stays in its water', () => {
     for (const h of hours) for (const f of h.frames) expect(pointInPolygon(f.x, f.z, water.points)).toBe(true)
-  })
+  }, 120_000)
   it('never jumps between frames at 60 fps: its place and every part of its pose move smoothly', () => {
     for (let i = 1; i < fine.frames.length; i++) {
       const a = fine.frames[i - 1]!, b = fine.frames[i]!
@@ -182,7 +182,7 @@ describe('the cormorant style on swim', () => {
       expect(Math.abs(b.pose.headPitch - a.pose.headPitch)).toBeLessThan(0.12)
       if (!a.under && !b.under) expect(Math.abs(b.y - a.y)).toBeLessThan(0.05)
     }
-  })
+  }, 120_000)
   it('floats low with its neck upright and its bill raised while loafing', () => {
     const loaf = hours[0]!.frames.filter(f => f.state === 'loaf')
     expect(loaf.length).toBeGreaterThan(100)

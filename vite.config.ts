@@ -11,5 +11,8 @@ export default defineConfig({
     setupFiles: ['src/birds/models.setup.ts'],
     // the swim simulations run seconds each; side by side on a busy machine they pass the 5 s default
     testTimeout: 20_000,
+    // the long simulations slow each other down a worker per core, past their timeouts; half the cores runs them
+    // all in less time than that
+    maxWorkers: '50%',
   },
 })

@@ -358,7 +358,7 @@ describe('spawnCast geese', () => {
       expect(ashore, `seed ${seed}`).toEqual([true, true, true, true, true, false, false, false])
       expect(gap, `seed ${seed}`).toBeGreaterThan(-0.1)
     }
-  }, 120_000)
+  }, 300_000)
 })
 
 /** metres a swimmer of this species keeps from any bird not of its flock: its style's `other` spacing */
