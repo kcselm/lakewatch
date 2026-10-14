@@ -5,6 +5,7 @@ const DEFAULTS: ViewerState = {
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
   pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, dry: 0, prop: 0, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  ep: 0, er: 0, fl: 0, wh: 0, gp: 0, stem: '', sway: false,
 }
 
 describe('viewer state', () => {

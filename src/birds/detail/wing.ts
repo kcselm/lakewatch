@@ -543,8 +543,11 @@ export function placeFoldedWing(detail: DetailSpec): void {
   if (!placed.has(detail)) placed.set(detail, placeFold(detail))
 }
 
-/** Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. */
-export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
+/**
+ * Folded wings: a shell hugging each flank, hanging from the chord line (wrist to tip), placed by placeFold. With
+ * `backs`, each shell's inside faces the body too (a song spread holds the wing out from it, showing its inside).
+ */
+export function buildFoldedWings(m: Mesher, detail: DetailSpec, backs = false): FoldResult {
   placeFoldedWing(detail)
   const { at, ts } = placed.get(detail)!
   const k = (i: number, j: number) => i * FOLD_T + j
@@ -567,6 +570,8 @@ export function buildFoldedWings(m: Mesher, detail: DetailSpec): FoldResult {
         const a = grid[i]![j]!, b = grid[i + 1]![j]!, c = grid[i + 1]![j + 1]!, d = grid[i]![j + 1]!
         if (side > 0) m.quad(a, b, c, d)
         else m.quad(a, d, c, b)
+        if (backs && side > 0) m.quad(a, d, c, b)
+        else if (backs) m.quad(a, b, c, d)
       }
     }
   }

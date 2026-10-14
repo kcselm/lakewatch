@@ -4,6 +4,7 @@ import { SPECIES } from './species'
 import { expandCast } from './spawn'
 import { makeRng } from '../catalog/rng'
 import { placeFoldedWing } from './detail/wing'
+import { sizedDetail, type DetailSpec } from './detail/spec'
 import { castAtlases, prepaint, type PrepaintOptions } from './paint/prepaint'
 import { castModels, loadModels, modelSteps, type ModelLoader } from './models'
 
@@ -36,24 +37,37 @@ function detailedCastSpecies(loc: Location, specs: Record<string, SpeciesSpec>):
 }
 
 /**
- * Places the folded wing of each detailed species the cast needs (`placeFoldedWing`), a species at a time, so no bird
- * build places one later. It is the builder's only per-species cache, and the costly part of a species' first build.
+ * Every folded wing the cast's detailed birds need: each species' own, and each size of its own a version has (a
+ * female red-winged blackbird's), once each.
+ */
+function castFolds(loc: Location, specs: Record<string, SpeciesSpec>): DetailSpec[] {
+  const out = new Set<DetailSpec>()
+  for (const code of detailedCastSpecies(loc, specs)) {
+    const spec = specs[code]!
+    for (const v of [undefined, ...Object.keys(spec.variants)]) out.add(sizedDetail(spec.detail!, v))
+  }
+  return [...out]
+}
+
+/**
+ * Places the folded wing of each detailed species the cast needs (`placeFoldedWing`), and of each size of its own a
+ * version has, one at a time, so no bird build places one later. It is the builder's only per-species cache, and the costly part of a species' first build.
  * It needs no atlas, so it runs on the main thread while the worker paints them.
  *
  * Yields (`next`) before each species: two frames before the first, so the title card is drawn before any placing (a
  * frame's animation callbacks, where the work resumes, run before it is drawn), and one between species, whose count
- * is then drawn. Counts from 0 to the number of species, once each. A placement that throws rejects here.
+ * is then drawn. Counts from 0 to the number of folded wings, once each. A placement that throws rejects here.
  */
 export async function placeFolds(loc: Location, opts: PlaceFoldsOptions = {}): Promise<void> {
   const specs = opts.specs ?? SPECIES
   const next = opts.next ?? defaultNext
-  const species = detailedCastSpecies(loc, specs)
-  const total = species.length
+  const folds = castFolds(loc, specs)
+  const total = folds.length
   opts.onProgress?.(0, total)
   for (let i = 0; i < total; i++) {
     if (i === 0) await next()
     await next()
-    placeFoldedWing(specs[species[i]!]!.detail!)
+    placeFoldedWing(folds[i]!)
     opts.onProgress?.(i + 1, total)
   }
 }
@@ -83,7 +97,7 @@ export interface PrepareOptions extends PlaceFoldsOptions {
 export async function prepareBirds(loc: Location, opts: PrepareOptions = {}): Promise<void> {
   const specs = opts.specs ?? SPECIES
   const next = opts.next ?? defaultNext
-  const folds = { done: 0, total: detailedCastSpecies(loc, specs).length }
+  const folds = { done: 0, total: castFolds(loc, specs).length }
   const atlases = { done: 0, total: 0 }
   const models = { done: 0, total: modelSteps(castModels(loc, specs)) }
   const built = { done: 0, total: opts.build ? 1 : 0 }

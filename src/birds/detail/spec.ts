@@ -7,7 +7,11 @@ const range = z.tuple([unit, unit])
 /** a crest's tuft: see detailSchema's `parts` */
 const crestLobe = z.object({ at: z.string(), dx: z.number().optional(), length: pos, lie: z.number().min(-45).max(45) })
 
-export const PARTS = ['skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest'] as const
+export const PARTS = [
+  'skin', 'wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest',
+  // a song spread's parts (`display`): the feathers covering the shoulder, the coverts it raises, and the mouth a gape shows
+  'cover', 'coverts', 'mouth',
+] as const
 export type Part = (typeof PARTS)[number]
 
 export const stationSchema = z.object({
@@ -32,7 +36,10 @@ export type Station = z.infer<typeof stationSchema>
 /** Where a layer paints: a span of the skin between two station labels, or a rectangle of another part. */
 export const whereSchema = z.union([
   z.object({ part: z.literal('skin'), from: z.string(), to: z.string(), band: range.optional() }),
-  z.object({ part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest']), s: range.optional(), t: range.optional() }),
+  z.object({
+    part: z.enum(['wingFold', 'wingSpread', 'wingUnder', 'tail', 'tailUnder', 'bill', 'legs', 'eye', 'shield', 'curl', 'plume', 'pouch', 'crest', 'cover', 'coverts', 'mouth']),
+    s: range.optional(), t: range.optional(),
+  }),
 ])
 export type Where = z.infer<typeof whereSchema>
 
@@ -224,7 +231,50 @@ export const detailSchema = z.object({
    * the branch's top at y = 0 and curls its toes round it: reaching down to `top` as far as the legs allow, or without
    * it crouched. Required for a species whose posture is 'perched', and only for one.
    */
-  perch: z.object({ radius: pos, top: z.number().optional() }).optional(),
+  perch: z.object({
+    radius: pos, top: z.number().optional(),
+    /**
+     * Its toes take any stem the pose gives them (PoseState.feet): each foot's toes are made round its own stem, of any
+     * angle and radius, rather than built once round the branch; without a stem to hold they wrap the branch as ever
+     */
+    stems: z.boolean().optional(),
+  }).optional(),
+  /**
+   * A song spread's parts and how far each goes (PoseState's epaulet, epauletRaise, fluff, wingHold and gape); a bird
+   * without it ignores those values.
+   * - `shoulder`: the patch on the folded wing the covering feathers hide, as wingFold's s (from the wrist back) and t
+   *   (down from its top edge). The cover, a shell of the scapulars and the breast-side feathers painted as 'cover',
+   *   lies over it and over `margin` more of the wing all round, `gap` metres off the wing; epaulet draws it forward off
+   *   the patch from its rear edge, its buff end first.
+   * - `coverts`: the part of the patch whose feathers rise (epauletRaise), a shell just over the wing painted as
+   *   'coverts', at 1 turned `turn` degrees out about its front edge (so it faces forward), lifted `raise` degrees off
+   *   the wing about its upper edge, moved `forward` and `out` metres and grown by `grow`.
+   * - `fluff`: how far the contour feathers stand out at fluff 1, metres: over the body, and over the crown and nape.
+   * - `hold`: wingHold 1: the folded wing turned `out` degrees from the body about its chord, its tip dropped `droop`.
+   * - `gape`: degrees the lower mandible drops at gape 1. The bill is built as two mandibles, the lower on a jaw of
+   *   its own, the inside of the mouth painted as 'mouth'.
+   */
+  display: z.object({
+    shoulder: z.object({ s: range, t: range, margin: z.number().min(0).max(0.3), gap: pos }),
+    coverts: z.object({
+      s: range, t: range, turn: z.number().min(0).max(90), raise: z.number().min(0).max(90), forward: z.number(), out: z.number(),
+      grow: z.number().min(1).max(2),
+    }),
+    fluff: z.object({ body: pos, head: pos }),
+    hold: z.object({ out: z.number().min(0).max(60), droop: z.number().min(0).max(60) }),
+    gape: z.number().min(0).max(60),
+  }).optional(),
+  /**
+   * Versions of a different size: the whole traced bird (its profile, eye, wing, tail, perch and parts) scaled by
+   * `scale`, then any of `measurements` given outright, before the bird is built. A version not named here is the
+   * traced size. Each size is a bird of its own (its own mesh); every number downstream is the built bird's.
+   */
+  sizes: z.record(z.string(), z.object({
+    scale: z.number().min(0.5).max(1.5),
+    measurements: z.object({
+      length: pos, culmen: pos, billDepth: pos, billWidth: pos, tarsus: pos, tibia: pos, toe: pos, wingChord: pos, tail: pos,
+    }).partial().optional(),
+  })).optional(),
   /**
    * A fish the bird can hold in its bill (PoseState.fish), crosswise or turned to swallow (PoseState.fishTurn): its
    * length, metres. One fish shape serves every bird, scaled to this.
@@ -359,6 +409,9 @@ export const detailSchema = z.object({
     if (d.reachStretch !== undefined) ctx.addIssue({ code: 'custom', message: 'reachStretch needs rig.neck', path: ['reachStretch'] })
   }
   if (d.amphibious && !d.float) ctx.addIssue({ code: 'custom', message: 'an amphibious bird needs float, its waterline', path: ['amphibious'] })
+  for (const v of Object.keys(d.sizes ?? {})) {
+    if (!(v in d.variants)) ctx.addIssue({ code: 'custom', message: `size ${v} is not one of detail.variants`, path: ['sizes', v] })
+  }
   const layers = (list: Layer[], path: (string | number)[]) => list.forEach((l, i) => {
     if ('where' in l && l.where.part === 'skin') { need(l.where.from, [...path, i, 'where', 'from']); need(l.where.to, [...path, i, 'where', 'to']) }
     if (l.kind === 'stripe') { need(l.from.at, [...path, i, 'from']); need(l.to.at, [...path, i, 'to']) }
@@ -414,6 +467,67 @@ export const authoredSchema = z.object({
   if (new Set(d.versions).size !== d.versions.length) ctx.addIssue({ code: 'custom', message: 'a version is named twice', path: ['versions'] })
 })
 export type AuthoredSpec = z.infer<typeof authoredSchema>
+
+const sized = new WeakMap<DetailSpec, Map<string, DetailSpec>>()
+
+/**
+ * The detail block a version is built from: the traced bird for a version without a size of its own (`sizes`), the
+ * same object every time; else the bird scaled, with its own measurements, made once and kept, so whatever is cached
+ * against a detail block (the folded wing's placement) is cached once per size.
+ */
+export function sizedDetail(detail: DetailSpec, variant?: string): DetailSpec {
+  const size = variant ? detail.sizes?.[variant] : undefined
+  if (!size) return detail
+  let byVersion = sized.get(detail)
+  if (!byVersion) sized.set(detail, (byVersion = new Map()))
+  let out = byVersion.get(variant!)
+  if (!out) byVersion.set(variant!, (out = scaleDetail(detail, size.scale, size.measurements ?? {})))
+  return out
+}
+
+/** Whether two versions of a species are the same size, so one's mesh serves the other. */
+export function sameSize(detail: DetailSpec, a?: string, b?: string): boolean {
+  return sizedDetail(detail, a) === sizedDetail(detail, b)
+}
+
+/** Every length of a detail block times k (proportions, angles, paint and the rig as they are), then `measurements` set. */
+function scaleDetail(d: DetailSpec, k: number, measurements: Partial<DetailSpec['measurements']>): DetailSpec {
+  const m = (v: number) => v * k
+  const opt = (v: number | undefined) => (v === undefined ? undefined : v * k)
+  const scaled = Object.fromEntries(Object.entries(d.measurements).map(([key, v]) => [key, v * k])) as DetailSpec['measurements']
+  return {
+    ...d,
+    measurements: { ...scaled, ...measurements },
+    profile: d.profile.map(s => ({ ...s, x: m(s.x), y: m(s.y), up: m(s.up), down: m(s.down), halfWidth: m(s.halfWidth) })),
+    bill: {
+      ...d.bill,
+      hook: opt(d.bill.hook),
+      shield: d.bill.shield && { length: m(d.bill.shield.length), width: m(d.bill.shield.width), thickness: m(d.bill.shield.thickness) },
+      pouch: d.bill.pouch?.map(([s, rest, full]) => [s, m(rest), m(full)] as [number, number, number]),
+    },
+    eye: { ...d.eye, radius: m(d.eye.radius), lid: d.eye.lid && { ...d.eye.lid, width: m(d.eye.lid.width) } },
+    wing: { ...d.wing, wrist: [m(d.wing.wrist[0]), m(d.wing.wrist[1])] },
+    lobeWidth: opt(d.lobeWidth),
+    parts: d.parts?.map(p => p.kind === 'crest'
+      ? { ...p, lobes: p.lobes.map(l => ({ ...l, length: m(l.length), dx: opt(l.dx) })) as typeof p.lobes }
+      : p.kind === 'curl' ? { ...p, height: m(p.height), dx: opt(p.dx) } : { ...p, length: m(p.length), dx: opt(p.dx) }),
+    probeDepth: opt(d.probeDepth),
+    float: d.float && { waterline: m(d.float.waterline) },
+    perch: d.perch && { ...d.perch, radius: m(d.perch.radius), top: opt(d.perch.top) },
+    fish: d.fish && { length: m(d.fish.length) },
+    flight: d.flight && {
+      ...d.flight, span: m(d.flight.span), rootX: opt(d.flight.rootX),
+      outline: d.flight.outline.map(([s, lead, trail]) => [s, m(lead), m(trail)] as [number, number, number]),
+    },
+    display: d.display && {
+      ...d.display,
+      shoulder: { ...d.display.shoulder, gap: m(d.display.shoulder.gap) },
+      coverts: { ...d.display.coverts, forward: m(d.display.coverts.forward), out: m(d.display.coverts.out) },
+      fluff: { body: m(d.display.fluff.body), head: m(d.display.fluff.head) },
+    },
+    sizes: undefined,
+  }
+}
 
 /** The layer list for a variant: the variant's own list when it has one, else the base plumage. */
 export function layersFor(detail: DetailSpec, variant?: string): Layer[] {

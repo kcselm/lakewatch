@@ -2,7 +2,7 @@ import { parseSpeciesSpec, type SpeciesSpec } from '../spec'
 import { buildDetailedBird, type DetailedBirdModel } from '../detail/build'
 import { measure, type Measures } from '../detail/measure'
 import { createProfile } from '../detail/profile'
-import { layersFor, type DetailSpec, type Part } from '../detail/spec'
+import { layersFor, sizedDetail, type DetailSpec, type Part } from '../detail/spec'
 import { paintAtlas, regionStats } from '../paint/painter'
 import { REGIONS, pixelST, ATLAS_SIZE } from '../paint/atlas'
 
@@ -65,8 +65,10 @@ export function hsl([r, g, b]: [number, number, number]): { hue: number; sat: nu
  * not the detail block's: a version with no layers of its own (the Gadwall's female) wears the base plumage.
  */
 export function atlas(spec: SpeciesSpec, variant?: string) {
-  const { parsed, detail } = detailed(spec)
+  const { parsed, detail: traced } = detailed(spec)
   if (variant !== undefined && !(variant in parsed.variants)) throw new Error(`${parsed.code}: unknown variant ${variant}`)
+  // a version of its own size is painted on its own skin, as the game paints it
+  const detail = sizedDetail(traced, variant)
   const profile = createProfile(detail.profile)
   const layers = layersFor(detail, variant)
   const px = paintAtlas({ code: parsed.code, detail, layers, profile })

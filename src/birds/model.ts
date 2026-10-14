@@ -72,6 +72,32 @@ export interface PoseState {
   fish: number
   /** 0 crosswise .. 1 lengthwise, head first: a held fish turned in the bill to be swallowed */
   fishTurn: number
+  /**
+   * A song spread's values (a red-winged blackbird's; a bird without a `display` ignores them), each 0 by default.
+   * epaulet: 0 covered .. 1 bared, how far the scapulars and breast-side feathers are drawn up off the shoulder of
+   * the folded wing (0.15 the buff bar alone, 0.35 a red band above it, 0.6 the whole patch).
+   */
+  epaulet: number
+  /** 0 flat .. 1 erected: the shoulder's coverts lifted off the wing and fanned forward and out */
+  epauletRaise: number
+  /** -0.3 sleeked .. 0 .. 1 full: the contour feathers raised over the body, the nape and the crown */
+  fluff: number
+  /** 0 on the flanks .. 1 held out: the folded wing lifted from the body at the shoulder, its tip dropped */
+  wingHold: number
+  /** 0 closed .. 1 open: the lower mandible dropped */
+  gape: number
+  /**
+   * What each foot holds, for a bird whose toes take stems (detail.perch.stems): a point on the stem's axis, the axis
+   * there (unit), and the stem's radius, in the bird's own frame (its group's space); null, its branch as built
+   */
+  feet: { right: StemHold; left: StemHold } | null
+}
+
+/** A stem a foot holds: a point on its axis, its direction there (unit), and its radius, metres, in the bird's frame. */
+export interface StemHold {
+  at: THREE.Vector3
+  axis: THREE.Vector3
+  radius: number
 }
 
 export function defaultPose(): PoseState {
@@ -79,6 +105,7 @@ export function defaultPose(): PoseState {
     wingPhase: 0, wingSpread: 0, headBob: 0, neckExtend: 0.5, tailTilt: 0, lean: new THREE.Vector3(), strideDistance: 0, gait: 0, reach: 0,
     paddle: 0, paddlePhase: 0, reachDepth: 0, reachAngle: Math.PI / 2, headPitch: 0, headYaw: 0, afloat: 1, pouch: 0, glide: 0,
     dry: 0, tailProp: 0, crestRaise: 0, tailSpread: 0, fish: 0, fishTurn: 0, wingStroke: 0, legsUp: 0,
+    epaulet: 0, epauletRaise: 0, fluff: 0, wingHold: 0, gape: 0, feet: null,
   }
 }
 

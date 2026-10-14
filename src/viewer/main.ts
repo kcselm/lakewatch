@@ -13,7 +13,11 @@ import { createProfile } from '../birds/detail/profile'
 import { layersFor } from '../birds/detail/spec'
 import { paintAtlas } from '../birds/paint/painter'
 import { ATLAS_SIZE } from '../birds/paint/atlas'
-import { parseState, stateHash, FIELD_VIEWS, VIEWS, type ViewerState } from './state'
+import { parseState, stateHash, FIELD_VIEWS, VIEWS, STEMS, type ViewerState } from './state'
+import { GRIPS, STRADDLE_ROLL, gripPosition, holdOn, straddlePosition, type GripKind } from '../behavior/grips'
+import { spreadPose, spreadLength, GRADES, type Display } from '../behavior/spread'
+import { songCues } from '../audio/cues'
+import type { StemHold } from '../birds/model'
 import { ensureAuthored } from '../birds/models'
 import { isDetailed } from '../birds/spec'
 
@@ -24,6 +28,7 @@ const DEFAULTS: ViewerState = {
   neck: 0.5, lean: 0, spread: 0, phase: 0, reach: 0, depth: 0, angle: Math.PI / 2, paddle: 0, sink: 0, bob: 0, tail: 0, pitch: 0,
   pouch: 0, glide: 0, raise: 0, flap: false, afloat: 1, dry: 0, prop: 0, stroke: 0, fan: 0, yaw: 0, crest: 0, fish: 0, turn: 0, legs: 0,
   walk: false, speed: 0.35, water: 0, float: false, see: false, wire: false, skel: false, uv: false, atlas: false, stations: false,
+  ep: 0, er: 0, fl: 0, wh: 0, gp: 0, stem: '', sway: false,
 }
 /** a swimmer's paddle strokes a second (docs/research/2026-09-25-mallard.md, section 11: 2.4 for a Mallard) */
 const STROKES = 2.4
@@ -85,6 +90,8 @@ interface Slot {
   perch?: THREE.Mesh
   /** where its wings are in their beat while they flap by themselves */
   beat: number
+  /** a stem-holding percher on stems (state.stem): their props, each a cylinder standing from its base */
+  stems?: { mesh: THREE.Group; base: THREE.Vector3; height: number; radius: number }[]
 }
 const branchMaterial = new THREE.MeshStandardMaterial({ color: '#6b5d4f', roughness: 1 })
 let slots: Slot[] = []
@@ -117,6 +124,7 @@ function buildNow(): void {
     if (s.skeleton) scene.remove(s.skeleton)
     if (s.perch) { scene.remove(s.perch); s.perch.geometry.dispose() }
     s.model.dispose()
+    for (const st of s.stems ?? []) scene.remove(st.mesh)
   }
   const models = [[state.a, state.av], [state.b, state.bv]].map(([code, v]) => createBirdModel(getSpec(code!), v || undefined))
   const gap = Math.max(...models.map(m => m.radius)) * 1.15
@@ -125,7 +133,10 @@ function buildNow(): void {
     const slot: Slot = { model, base, beat: 0 }
     // a percher stands on its branch's top at y = 0: the branch lies across its feet on the ground, the bird on it
     const radius = specOf(model).detail?.perch?.radius
-    if (radius) {
+    const onStems = !!state.stem && !!specOf(model).detail?.perch?.stems
+    // a bird on stems stands up among them, the stems standing from the ground
+    if (onStems) base.y = STEM_LIFT
+    else if (radius) {
       base.y = 2 * radius
       slot.perch = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, BRANCH, 16).rotateX(Math.PI / 2), branchMaterial)
       slot.perch.position.set(base.x, radius, 0)
@@ -134,6 +145,7 @@ function buildNow(): void {
     }
     model.group.position.copy(base)
     scene.add(model.group)
+    if (onStems) slot.stems = stemProps(state.stem as GripKind, base, sizeOf(specOf(model), i === 0 ? state.av : state.bv))
     if ('mesh' in model) {
       const d = model as DetailedBirdModel
       slot.material = (d.mesh.material as THREE.MeshStandardMaterial).clone()
@@ -155,6 +167,55 @@ function buildNow(): void {
   place()
 }
 
+/** a bird's size against its species' traced one (a female red-wing's 0.85) */
+function sizeOf(spec: SpeciesSpec, variant: string): number {
+  return spec.detail?.sizes?.[variant]?.scale ?? 1
+}
+
+/**
+ * Stems for a bird to hold, standing from below the ground: a cattail stalk (8 mm, held 1.4 m up), a cattail's top (the
+ * stalk, its spike and the bare axis the feet clasp), a tule (10 mm, held low), or two tules 80 mm apart to straddle.
+ * Each stands `height` from its base, its hold `height` up it.
+ */
+const stemMaterial = new THREE.MeshStandardMaterial({ color: '#9aa060', roughness: 0.9 })
+const spikeMaterial = new THREE.MeshStandardMaterial({ color: '#8b7a68', roughness: 1 })
+/** how high a bird on stems is held, metres: its stems stand that far from the ground (and the spike's height above them) */
+const STEM_LIFT = 0.35
+function stemProps(kind: GripKind, at: THREE.Vector3, size: number): { mesh: THREE.Group; base: THREE.Vector3; height: number; radius: number }[] {
+  const grip = GRIPS[kind]
+  const make = (dx: number, dz: number, radius: number, spike: boolean) => {
+    const g = new THREE.Group()
+    const height = at.y
+    const base = at.clone().add(new THREE.Vector3(dx, -height, dz))
+    // a stalk or tule held part-way up runs on above the feet; a cattail's top ends in its spike
+    const length = spike ? height : height + 0.25
+    const stalk = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.8, radius * 1.6, length, 10, 8).translate(0, length / 2, 0), stemMaterial)
+    g.add(stalk)
+    if (spike) {
+      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.15, 16).translate(0, height - 0.075 - 0.004, 0), spikeMaterial)
+      const axis = new THREE.Mesh(new THREE.CylinderGeometry(0.00125, 0.00125, 0.1, 6).translate(0, height + 0.05, 0), stemMaterial)
+      g.add(sp, axis)
+    }
+    g.traverse(o => { if (o instanceof THREE.Mesh) o.castShadow = o.receiveShadow = true })
+    g.position.copy(base)
+    g.userData.size = size
+    scene.add(g)
+    return { mesh: g, base, height, radius: spike ? 0.00125 : radius }
+  }
+  if (kind === 'straddle') return [make(0, 0.04 * size, 0.005, false), make(0, -0.04 * size, 0.005, false)]
+  return [make(grip.ahead * size, 0, kind === 'tule' ? 0.005 : 0.004, kind === 'top')]
+}
+
+/** a stem's axis point `h` up it, its top `sway` metres over along x; it bends as a cantilever's tip-loaded shape */
+function stemPoint(st: { base: THREE.Vector3; height: number }, h: number, sway: number, out = new THREE.Vector3()) {
+  const k = h / st.height
+  return out.set(st.base.x + sway * k * k * (3 - k) / 2, st.base.y + h, st.base.z)
+}
+function stemAxis(st: { height: number }, h: number, sway: number, out = new THREE.Vector3()) {
+  const k = h / st.height
+  return out.set((sway * (6 * k - 3 * k * k)) / 2 / st.height, 1, 0).normalize()
+}
+
 function applyLook(): void {
   // Float mode is the lake as the game draws it: opaque water at y = 0, where a swimmer's waterline sits, and no ground
   // near enough to see. See-through lets the hull show under it. Otherwise, a wader's shallow water over the ground.
@@ -172,7 +233,7 @@ function applyLook(): void {
   spine.visible = state.stations
   for (const s of slots) {
     // and a percher's branch, lying on the ground, would hide it from below
-    if (s.perch) s.perch.visible = ground.visible
+    if (s.perch) s.perch.visible = ground.visible && !s.stems
     if (s.skeleton) s.skeleton.visible = state.skel
     if (s.material) {
       s.material.wireframe = state.wire
@@ -385,6 +446,45 @@ slider(photoGroup, 'scale', photo.scale, v => { photo.scale = v; applyPhoto() },
 slider(photoGroup, 'x', photo.x, v => { photo.x = v; applyPhoto() }, -1500, 1500, 1)
 slider(photoGroup, 'y', photo.y, v => { photo.y = v; applyPhoto() }, -1500, 1500, 1)
 check(photoGroup, 'show', true, v => { ref.style.display = v && ref.src ? 'block' : 'none'; applyPhoto() })
+const spreadGroup = group('Song spread (a red-wing)')
+slider(spreadGroup, 'epaulet (0 covered, 0.15 buff bar, 0.35 red band, 0.6 whole)', state.ep, v => set({ ep: v }))
+slider(spreadGroup, 'coverts erected', state.er, v => set({ er: v }))
+slider(spreadGroup, 'fluff (-0.3 sleeked .. 1)', state.fl, v => set({ fl: v }), -0.3, 1, 0.01)
+slider(spreadGroup, 'wings held out', state.wh, v => set({ wh: v }))
+slider(spreadGroup, 'gape', state.gp, v => set({ gp: v }))
+select(spreadGroup, 'grade', [['', '(sliders)'], ['0', '0: song only'], ['1', '1: low'], ['2', '2: medium'], ['3', '3: full'], ['tilt', 'bill-tilt']], '', v => {
+  if (!v) return
+  const g = GRADES[(v === 'tilt' ? 'tilt' : Number(v)) as Display]
+  set({ ep: g.epaulet ?? state.ep, er: g.epauletRaise, fl: g.fluff, wh: g.wingHold, gp: v === 'tilt' ? 0 : g.gape, fan: g.tailSpread, neck: g.neckExtend, pitch: g.headPitch })
+})
+// runs a spread of the chosen grade against the song, from 0.5 s before the onset, playing the song's cue
+let song: { grade: Display; start: number; cue: ReturnType<typeof songCues>[number] } | null = null
+let songIndex = 0
+const play = document.createElement('div')
+for (const g of ['0', '1', '2', '3', 'tilt'] as const) {
+  const b = document.createElement('button')
+  b.textContent = g === 'tilt' ? 'tilt' : `sing ${g}`
+  b.onclick = () => {
+    const cues = songCues('rewbla')
+    const cue = cues[songIndex++ % cues.length]!
+    const grade = (g === 'tilt' ? 'tilt' : Number(g)) as Display
+    song = { grade, start: performance.now() / 1000 + 0.5, cue }
+    if (grade !== 'tilt') playCue(cue, 0.5)
+  }
+  play.appendChild(b)
+}
+spreadGroup.appendChild(play)
+select(spreadGroup, 'stems (a stem-holding percher)', STEMS.map(s => [s, s || '(its branch)'] as [string, string]), state.stem, v => set({ stem: v }, true))
+check(spreadGroup, 'stem sways', state.sway, v => set({ sway: v }))
+let audio: AudioContext | null = null
+async function playCue(cue: { file: string; start: number; end: number }, delay: number) {
+  audio ??= new AudioContext()
+  const buffer = await audio.decodeAudioData(await (await fetch('/' + cue.file)).arrayBuffer())
+  const src = audio.createBufferSource()
+  src.buffer = buffer
+  src.connect(audio.destination)
+  src.start(audio.currentTime + delay, cue.start, cue.end - cue.start + 0.1)
+}
 const readout = document.createElement('pre')
 group('Measurements, mm').appendChild(readout)
 
@@ -409,8 +509,43 @@ function frame(): void {
     strideDistance: stride, gait: state.walk ? 1 : 0,
   }
   p.lean.x = state.lean
+  p.epaulet = state.ep; p.epauletRaise = state.er; p.fluff = state.fl; p.wingHold = state.wh; p.gape = state.gp
+  // a song run: the spread against the song's clock
+  if (song) {
+    const t = now / 1000 - song.start
+    const shape = { trill: song.cue.trill - song.cue.start, end: song.cue.end - song.cue.start }
+    const tilt = song.grade === 'tilt' ? { trill: 0.05, end: 3 } : shape
+    const v = spreadPose(song.grade, t, tilt, { epaulet: state.ep, tailTilt: state.tail, lean: state.lean })
+    Object.assign(p, { epaulet: v.epaulet, epauletRaise: v.epauletRaise, fluff: v.fluff, wingHold: v.wingHold, tailSpread: v.tailSpread, tailTilt: v.tailTilt, neckExtend: v.neckExtend, headPitch: v.headPitch, gape: v.gape })
+    p.lean.x = v.lean
+    if (t > spreadLength(tilt) + 0.5) song = null
+  }
   for (const s of slots) {
     s.model.group.position.copy(s.base)
+    if (s.stems) {
+      const kind = state.stem as GripKind, grip = GRIPS[kind]
+      const sway = state.sway ? 0.05 * Math.sin(2 * Math.PI * 0.55 * (now / 1000)) : 0
+      const hold = (st: NonNullable<Slot['stems']>[number], h: number): StemHold => holdOn(stemPoint(st, h, sway), stemAxis(st, h, sway), st.radius, s.model.group.position, 0)
+      const st0 = s.stems[0]!
+      const mid = stemPoint(st0, st0.height + (kind === 'top' ? 0.012 : 0), sway)
+      if (kind === 'straddle') {
+        const st1 = s.stems[1]!
+        const a = stemPoint(st0, st0.height, sway), b = stemPoint(st1, st1.height - 0.02, sway)
+        straddlePosition(a, b, s.stems[0]!.mesh.userData.size ?? 1, s.model.group.position)
+        p.feet = { right: hold(st0, st0.height), left: hold(st1, st1.height - 0.02) }
+        p.lean.z = STRADDLE_ROLL * Math.atan2(b.y - a.y, Math.hypot(b.z - a.z, b.x - a.x))
+      } else {
+        gripPosition(mid, 0, grip.ahead * (s.stems[0]!.mesh.userData.size ?? 1), s.model.group.position)
+        const h = st0.height + (kind === 'top' ? 0.012 : 0)
+        p.feet = { right: hold(st0, h + grip.apart / 2), left: hold(st0, h - grip.apart / 2) }
+      }
+      p.lean.x = (song ? p.lean.x - state.lean : 0) + state.lean + grip.lean
+      for (const st of s.stems) st.mesh.rotation.z = -Math.atan(sway * 1.5 / st.height)
+      s.model.pose(p)
+      p.feet = null
+      p.lean.z = 0
+      continue
+    }
     s.model.group.position.y += state.raise - state.sink
     if (state.walk) s.model.group.position.x += stride % WALK_LOOP
     // flapping, each bird at its own species' wingbeat, quickening toward a hover's as its stroke blends to one; the

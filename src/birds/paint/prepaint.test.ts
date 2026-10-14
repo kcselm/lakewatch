@@ -87,7 +87,7 @@ describe('castAtlases', () => {
       cast: [
         { species: 'mallar3', behavior: 'swim' as const, zone: 'near-water', count: 1, plumage: 'mixed' as const },
         { species: 'leasan', behavior: 'probe' as const, zone: 'mudflat', count: 5 },
-        { species: 'rewbla', behavior: 'wade' as const, zone: 'far-shallows', count: 1 },
+        { species: 'marwre', behavior: 'wade' as const, zone: 'far-shallows', count: 1 },
         { species: 'cangoo', behavior: 'flyover' as const, zone: 'sky', count: 14 },
       ],
     }

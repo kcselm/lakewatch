@@ -25,7 +25,7 @@ const PARKED = 1e-4
  * Bones a model may lack: a crest's and a fanning tail's, which the builder gained after the first model was made. No
  * skin rides them, so one the model lacks is parked on its parent's joint, as a lofted bird without the part has it.
  */
-const OPTIONAL_BONES: readonly BoneName[] = ['crest', 'crestBack', 'tailL3', 'tailL2', 'tailL1', 'tailR1', 'tailR2', 'tailR3']
+const OPTIONAL_BONES: readonly BoneName[] = ['crest', 'crestBack', 'tailL3', 'tailL2', 'tailL1', 'tailR1', 'tailR2', 'tailR3', 'jaw']
 
 /** Parse a glb (the bytes of <model>.glb) into its scene. Works without a DOM: the glb holds no images. */
 export function parseGlb(bytes: ArrayBuffer): Promise<THREE.Group> {

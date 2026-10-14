@@ -15,6 +15,8 @@ export const BONE_NAMES = [
   // a crest's two lobes, hung from the head; then a fanning tail's outer columns of feathers (after every earlier bone)
   'crest', 'crestBack',
   'tailL3', 'tailL2', 'tailL1', 'tailR1', 'tailR2', 'tailR3',
+  // a gaping bird's lower mandible (after every earlier bone)
+  'jaw',
 ] as const
 export type BoneName = (typeof BONE_NAMES)[number]
 
@@ -50,6 +52,7 @@ export const BONE_PARENT: Record<BoneName, BoneName | null> = {
   handL: 'wingL', handR: 'wingR',
   crest: 'head', crestBack: 'head',
   tailL3: 'tail', tailL2: 'tail', tailL1: 'tail', tailR1: 'tail', tailR2: 'tail', tailR3: 'tail',
+  jaw: 'bill',
 }
 
 export type Joints = Record<BoneName, THREE.Vector3>

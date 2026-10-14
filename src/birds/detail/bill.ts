@@ -147,6 +147,100 @@ export function buildBill(m: Mesher, detail: DetailSpec, profile: Profile): Bill
   }
 }
 
+/** points round each mandible's outer arc, and across the flat of its cutting edge between them */
+const MANDIBLE_ARC = 7
+const MANDIBLE_FLAT = 4
+
+/**
+ * A bill that opens (detail.display's gape): the same cone as buildBill's, split along the cutting edges (the sides of
+ * its section, at its middle's height) into two closed mandibles, the upper on the bill bone and the lower on the jaw,
+ * which turns about the bill's base. Each mandible's outer arc is painted as the bill (t 0 to 0.5 the upper, 0.5 to 1
+ * the lower, as buildBill's ring has them) and its flat cutting face, the inside of the mouth when it opens, as
+ * 'mouth'. Closed, the two flats lie on each other inside the bill, and the outside is buildBill's.
+ */
+export function buildSplitBill(m: Mesher, detail: DetailSpec, profile: Profile): BillResult {
+  const indexFirst = m.indexCount
+  const { billDepth, billWidth } = detail.measurements
+  const sigmas = ringSigmas(detail.bill)
+  const sample = (sigma: number) => {
+    const { p, tangent } = billCenter(detail, profile, sigma)
+    const normal = new THREE.Vector2(-tangent.y, tangent.x)
+    const f = billScale(detail.bill, sigma)
+    return { p, normal, d: (billDepth / 2) * f.depth, w: (billWidth / 2) * f.width }
+  }
+  const at = (q: ReturnType<typeof sample>, n: number, z: number) => new THREE.Vector3(q.p.x + q.normal.x * n, q.p.y + q.normal.y * n, z)
+  let baseRing: THREE.Vector3[] = []
+  const i0 = sigmas.reduce((best, s, i) => (Math.abs(s) < Math.abs(sigmas[best]!) ? i : best), 0)
+  for (const lower of [false, true]) {
+    const bone = lower ? 'jaw' : 'bill'
+    // the arc from one cutting edge round to the other: the upper's over the culmen, the lower's under the gonys
+    const arcTh = (j: number) => (lower ? Math.PI / 2 : -Math.PI / 2) + (Math.PI * j) / (MANDIBLE_ARC - 1)
+    const arcs: number[][] = [], flats: number[][] = []
+    sigmas.forEach((sigma, i) => {
+      const q = sample(sigma)
+      const arc: number[] = [], flat: number[] = []
+      for (let j = 0; j < MANDIBLE_ARC; j++) {
+        const th = arcTh(j)
+        const { n, z } = billOffset(th, q.d, q.w, detail.bill.section)
+        const p = at(q, Math.abs(n) < 1e-12 ? 0 : n, z)
+        arc.push(m.vertex(p, 'bill', Math.max(0, sigma), ringT((th + 2 * Math.PI) % (2 * Math.PI)), [[bone, 1]]))
+        if (i === i0) baseRing.push(p)
+      }
+      // the flat runs back across from the arc's end to its start, on the cutting edges' plane
+      const zEnd = billOffset(arcTh(MANDIBLE_ARC - 1), q.d, q.w, detail.bill.section).z
+      const zStart = billOffset(arcTh(0), q.d, q.w, detail.bill.section).z
+      for (let k = 0; k < MANDIBLE_FLAT; k++) {
+        const z = zEnd + ((zStart - zEnd) * k) / (MANDIBLE_FLAT - 1)
+        flat.push(m.vertex(at(q, 0, z), 'mouth', Math.max(0, sigma), k / (MANDIBLE_FLAT - 1), [[bone, 1]]))
+      }
+      arcs.push(arc); flats.push(flat)
+    })
+    // every face out from the mandible's own middle line
+    const centreAt = (i: number) => { const q = sample(sigmas[i]!); return at(q, lower ? -q.d / 3 : q.d / 3, 0) }
+    const face = (a: number, b: number, c: number, d: number, i: number) => {
+      const pa = m.position(a), n = m.position(b).sub(pa).cross(m.position(d).sub(pa))
+      const c0 = pa.clone().add(m.position(c)).multiplyScalar(0.5).sub(centreAt(i))
+      if (n.dot(c0) >= 0) m.quad(a, b, c, d)
+      else m.quad(a, d, c, b)
+    }
+    for (let i = 0; i < sigmas.length - 1; i++) {
+      for (let j = 0; j < MANDIBLE_ARC - 1; j++) face(arcs[i]![j]!, arcs[i + 1]![j]!, arcs[i + 1]![j + 1]!, arcs[i]![j + 1]!, i)
+      for (let k = 0; k < MANDIBLE_FLAT - 1; k++) face(flats[i]![k]!, flats[i + 1]![k]!, flats[i + 1]![k + 1]!, flats[i]![k + 1]!, i)
+    }
+    // caps: the root inside the head and the tip, a fan to a point on the cutting edges' plane, round arc and flat
+    const root = billCenter(detail, profile, -ROOT).p, tip = billCenter(detail, profile, 1).p
+    for (const [ring, flatRing, point, s, out] of [
+      [arcs[0]!, flats[0]!, root, 0, -1], [arcs[arcs.length - 1]!, flats[flats.length - 1]!, tip, 1, 1],
+    ] as const) {
+      const c = m.vertex(new THREE.Vector3(point.x, point.y, 0), 'bill', s, lower ? 0.75 : 0.25, [[bone, 1]])
+      const loop = [...ring, ...flatRing.slice(1, -1)]
+      const along = billCenter(detail, profile, s === 0 ? -ROOT : 1).tangent
+      const want = new THREE.Vector3(along.x, along.y, 0).multiplyScalar(out)
+      for (let j = 0; j < loop.length; j++) {
+        const a = loop[j]!, b = loop[(j + 1) % loop.length]!
+        const n = m.position(a).sub(m.position(c)).cross(m.position(b).sub(m.position(c)))
+        if (n.dot(want) >= 0) m.tri(c, a, b)
+        else m.tri(c, b, a)
+      }
+    }
+  }
+  const end = profile.sampleAt(1)
+  const tip2 = billCenter(detail, profile, 1).p
+  // the base ring round the whole bill, in buildBill's order from the culmen: the upper's arc from its middle on, the
+  // lower's, then the upper's first half
+  const half = Math.floor(MANDIBLE_ARC / 2)
+  const upper = baseRing.slice(0, MANDIBLE_ARC), lowerRing = baseRing.slice(MANDIBLE_ARC)
+  baseRing = [...upper.slice(half), ...lowerRing.slice(1, -1), ...upper.slice(0, half)]
+  return {
+    baseRing,
+    base: new THREE.Vector3(end.point.x, end.point.y, 0),
+    tip: new THREE.Vector3(tip2.x, tip2.y, 0),
+    dir: new THREE.Vector3(end.tangent.x, end.tangent.y, 0),
+    up: new THREE.Vector3(end.normal.x, end.normal.y, 0),
+    indexFirst, indexCount: m.indexCount - indexFirst,
+  }
+}
+
 /** How far below the bill's axis the pouch hangs at sigma, slack and full, metres: its outline, linear between points. */
 export function pouchDepth(pouch: NonNullable<DetailSpec['bill']['pouch']>, sigma: number): { rest: number; full: number } {
   if (sigma <= pouch[0]![0]) return { rest: pouch[0]![1], full: pouch[0]![2] }
