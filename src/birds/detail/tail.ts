@@ -7,10 +7,18 @@ import { FAN_BONES } from './rig'
 const TAIL_S = 6
 /** columns of feathers across the tail: one a fan bone (FAN_BONES), so a fanning tail turns each about its root */
 const TAIL_T = FAN_BONES.length
-/** tail width at the root, as a fraction of the body's full width at the tail base */
+/** tail width at the root, as a fraction of the body's full width at the tail base, unless the species sets its own */
 export const ROOT_WIDTH = 0.55
-/** tail width at the tip, as a multiple of the root width */
+/** tail width at the tip, as a multiple of the root width, unless the species sets its own */
 export const TIP_SPREAD = 1.3
+/** how far the tail's outer feathers lie below its middle ones, as a fraction of its width, unless the species sets its own */
+const VAULT = 0.12
+
+/** The tail's width at s along it (0 root, 1 tip), metres: its root's share of the body's width there, spreading to its tip's. */
+export function tailWidth(detail: DetailSpec, profile: Profile, s: number): number {
+  const root = profile.sampleAt(profile.uOf(detail.rig.tailBase)).halfWidth * 2 * (detail.tail.width ?? ROOT_WIDTH)
+  return root * (1 + ((detail.tail.spread ?? TIP_SPREAD) - 1) * s)
+}
 
 /** Extra length at the tip for t across the tail (0 = left edge, 1 = right edge), as a fraction of the tail length. */
 export function tipShape(shape: DetailSpec['tail']['shape'], t: number): number {
@@ -37,9 +45,10 @@ export interface TailResult {
 }
 
 /**
- * The tail: a thin, slightly cupped fan rooted at the tailBase station, measurements.tail long to its longest
- * feather (the middle of a rounded or wedge tail, the outer ones of a square or notched one), pointing
- * straight back along the spine, lifted by `angle` degrees. Upper face 'tail', under face 'tailUnder'.
+ * The tail: a thin, cupped fan rooted at the tailBase station, measurements.tail long to its longest feather (the
+ * middle of a rounded or wedge tail, the outer ones of a square or notched one), pointing straight back along the
+ * spine, lifted by `angle` degrees; as wide as tailWidth says, its outer feathers `vault` of that below its middle
+ * ones. Upper face 'tail', under face 'tailUnder'.
  */
 export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): TailResult {
   const base = profile.sampleAt(profile.uOf(detail.rig.tailBase))
@@ -53,13 +62,14 @@ export function buildTail(m: Mesher, detail: DetailSpec, profile: Profile): Tail
   const back = new THREE.Vector2(-base.tangent.x, -base.tangent.y)
   back.set(back.x * Math.cos(a) + back.y * Math.sin(a), -back.x * Math.sin(a) + back.y * Math.cos(a))
   const up = new THREE.Vector2(back.y, -back.x)
-  const rootW = base.halfWidth * 2 * ROOT_WIDTH
+  const rootW = tailWidth(detail, profile, 0)
+  const vault = detail.tail.vault ?? VAULT
   // a tail is measured to its longest feather, so a rounded or wedge tail's middle is measurements.tail long
   const longest = 1 + Math.max(0, tipShape(detail.tail.shape, 0.5))
   const point = (s: number, t: number, lift: number) => {
-    const w = rootW * (1 + (TIP_SPREAD - 1) * s)
+    const w = tailWidth(detail, profile, s)
     const along = (s * L * (1 + tipShape(detail.tail.shape, t))) / longest
-    const cup = -0.12 * w * (2 * t - 1) ** 2 + lift
+    const cup = -vault * w * (2 * t - 1) ** 2 + lift
     return new THREE.Vector3(
       base.point.x + back.x * along + up.x * cup,
       base.point.y + back.y * along + up.y * cup,

@@ -8,11 +8,21 @@ const CURL_SWEEP = (5 / 3) * Math.PI
 /** the length of a curl's feather along its loop, as a multiple of its height (a circle of that diameter, CURL_SWEEP round) */
 export const CURL_LENGTH = CURL_SWEEP / 2
 /**
- * the curled feathers' thickness (a tube's radius), and how far apart the two loops sit, metres: each covert is a
- * broad glossy feather 3-4 mm across, so the pair reads as two black loops from 15 m, not wires
+ * the curled feathers' half-width in the side view (a ribbon's), and how far apart the two loops sit across the back,
+ * metres: each covert is a broad glossy feather 3-4 mm across, so the pair reads as two black loops from 15 m, not wires
  */
 export const CURL_RADIUS = 0.0018
 const CURL_GAP = 0.0022
+/** a curled feather's half-thickness across the back, metres: a flat vane, seen broad from the side and thin from behind */
+const CURL_THICKNESS = 0.0009
+/**
+ * How far ahead of the first loop the second rises, as a multiple of the curl's height: on the traced drake the two
+ * stand 9-11 mm apart along the back, one in front of the other, not side by side (docs/research/2026-09-25-mallard.md,
+ * section 8.1, photo 1); a little closer here, where the loft's stern rises more steeply than his black rump under them
+ */
+const CURL_STAGGER = 0.35
+/** how far in a loop's end curls, as a share of its radius, from past the top of the loop to its end */
+const CURL_IN = 0.4
 
 /** a plume strand's radius where it leaves the head, and at its tip, and the two strands' distance apart, metres */
 export const PLUME_RADIUS = 0.0015
@@ -58,32 +68,47 @@ export interface PartResult {
 export interface CrestResult extends PartResult { lobes: [THREE.Vector3, THREE.Vector3] }
 
 /**
- * The Mallard drake's curl: his two central tail coverts, curled into loops `height` high that rise from the back
- * midline, turn back and over, and come down in front (docs/research/2026-09-25-mallard.md, sections 4.1, 5, and 9:
- * two black loops about 20 mm high on the rump). Two closed tubes side by side, on the curl bone.
+ * The Mallard drake's curl: his two central tail coverts, curled into loops that rise from the back midline, turn back
+ * and over, come down in front, and curl in (docs/research/2026-09-25-mallard.md, sections 4.1, 5, and 9: two black
+ * loops about 20 mm high on the rump). Both are `height` high: the first rises from the back at its station, the
+ * second CURL_STAGGER of that ahead, its foot sunk into the back so its top is just under the first's, as the traced
+ * drake's tops are level. Two closed ribbons, on the curl bone.
  */
 export function buildCurl(m: Mesher, part: Extract<PartSpec, { kind: 'curl' }>, profile: Profile): PartResult {
   const indexFirst = m.indexCount
-  const s = profile.sampleAt(profile.uOf(part.at) + (part.dx ?? 0) / profile.length)
-  // the section's own up and forward, so a tilted station's back still carries it
-  const up = new THREE.Vector3(s.axis.x, s.axis.y, 0), fwd = new THREE.Vector3(s.axis.y, -s.axis.x, 0)
-  // a little inside the back, so the loops grow out of the feathers
-  const base = new THREE.Vector3(s.point.x, s.point.y, 0).addScaledVector(up, s.up - CURL_RADIUS)
-  const r = part.height / 2
-  let top = base.clone()
-  for (const side of [1, -1]) {
-    const points: THREE.Vector3[] = [], radius: number[] = []
-    for (let k = 0; k <= 24; k++) {
-      const phi = -Math.PI / 2 - (CURL_SWEEP * k) / 24
-      const p = base.clone().addScaledVector(up, r).addScaledVector(fwd, Math.cos(phi) * r).addScaledVector(up, Math.sin(phi) * r)
-      p.z = side * CURL_GAP
-      points.push(p)
-      radius.push(CURL_RADIUS * (1 - 0.4 * (k / 24)))
-      if (p.clone().sub(base).dot(up) > top.clone().sub(base).dot(up)) top = p.clone().setZ(0)
-    }
-    sweep(m, points, radius, 'curl', [['curl', 1]])
+  const u = profile.uOf(part.at) + (part.dx ?? 0) / profile.length
+  // where a loop leaves the back at u: a little inside it, so the loop grows out of the feathers; and the section's own
+  // up and forward there, so a tilted station's back still carries it
+  const foot = (at: number) => {
+    const s = profile.sampleAt(at)
+    const up = new THREE.Vector3(s.axis.x, s.axis.y, 0), fwd = new THREE.Vector3(s.axis.y, -s.axis.x, 0)
+    return { up, fwd, base: new THREE.Vector3(s.point.x, s.point.y, 0).addScaledVector(up, s.up - CURL_RADIUS) }
   }
-  return { kind: part.kind, base, top, indexFirst, indexCount: m.indexCount - indexFirst }
+  const first = foot(u), second = foot(u + (CURL_STAGGER * part.height) / profile.length)
+  // the back rises steeply at the stern, so the second loop's foot is sunk into it until its top is just under the first's
+  const sink = second.base.y + part.height * second.up.y - (first.base.y + part.height * first.up.y) + CURL_RADIUS / 2
+  if (sink > 0) second.base.addScaledVector(second.up, -sink / second.up.y)
+  const loops = [{ ...first, z: -CURL_GAP }, { ...second, z: CURL_GAP }]
+  let top = first.base.clone()
+  const height = part.height
+  for (const { up, fwd, base, z } of loops) {
+    const points: THREE.Vector3[] = [], radius: number[] = [], across: number[] = []
+    const STEPS = 24
+    for (let k = 0; k <= STEPS; k++) {
+      const phi = -Math.PI / 2 - (CURL_SWEEP * k) / STEPS
+      // round to past the top (phi = -3 pi / 2), then curling in toward the loop's middle
+      const past = Math.max(0, (k / STEPS - 0.6) / 0.4)
+      const r = (height / 2) * (1 - CURL_IN * past * past)
+      const p = base.clone().addScaledVector(up, height / 2).addScaledVector(fwd, Math.cos(phi) * r).addScaledVector(up, Math.sin(phi) * r)
+      p.z = z
+      points.push(p)
+      radius.push(CURL_RADIUS * (1 - 0.4 * (k / STEPS)))
+      across.push(CURL_THICKNESS * (1 - 0.4 * (k / STEPS)))
+      if (p.clone().sub(first.base).dot(first.up) > top.clone().sub(first.base).dot(first.up)) top = p.clone().setZ(0)
+    }
+    sweep(m, points, radius, 'curl', [['curl', 1]], 8, across)
+  }
+  return { kind: part.kind, base: first.base, top, indexFirst, indexCount: m.indexCount - indexFirst }
 }
 
 /**

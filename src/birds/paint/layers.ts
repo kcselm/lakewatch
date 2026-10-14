@@ -115,24 +115,34 @@ function segmentDistance(px: number, py: number, ax: number, ay: number, bx: num
   return Math.hypot(px - ax - vx * h, py - ay - vy * h)
 }
 
-/** Overlapping feathers, tips pointing back (-X); the front-most feather covering a pixel shows. */
+/**
+ * Overlapping feathers, tips pointing back (-X); the front-most feather covering a pixel shows. With `jitter` (0 to 1),
+ * each feather moves along its row by up to half that share of the spacing and across it by up to a quarter, and grows
+ * by up to half that share or shrinks by up to a sixth (mostly growing, so moved apart they still overlap): the rows
+ * read as a bird's loose plumage rather than a ruled grid of scales.
+ */
 export function feathers(
   p: Px, L: number, W: number, edgeWidth: number, notch: { size: number; count: number } | undefined, blur: number, seed: number,
+  jitter = 0,
 ): { inside: boolean; fringe: number; notch: number } {
   const dx = L * 0.55, dy = W * 0.9
   const cj = Math.floor(p.Y / dy)
-  let bestCx = -Infinity, q = 0, bx = 0, by = 0
-  for (let j = cj - 1; j <= cj + 1; j++) {
+  let bestCx = -Infinity, q = 0, bx = 0, by = 0, bl = L, bw = W
+  // a jittered feather, moved and grown, can reach a row and a column further from its own
+  const rows = jitter > 0 ? 2 : 1
+  for (let j = cj - rows; j <= cj + rows; j++) {
     const off = (j & 1) * 0.5
     const ci = Math.floor(p.X / dx - off)
-    for (let i = ci - 1; i <= ci + 2; i++) {
-      const cx = (i + off + (hash(i, j, seed) - 0.5) * 0.15) * dx
-      const cy = (j + 0.5) * dy
-      const qq = ((p.X - cx) / (L / 2)) ** 2 + ((p.Y - cy) / (W / 2)) ** 2
-      if (qq < 1 && cx > bestCx) { bestCx = cx; q = qq; bx = cx; by = cy }
+    for (let i = ci - rows; i <= ci + rows + 1; i++) {
+      const cx = (i + off + (hash(i, j, seed) - 0.5) * (0.15 + jitter)) * dx
+      const cy = jitter > 0 ? (j + 0.5 + (hash(i, j, seed + 3) - 0.5) * jitter * 0.5) * dy : (j + 0.5) * dy
+      const k = jitter > 0 ? 1 + (hash(i, j, seed + 4) - 0.25) * (2 / 3) * jitter : 1
+      const qq = ((p.X - cx) / ((L * k) / 2)) ** 2 + ((p.Y - cy) / ((W * k) / 2)) ** 2
+      if (qq < 1 && cx > bestCx) { bestCx = cx; q = qq; bx = cx; by = cy; bl = L * k; bw = W * k }
     }
   }
   if (bestCx === -Infinity) return { inside: false, fringe: 0, notch: 0 }
+  L = bl; W = bw
   const inset = ((1 - Math.sqrt(q)) * Math.min(L, W)) / 2          // mm in from the feather's edge
   if (p.X >= bx) return { inside: true, fringe: 0, notch: 0 }      // only the rear edge shows
   const fringe = 1 - smoothstep(edgeWidth - blur / 2, edgeWidth + blur / 2, inset)
@@ -241,7 +251,7 @@ export function compileLayer(layer: Layer, f: Frame, seed: number): CompiledLaye
       const notchC = layer.notch ? hexRGB(layer.notch.color) : null
       shade = (p, out) => {
         out.alpha = 0
-        const r = feathers(p, layer.length, layer.width, layer.edgeWidth, layer.notch, blurOf(p), seed)
+        const r = feathers(p, layer.length, layer.width, layer.edgeWidth, layer.notch, blurOf(p), seed, layer.jitter ?? 0)
         if (!r.inside) return
         // composite center, fringe, and notch locally (premultiplied "over")
         let c0 = 0, c1 = 0, c2 = 0, a = 0

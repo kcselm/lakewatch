@@ -89,3 +89,19 @@ describe('compileLayer', () => {
     expect(a.some(v => v === 0)).toBe(true)
   })
 })
+
+describe('feathers', () => {
+  const rows: Layer = { kind: 'feathers', where: { part: 'wingFold' }, length: 12, width: 8, center: '#000000', edge: '#ffffff', edgeWidth: 2 }
+  /** coverage and colour over a 100 x 50 mm grid */
+  const sample = (l: Layer) => Array.from({ length: 2000 }, (_, i) => run(l, (i % 50) / 50, Math.floor(i / 50) / 40))
+  it('lies in even rows unless jittered: jitter 0 paints as none at all', () => {
+    expect(sample({ ...rows, jitter: 0 })).toEqual(sample(rows))
+  })
+  it('jittered, lies loosely: moved and sized at random, still covering the part with centres and edges', () => {
+    const even = sample(rows), loose = sample({ ...rows, jitter: 0.8 })
+    expect(loose.map(p => p.color[0])).not.toEqual(even.map(p => p.color[0]))
+    expect(loose.filter(p => p.alpha === 0).length).toBeLessThan(loose.length * 0.02)
+    expect(loose.filter(p => p.alpha > 0.99 && p.color[0] < 0.05).length).toBeGreaterThan(loose.length * 0.3)
+    expect(loose.filter(p => p.alpha > 0.99 && p.color[0] > 0.95).length).toBeGreaterThan(loose.length * 0.1)
+  })
+})
